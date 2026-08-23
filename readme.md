@@ -25,8 +25,8 @@ HowdenServicos.Poc.exe --urls http://0.0.0.0:5081   # e "OpenBrowser": false
 
 ## O fluxo
 
-1. **Custo** — mão de obra e despesas (ou suba a planilha antiga e ela se preenche sozinha).
-2. **Pricing** — risco, provisões, margem alvo e impostos → preço de venda.
-3. **Gerar Proposta** — cadastro do cliente, itens já precificados, PDF/Word e gravação no banco.
+Tudo em **uma tela** (Nova Proposta): dados do cliente e representante, margem,
+riscos e impostos, custos de mão de obra e despesas — e embaixo a proposta já
+precificada, com PDF/Word, e-mails prontos e gravação no banco.
 
 Detalhes de arquitetura e das fórmulas: [ARQUITETURA.md](ARQUITETURA.md).
