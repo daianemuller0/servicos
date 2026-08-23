@@ -278,6 +278,9 @@
         <div class="side-caption">Salva em Banco de Dados › Propostas Enviadas</div>
         <button class="btn-primary btn-block" @onclick="Imprimir">🖨 Gerar proposta (PDF)</button>
         <button class="btn-ghost btn-block" @onclick="GerarWord">📄 Gerar proposta (Word)</button>
+        <a class="btn-ghost btn-block" href="@Servicos.MailtoEnvio(P, Doc)">✉ E-mail de envio ao cliente</a>
+        <a class="btn-ghost btn-block" href="@Servicos.MailtoAprovacao(P, Doc)">✅ E-mail de aprovação (interno)</a>
+        <div class="side-caption">Os e-mails abrem já preenchidos no seu cliente de e-mail — anexe o PDF/Word gerado.</div>
     </div>
 </div>
 

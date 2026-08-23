@@ -99,6 +99,65 @@ public static class Servicos
             "Banco", "Agência", "Conta", "Preparada por:", "Revisada por:"),
     };
 
+    // ---- e-mails prontos (substituem as macros de Outlook da planilha) ----
+    // Em vez de automatizar o Outlook (que exigia o Outlook instalado), os botões
+    // abrem o cliente de e-mail padrão com destinatário, assunto e corpo prontos;
+    // basta anexar o PDF/Word gerado e enviar.
+
+    private static string Mailto(string para, string assunto, string corpo) =>
+        $"mailto:{Uri.EscapeDataString(para)}?subject={Uri.EscapeDataString(assunto)}&body={Uri.EscapeDataString(corpo)}";
+
+    /// <summary>E-mail de envio da proposta ao cliente, no idioma da proposta.</summary>
+    public static string MailtoEnvio(Proposta p, Pricing.Documento doc)
+    {
+        var cif = Simbolo(p.Moeda);
+        var total = $"{cif} {Pricing.Moeda(doc.Total)}";
+        var (assunto, corpo) = p.Idioma switch
+        {
+            "English" => (
+                $"Quote {p.Numero} - {p.Cliente}",
+                $"Dear {p.ContatoNome},\r\n\r\n" +
+                $"Please find attached our quote {p.Numero} (rev. {p.Revisao}) - {p.Referencia}.\r\n\r\n" +
+                $"Total amount (taxes included): {total}\r\n" +
+                $"Validity: {ValidadeData(p)}\r\nDelivery time: {p.PrazoEntregaDias} days\r\n\r\n" +
+                $"We remain at your disposal.\r\n\r\nBest regards,\r\n{p.PreparadaPor}"),
+            "Español" => (
+                $"Oferta {p.Numero} - {p.Cliente}",
+                $"Estimado(a) {p.ContatoNome}:\r\n\r\n" +
+                $"Adjuntamos nuestra oferta {p.Numero} (rev. {p.Revisao}) - {p.Referencia}.\r\n\r\n" +
+                $"Valor total (con impuestos): {total}\r\n" +
+                $"Validez: {ValidadeData(p)}\r\nPlazo de entrega: {p.PrazoEntregaDias} días\r\n\r\n" +
+                $"Quedamos a su disposición.\r\n\r\nSaludos cordiales,\r\n{p.PreparadaPor}"),
+            _ => (
+                $"Proposta {p.Numero} - {p.Cliente}",
+                $"Prezado(a) {p.ContatoNome},\r\n\r\n" +
+                $"Segue em anexo a nossa proposta {p.Numero} (rev. {p.Revisao}) - {p.Referencia}.\r\n\r\n" +
+                $"Valor total (com impostos): {total}\r\n" +
+                $"Validade: {ValidadeData(p)}\r\nPrazo de entrega: {p.PrazoEntregaDias} dias\r\n\r\n" +
+                $"Ficamos à disposição para qualquer esclarecimento.\r\n\r\nAtenciosamente,\r\n{p.PreparadaPor}"),
+        };
+        return Mailto(p.ContatoEmail, assunto, corpo);
+    }
+
+    /// <summary>E-mail interno de aprovação do pricing (destinatário fica a cargo de quem envia).</summary>
+    public static string MailtoAprovacao(Proposta p, Pricing.Documento doc)
+    {
+        var c = doc.Calculo;
+        var corpo =
+            $"Solicito aprovação do pricing abaixo.\r\n\r\n" +
+            $"Proposta: {p.Numero} (rev. {p.Revisao})\r\nCliente: {p.Cliente} - {p.Cidade}\r\n" +
+            $"Escopo: {p.Referencia}\r\nBU: {p.Bu}\r\n\r\n" +
+            $"Custo total: R$ {Pricing.Moeda(c.CustoTotal)}\r\n" +
+            $"Custo com riscos: R$ {Pricing.Moeda(c.CustoComRisco)}\r\n" +
+            $"Venda liquida (sem impostos): R$ {Pricing.Moeda(c.VendaLiquida)}\r\n" +
+            $"Valor com impostos: R$ {Pricing.Moeda(c.ComImpostos)}\r\n" +
+            $"Project Margin: {Pricing.Porcento(c.ProjectMargin)}\r\n" +
+            $"Contribution Margin: {Pricing.Porcento(c.ContributionMargin)}\r\n" +
+            $"Markup: {c.Markup:0.0000}\r\n\r\n" +
+            $"Preparada por: {p.PreparadaPor}";
+        return Mailto("", $"Aprovação de pricing - {p.Numero} - {p.Cliente}", corpo);
+    }
+
     /// <summary>Logo do cabeçalho: imagem enviada em Identidade Visual ou o wordmark padrão.</summary>
     public static string LogoHtml(string? logoDataUri = null)
     {

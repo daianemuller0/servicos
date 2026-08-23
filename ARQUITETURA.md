@@ -217,9 +217,11 @@ como as macros `Macro_PT_br`, `Macro_Ingles` e `Macro_ESP` faziam.
 
 ## 9. O que ficou de fora (e por quê)
 
-- **Envio de e-mail pelo Outlook** (`Módulo3_Automatização`): dependia do Outlook
-  instalado na máquina. O caminho natural aqui é gerar o Word/PDF e anexar, ou
-  configurar um SMTP — decidir com a equipe.
+- **Automação do Outlook** (`Módulo3_Automatização`): dependia do Outlook instalado
+  na máquina. Foi substituída por links `mailto` na tela Gerar Proposta — "E-mail de
+  envio ao cliente" (no idioma da proposta) e "E-mail de aprovação" (com o resumo do
+  pricing) abrem o cliente de e-mail padrão já preenchidos; anexa-se o PDF/Word gerado.
+  Se um dia a equipe quiser envio automático com anexo, o caminho é configurar um SMTP.
 - **Guias ocultas de pricing de equipamento** (MP/MO de rotor, eixo, cubo, partes
   estáticas, back-to-back, ICMS/IPI por estado): são de proposta de produto, não de
   serviço. A tabela de ICMS por estado está preservada na planilha original caso o
