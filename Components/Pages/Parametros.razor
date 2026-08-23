@@ -1,0 +1,105 @@
+@page "/servicos/parametros"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject ParametroRepository Repo
+
+<div class="page-head">
+    <div>
+        <h1>Tabela de Custos</h1>
+        <p class="subtitle">
+            Valores padrão de custo usados ao abrir uma proposta nova: custo/hora dos serviços
+            e preço unitário das despesas. É a base fixa da guia CUSTO da planilha.
+        </p>
+    </div>
+    <div class="page-actions">
+        @if (_salvo)
+        {
+            <span class="saved-flag">Salvo ✓</span>
+        }
+        <button class="btn-ghost" @onclick="@(() => Adicionar("MO"))">+ Serviço</button>
+        <button class="btn-ghost" @onclick="@(() => Adicionar("DESPESA"))">+ Despesa</button>
+    </div>
+</div>
+
+<div class="views">
+    <button class="view @(_aba == "MO" ? "active" : "")" @onclick="@(() => _aba = "MO")">Mão de obra</button>
+    <button class="view @(_aba == "DESPESA" ? "active" : "")" @onclick="@(() => _aba = "DESPESA")">Despesas</button>
+</div>
+
+<table class="grid">
+    <thead>
+        <tr>
+            <th style="width:34%">Descrição</th>
+            <th style="width:26%">Obs</th>
+            @if (_aba == "MO") { <th class="right">Horas</th> }
+            <th class="right">@(_aba == "MO" ? "Custo hora (R$)" : "Custo unitário (R$)")</th>
+            <th class="center">× técnicos</th>
+            <th class="right">Ordem</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var p in _itens.Where(x => x.Tipo == _aba))
+        {
+            <tr>
+                <td><input class="cell" @bind="p.Descricao" @bind:after="() => Salvar(p)" /></td>
+                <td><input class="cell" @bind="p.Obs" @bind:after="() => Salvar(p)" /></td>
+                @if (_aba == "MO")
+                {
+                    <td><input class="cell num" @bind="p.Horas" @bind:after="() => Salvar(p)" /></td>
+                }
+                <td><input class="cell num" @bind="p.Valor" @bind:after="() => Salvar(p)" /></td>
+                <td class="center">
+                    <select class="cell" @bind="p.PorTecnico" @bind:after="() => Salvar(p)">
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                    </select>
+                </td>
+                <td><input class="cell num" @bind="p.Ordem" @bind:after="() => Salvar(p)" /></td>
+                <td class="center"><button class="btn-link" @onclick="() => Excluir(p)">✕</button></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="side-note" style="margin-top:14px; max-width:760px">
+    Alterar a tabela não mexe nas propostas já cadastradas — ela vale para as próximas.
+    "× técnicos" indica se o item é multiplicado pela quantidade de técnicos em campo.
+</div>
+
+@code {
+    private List<Parametro> _itens = new();
+    private string _aba = "MO";
+    private bool _salvo;
+
+    protected override void OnInitialized() => _itens = Repo.All();
+
+    private void Salvar(Parametro p)
+    {
+        Repo.Save(p);
+        _salvo = true;
+    }
+
+    private void Adicionar(string tipo)
+    {
+        var novo = new Parametro
+        {
+            Id = $"{(tipo == "MO" ? "mo" : "de")}-{Guid.NewGuid():N}"[..12],
+            Tipo = tipo,
+            Descricao = "NOVO ITEM",
+            Horas = tipo == "MO" ? "8" : "",
+            Valor = "0",
+            PorTecnico = "Sim",
+            Ordem = (_itens.Count + 1).ToString("D3"),
+        };
+        Repo.Save(novo);
+        _itens = Repo.All();
+        _aba = tipo;
+    }
+
+    private void Excluir(Parametro p)
+    {
+        Repo.Delete(p.Id);
+        _itens = Repo.All();
+    }
+}

@@ -1,0 +1,100 @@
+@page "/servicos/marca"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject BrandingRepository Branding
+
+<h1>Identidade Visual</h1>
+<p class="subtitle">
+    Logo usado no cabeçalho das propostas de serviço (Word e PDF). Envie um arquivo PNG ou JPG —
+    ele fica salvo no banco e embutido no documento, sem depender de arquivo externo.
+</p>
+
+<div class="prop-grid">
+    <div class="panel">
+        <h3 class="dash-title">Enviar logo</h3>
+        <p style="font-size:13px;color:var(--muted);margin-top:0">
+            Recomendado: PNG com fundo transparente, até 1&nbsp;MB. Ideal usar o logo
+            oficial da Howden ("Howden — A Chart Industries Company").
+        </p>
+
+        <InputFile OnChange="Enviar" accept="image/png,image/jpeg" />
+
+        @if (_erro is not null)
+        {
+            <div class="alert-error" style="margin-top:12px">@_erro</div>
+        }
+        @if (_msg is not null)
+        {
+            <div class="side-ok" style="margin-top:12px">@_msg</div>
+        }
+
+        @if (_logo is not null)
+        {
+            <div style="margin-top:18px">
+                <button class="btn-ghost" @onclick="Remover">Remover logo</button>
+            </div>
+        }
+    </div>
+
+    <div class="panel">
+        <h3 class="dash-title">Pré-visualização</h3>
+        <div class="logo-preview">
+            @if (_logo is not null)
+            {
+                <img src="@_logo" alt="Logo atual" />
+            }
+            else
+            {
+                <div style="text-align:right">
+                    <div style="font-weight:bold;font-size:30px;color:#00539B;letter-spacing:.5px;line-height:1">Howden</div>
+                    <div style="font-style:italic;font-size:12px;color:#00539B;margin-top:2px">A Chart Industries Company</div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:12px">
+                        Wordmark padrão (nenhum logo enviado ainda).
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? _logo;
+    private string? _msg, _erro;
+
+    protected override void OnInitialized() => _logo = Branding.GetLogo();
+
+    private async Task Enviar(InputFileChangeEventArgs e)
+    {
+        _erro = null; _msg = null;
+        try
+        {
+            var f = e.File;
+            if (f.Size > 2 * 1024 * 1024)
+            {
+                _erro = "Arquivo muito grande (máx. 2 MB).";
+                return;
+            }
+            var tipo = string.IsNullOrWhiteSpace(f.ContentType) ? "image/png" : f.ContentType;
+
+            using var ms = new MemoryStream();
+            await f.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024).CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+            var dataUri = $"data:{tipo};base64,{base64}";
+
+            Branding.SaveLogo(dataUri);
+            _logo = dataUri;
+            _msg = "Logo salvo. As próximas propostas já sairão com ele.";
+        }
+        catch (Exception ex)
+        {
+            _erro = "Falha ao enviar o arquivo: " + ex.Message;
+        }
+    }
+
+    private void Remover()
+    {
+        Branding.ClearLogo();
+        _logo = null;
+        _msg = "Logo removido — as propostas voltam a usar o wordmark padrão.";
+    }
+}

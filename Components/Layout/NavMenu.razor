@@ -1,0 +1,56 @@
+@implements IDisposable
+@inject NavigationManager Nav
+
+<aside class="sidebar no-print">
+    <div class="brand">
+        <div class="brand-mark">H</div>
+        <div>
+            <div class="brand-name">Howden</div>
+            <div class="brand-sub">Serviços · Propostas</div>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="nav-section">Proposta</div>
+        <NavLink class="nav-item" href="/servicos/custo">
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+            <span>Custo</span>
+        </NavLink>
+        <NavLink class="nav-item" href="/servicos/pricing">
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>Pricing</span>
+        </NavLink>
+        <NavLink class="nav-item" href="/servicos/proposta">
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+            <span>Gerar Proposta</span>
+        </NavLink>
+
+        <div class="nav-section">Banco de Dados</div>
+        <NavLink class="nav-item" href="/servicos/propostas">
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>
+            <span>Propostas Enviadas</span>
+        </NavLink>
+        <NavLink class="nav-item" href="/servicos/parametros">
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+            <span>Tabela de Custos</span>
+        </NavLink>
+        <NavLink class="nav-item" href="/servicos/marca">
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <span>Identidade Visual</span>
+        </NavLink>
+        <NavLink class="nav-item" href="/servicos/faturamento">
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <span>Dados de Faturamento</span>
+        </NavLink>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="version">Serviços · beta</div>
+    </div>
+</aside>
+
+@code {
+    protected override void OnInitialized() => Nav.LocationChanged += OnChanged;
+    private void OnChanged(object? s, LocationChangedEventArgs e) => StateHasChanged();
+    public void Dispose() => Nav.LocationChanged -= OnChanged;
+}

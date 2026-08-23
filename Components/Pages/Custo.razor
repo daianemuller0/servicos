@@ -1,0 +1,200 @@
+@page "/servicos/custo"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits PaginaProposta
+@inject NavigationManager Nav
+
+<div class="page-head">
+    <div>
+        <h1>Custo</h1>
+        <p class="subtitle">
+            Mão de obra e despesas do serviço — a guia CUSTO da planilha.
+            O custo total alimenta o Pricing, e o Pricing distribui o preço nos itens da proposta.
+        </p>
+    </div>
+    <div class="page-actions">
+        <button class="btn-ghost" @onclick="Zerar">Nova proposta</button>
+        <a class="btn-primary" href="/servicos/pricing">Ir para o Pricing →</a>
+    </div>
+</div>
+
+<div class="kpis">
+    <div class="kpi k-risk">
+        <div class="kpi-label">Total mão de obra</div>
+        <div class="kpi-value">R$ @Pricing.Moeda(Calc.TotalMO)</div>
+        <div class="kpi-sub">@R.ItensMO.Count(i => Pricing.CustoMO(i, Tec) > 0) itens com valor</div>
+    </div>
+    <div class="kpi k-aten">
+        <div class="kpi-label">Total despesas</div>
+        <div class="kpi-value">R$ @Pricing.Moeda(Calc.TotalDespesas)</div>
+        <div class="kpi-sub">@R.ItensDespesa.Count(i => Pricing.CustoDespesa(i, Tec) > 0) itens com valor</div>
+    </div>
+    <div class="kpi k-ren">
+        <div class="kpi-label">Custo total</div>
+        <div class="kpi-value">R$ @Pricing.Moeda(Calc.CustoTotal)</div>
+        <div class="kpi-sub">base do pricing</div>
+    </div>
+</div>
+
+<div class="panel panel-excel">
+    <strong>Preencher a partir da planilha (.xlsm / .xlsx)</strong>
+    <p style="font-size:13px; color:var(--muted); margin:6px 0 10px">
+        Suba a ferramenta antiga de propostas de serviço: lemos o cadastro da guia PROPOSTA
+        (C5 a C17) e os itens da guia CUSTO (linhas 8–17 de mão de obra e 22–31 de despesas),
+        incluindo a quantidade de técnicos em H6.
+    </p>
+    <InputFile OnChange="SubirExcel" accept=".xlsx,.xlsm" />
+    @foreach (var a in _avisos)
+    {
+        <div class="alert-warn">@a</div>
+    }
+    @if (_msg is not null)
+    {
+        <div class="side-ok" style="margin-top:10px">@_msg</div>
+    }
+    @if (_erro is not null)
+    {
+        <div class="alert-error" style="margin-top:10px">@_erro</div>
+    }
+</div>
+
+<div class="panel" style="margin-top:16px">
+    <div class="toolbar" style="justify-content:space-between">
+        <h3 class="dash-title" style="margin:0">Mão de obra</h3>
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)">
+            Qtd. de técnicos
+            <input class="cell num" style="width:80px" @bind="R.Params.QtdTecnicos" />
+        </label>
+    </div>
+
+    <table class="grid tbl-custo">
+        <thead>
+            <tr>
+                <th class="col-desc">Serviço</th>
+                <th class="col-obs">Obs</th>
+                <th class="right col-num">Horas</th>
+                <th class="right col-num">Custo hora</th>
+                <th class="right col-num">Qtd. diária</th>
+                <th class="center col-flag">× técnicos</th>
+                <th class="right col-total">Custo total</th>
+                <th class="col-acao"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in R.ItensMO)
+            {
+                <tr>
+                    <td><input class="cell" @bind="i.Servico" /></td>
+                    <td><input class="cell" @bind="i.Obs" /></td>
+                    <td><input class="cell num" @bind="i.Horas" /></td>
+                    <td><input class="cell num" @bind="i.CustoHora" /></td>
+                    <td><input class="cell num" @bind="i.QtdDiaria" /></td>
+                    <td class="center"><input type="checkbox" @bind="i.PorTecnico" /></td>
+                    <td class="right nowrap"><strong>R$ @Pricing.Moeda(Pricing.CustoMO(i, Tec))</strong></td>
+                    <td class="center"><button class="btn-link" title="Remover" @onclick="() => R.ItensMO.Remove(i)">✕</button></td>
+                </tr>
+            }
+            <tr class="total">
+                <td colspan="6"><strong>TOTAL MO</strong></td>
+                <td class="right nowrap"><strong>R$ @Pricing.Moeda(Calc.TotalMO)</strong></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    <button class="btn-ghost" style="margin-top:10px" @onclick="() => R.ItensMO.Add(new ItemMO())">+ Adicionar serviço</button>
+</div>
+
+<div class="panel" style="margin-top:16px">
+    <h3 class="dash-title">Despesas</h3>
+    <table class="grid tbl-custo">
+        <thead>
+            <tr>
+                <th class="col-desc">Despesa</th>
+                <th class="col-obs">Obs</th>
+                <th class="right col-num">Qtd</th>
+                <th class="right col-num">Custo unitário</th>
+                <th class="center col-flag">× técnicos</th>
+                <th class="right col-total">Custo total</th>
+                <th class="col-acao"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in R.ItensDespesa)
+            {
+                <tr>
+                    <td><input class="cell" @bind="d.Despesa" /></td>
+                    <td><input class="cell" @bind="d.Obs" /></td>
+                    <td><input class="cell num" @bind="d.Qtd" /></td>
+                    <td><input class="cell num" @bind="d.CustoUnitario" /></td>
+                    <td class="center"><input type="checkbox" @bind="d.PorTecnico" /></td>
+                    <td class="right nowrap"><strong>R$ @Pricing.Moeda(Pricing.CustoDespesa(d, Tec))</strong></td>
+                    <td class="center"><button class="btn-link" title="Remover" @onclick="() => R.ItensDespesa.Remove(d)">✕</button></td>
+                </tr>
+            }
+            <tr class="total">
+                <td colspan="5"><strong>TOTAL DESPESAS</strong></td>
+                <td class="right nowrap"><strong>R$ @Pricing.Moeda(Calc.TotalDespesas)</strong></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    <button class="btn-ghost" style="margin-top:10px" @onclick="() => R.ItensDespesa.Add(new ItemDespesa())">+ Adicionar despesa</button>
+</div>
+
+<div class="summary-bar" style="margin-top:16px">
+    <strong>CUSTO TOTAL: R$ @Pricing.Moeda(Calc.CustoTotal)</strong> — mão de obra R$ @Pricing.Moeda(Calc.TotalMO)
+    + despesas R$ @Pricing.Moeda(Calc.TotalDespesas), com @Tec técnico@(Tec == 1 ? "" : "s") em campo.
+</div>
+
+@code {
+    private List<string> _avisos = new();
+    private string? _msg, _erro;
+
+    private int Tec => Math.Max(Pricing.Inteiro(R.Params.QtdTecnicos), 1);
+    private Pricing.Resultado Calc => R.Calculo();
+
+    private async Task Zerar()
+    {
+        await NovaProposta();
+        _msg = "Proposta nova — itens recarregados da tabela de custos.";
+        _erro = null;
+        _avisos = new();
+    }
+
+    private async Task SubirExcel(InputFileChangeEventArgs e)
+    {
+        _erro = null; _msg = null; _avisos = new();
+        try
+        {
+            using var ms = new MemoryStream();
+            await e.File.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024).CopyToAsync(ms);
+            ms.Position = 0;
+            var r = CustoImport.Parse(ms);
+            _avisos = r.Avisos;
+
+            if (r.MO.Count > 0) R.ItensMO = r.MO;
+            if (r.Despesas.Count > 0) R.ItensDespesa = r.Despesas;
+            R.Params.QtdTecnicos = r.QtdTecnicos;
+
+            var p = R.Proposta;
+            if (r.Proposta.Cliente != "") p.Cliente = r.Proposta.Cliente;
+            if (r.Proposta.Cidade != "") p.Cidade = r.Proposta.Cidade;
+            if (r.Proposta.ContatoNome != "") p.ContatoNome = r.Proposta.ContatoNome;
+            if (r.Proposta.ContatoEmail != "") p.ContatoEmail = r.Proposta.ContatoEmail;
+            if (r.Proposta.ContatoTelefone != "") p.ContatoTelefone = r.Proposta.ContatoTelefone;
+            if (r.Proposta.Projeto != "") p.Projeto = r.Proposta.Projeto;
+            if (r.Proposta.Referencia != "") p.Referencia = r.Proposta.Referencia;
+            if (r.Proposta.Numero != "") p.Numero = r.Proposta.Numero;
+            if (r.Proposta.PreparadaPor != "") p.PreparadaPor = r.Proposta.PreparadaPor;
+            if (r.Proposta.RevisadaPor != "") p.RevisadaPor = r.Proposta.RevisadaPor;
+            if (r.Proposta.Representante != "") p.Representante = r.Proposta.Representante;
+
+            await SalvarRascunho();
+            _msg = $"Planilha lida: {r.MO.Count} serviço(s) e {r.Despesas.Count} despesa(s) importados.";
+        }
+        catch (Exception ex)
+        {
+            _erro = "Falha ao ler a planilha: " + ex.Message;
+        }
+    }
+}

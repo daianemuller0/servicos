@@ -1,0 +1,361 @@
+@page "/servicos/proposta"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits PaginaProposta
+@inject PropostaRepository Propostas
+@inject BrandingRepository Branding
+@inject FaturamentoRepository Faturamentos
+
+<div class="no-print">
+
+<div class="page-head">
+    <div>
+        <h1>Gerar Proposta</h1>
+        <p class="subtitle">
+            Cadastro do cliente, itens precificados e o documento pronto para PDF ou Word.
+            Os valores vêm do Custo distribuído pelo Pricing — cada item recebe a sua fatia do preço.
+        </p>
+    </div>
+    <div class="page-actions">
+        <a class="btn-ghost" href="/servicos/custo">Editar custo</a>
+        <a class="btn-ghost" href="/servicos/pricing">Editar pricing</a>
+    </div>
+</div>
+
+<div class="prop-grid">
+    <div>
+        <div class="panel">
+            <h3 class="dash-title">Cliente</h3>
+            <div class="form3">
+                <label>Cliente
+                    <input class="cell" placeholder="Empresa cliente" @bind="P.Cliente" />
+                </label>
+                <label>Cidade / UF do serviço
+                    <input class="cell" placeholder="Jaguarari - BA" @bind="P.Cidade" />
+                </label>
+                <label>Estado
+                    <select class="cell" @bind="P.Estado">
+                        @foreach (var o in Servicos.Estados) { <option value="@o">@o</option> }
+                    </select>
+                </label>
+                <label>Aos cuidados de
+                    <input class="cell" @bind="P.ContatoNome" />
+                </label>
+                <label>E-mail
+                    <input class="cell" placeholder="contato@empresa.com" @bind="P.ContatoEmail" />
+                </label>
+                <label>Telefone
+                    <input class="cell" @bind="P.ContatoTelefone" />
+                </label>
+                <label>Projeto
+                    <input class="cell" @bind="P.Projeto" />
+                </label>
+                <label>Referência / escopo
+                    <input class="cell" placeholder="Suporte Engenharia de Ventilação" @bind="P.Referencia" />
+                </label>
+                <label>Representante
+                    <input class="cell" @bind="P.Representante" />
+                </label>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">Cabeçalho da proposta</h3>
+            <div class="form3">
+                <label>Número da proposta
+                    <input class="cell" placeholder="HCHLROU.AFM.000048" @bind="P.Numero" />
+                </label>
+                <label>Revisão
+                    <input class="cell" @bind="P.Revisao" />
+                </label>
+                <label>Data
+                    <input class="cell" type="date" @bind="DataProposta" />
+                </label>
+                <label>Ano
+                    <input class="cell num" @bind="P.Ano" />
+                </label>
+                <label>BU emissora
+                    <select class="cell" value="@P.Bu" @onchange="MudarBu">
+                        @foreach (var o in Servicos.Bus) { <option value="@o">@o</option> }
+                    </select>
+                </label>
+                <label>Idioma da proposta
+                    <select class="cell" @bind="P.Idioma">
+                        @foreach (var o in Servicos.Idiomas) { <option value="@o">@o</option> }
+                    </select>
+                </label>
+                <label>Moeda
+                    <select class="cell" @bind="P.Moeda">
+                        @foreach (var o in Servicos.Moedas) { <option value="@o">@o</option> }
+                    </select>
+                </label>
+                <label>Validade (dias)
+                    <input class="cell num" @bind="P.ValidadeDias" />
+                </label>
+                <label>Prazo de entrega (dias)
+                    <input class="cell num" @bind="P.PrazoEntregaDias" />
+                </label>
+                <label>Segmento (margem)
+                    <select class="cell" @bind="P.Segmento">
+                        @foreach (var o in Servicos.Segmentos) { <option value="@o">@o</option> }
+                    </select>
+                </label>
+                <label>Market segment
+                    <select class="cell" @bind="P.MarketSegment">
+                        @foreach (var o in Servicos.MarketSegments) { <option value="@o">@o</option> }
+                    </select>
+                </label>
+                <label>Venda para
+                    <select class="cell" @bind="P.VendaPara">
+                        @foreach (var o in Servicos.VendasPara) { <option value="@o">@o</option> }
+                    </select>
+                </label>
+                <label>Destino
+                    <select class="cell" @bind="P.Destino">
+                        @foreach (var o in Servicos.Destinos) { <option value="@o">@o</option> }
+                    </select>
+                </label>
+                <label>Preparada por
+                    <input class="cell" @bind="P.PreparadaPor" />
+                </label>
+                <label>Revisada por
+                    <input class="cell" @bind="P.RevisadaPor" />
+                </label>
+                <label>Situação
+                    <select class="cell" @bind="P.Status">
+                        <option value="Rascunho">Rascunho</option>
+                        <option value="Enviada">Enviada</option>
+                        <option value="Aprovada">Aprovada</option>
+                        <option value="Perdida">Perdida</option>
+                    </select>
+                </label>
+            </div>
+
+            <h3 class="dash-title" style="margin-top:18px">Contato que assina o documento</h3>
+            <div class="form3">
+                <label>Nome
+                    <input class="cell" @bind="P.AssinaNome" />
+                </label>
+                <label>Cargo
+                    <input class="cell" @bind="P.AssinaCargo" />
+                </label>
+                <label>E-mail
+                    <input class="cell" @bind="P.AssinaEmail" />
+                </label>
+                <label>Telefones
+                    <input class="cell" @bind="P.AssinaFones" />
+                </label>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">Assessoria técnica (preço distribuído)</h3>
+            @if (Doc.MO.Count == 0)
+            {
+                <p class="empty" style="padding:14px 0">Nenhum serviço com valor — lance as diárias na guia Custo.</p>
+            }
+            else
+            {
+                <table class="grid">
+                    <thead>
+                        <tr>
+                            <th>Serviço</th><th>Obs</th><th class="right">Horas</th>
+                            <th class="right">Valor hora</th><th class="right">Valor 1 diária</th>
+                            <th class="right">Qtd. diária</th><th class="right">Valor total</th>
+                            <th class="right">Partic.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var i in Doc.MO)
+                        {
+                            <tr>
+                                <td>@i.Servico</td>
+                                <td>@i.Obs</td>
+                                <td class="right">@Pricing.Moeda0(i.Horas)</td>
+                                <td class="right nowrap">@Pricing.Moeda(i.ValorHora)</td>
+                                <td class="right nowrap">@Pricing.Moeda(i.ValorDiaria)</td>
+                                <td class="right">@Pricing.Moeda0(i.QtdDiaria)</td>
+                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(i.ValorTotal)</strong></td>
+                                <td class="right">@Pricing.Porcento(i.Participacao)</td>
+                            </tr>
+                        }
+                        <tr>
+                            <td colspan="6"><strong>TOTAL ASSESSORIA C/ IMPOSTOS</strong></td>
+                            <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(Doc.TotalMO)</strong></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        @if (Doc.Despesas.Count > 0)
+        {
+            <div class="panel" style="margin-top:16px">
+                <h3 class="dash-title">Despesas (preço distribuído)</h3>
+                <table class="grid">
+                    <thead>
+                        <tr>
+                            <th>Despesa</th><th>Obs</th><th class="right">Qtd</th>
+                            <th class="right">Valor unitário</th><th class="right">Valor total</th>
+                            <th class="right">Partic.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Doc.Despesas)
+                        {
+                            <tr>
+                                <td>@d.Despesa</td>
+                                <td>@d.Obs</td>
+                                <td class="right">@Pricing.Moeda0(d.Qtd)</td>
+                                <td class="right nowrap">@Pricing.Moeda(d.ValorUnitario)</td>
+                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(d.ValorTotal)</strong></td>
+                                <td class="right">@Pricing.Porcento(d.Participacao)</td>
+                            </tr>
+                        }
+                        <tr>
+                            <td colspan="4"><strong>TOTAL DESPESAS C/ IMPOSTOS</strong></td>
+                            <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(Doc.TotalDespesas)</strong></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">Informações complementares — não incluso</h3>
+            <table class="grid">
+                <thead>
+                    <tr><th>Descrição</th><th>Obs</th><th class="right">Qtd</th><th class="right">Valor c/ PIS, COFINS e ISS</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Doc.Complementares)
+                    {
+                        <tr>
+                            <td>@c.Descricao</td>
+                            <td>@c.Obs</td>
+                            <td class="right">@Pricing.Moeda0(c.Qtd)</td>
+                            <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(c.Valor)</strong></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="prop-side">
+        <div class="side-total">
+            <div class="kpi-label" style="color:#cfe3f7">Total da proposta (c/ impostos)</div>
+            <div class="side-total-value">@Cifrao @Pricing.Moeda(Doc.Total)</div>
+        </div>
+
+        <div class="panel" style="padding:14px">
+            <div class="side-item"><span>Valor sem impostos</span><strong>@Cifrao @Pricing.Moeda(Doc.Calculo.VendaLiquida)</strong></div>
+            <div class="side-item"><span>Valor c/ PIS e COFINS</span><strong>@Cifrao @Pricing.Moeda(Doc.Calculo.ComPisCofins)</strong></div>
+            <div class="side-item"><span>Valor c/ PIS, COFINS e ISS</span><strong>@Cifrao @Pricing.Moeda(Doc.Calculo.ComImpostos)</strong></div>
+            <div class="side-item side-item-total">
+                <span>Total dos itens (@(Doc.MO.Count + Doc.Despesas.Count) itens)</span>
+                <strong>@Cifrao @Pricing.Moeda(Doc.Total)</strong>
+            </div>
+        </div>
+
+        <div class="side-note">
+            ✦ Margem do projeto: <strong>@Pricing.Porcento(Doc.Calculo.ProjectMargin)</strong> ·
+            custo R$ @Pricing.Moeda(Doc.Calculo.CustoTotal) · fator @Doc.Calculo.FatorComImpostos.ToString("0.0000")
+        </div>
+
+        @if (_erro is not null)
+        {
+            <div class="alert-error">@_erro</div>
+        }
+        @if (_msg is not null)
+        {
+            <div class="side-ok">@_msg</div>
+        }
+
+        <button class="btn-accent btn-block" @onclick="Cadastrar">🗄 Cadastrar no banco de dados</button>
+        <div class="side-caption">Salva em Banco de Dados › Propostas Enviadas</div>
+        <button class="btn-primary btn-block" @onclick="Imprimir">🖨 Gerar proposta (PDF)</button>
+        <button class="btn-ghost btn-block" @onclick="GerarWord">📄 Gerar proposta (Word)</button>
+    </div>
+</div>
+
+</div>
+
+<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, Doc, _logo, Faturamento()))</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
+
+    private string? _msg, _erro, _logo;
+    private List<BillingInfo> _faturamentos = new();
+
+    private Proposta P => R.Proposta;
+    private Pricing.Documento Doc => R.Documento();
+    private string Cifrao => Servicos.Simbolo(P.Moeda);
+
+    private DateTime DataProposta
+    {
+        get => DateTime.TryParse(P.Data, out var d) ? d : DateTime.Today;
+        set => P.Data = value.ToString("yyyy-MM-dd");
+    }
+
+    private BillingInfo Faturamento() =>
+        _faturamentos.FirstOrDefault(x => x.Id == P.Bu && !string.IsNullOrWhiteSpace(x.Razao))
+        ?? Servicos.FaturamentoPadrao(P.Bu);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _logo = Branding.GetLogo();
+        _faturamentos = Faturamentos.All();
+
+        if (!string.IsNullOrWhiteSpace(PropostaId))
+        {
+            var salva = Propostas.All().FirstOrDefault(x => x.Id == PropostaId);
+            if (salva is null) _erro = "Proposta não encontrada no banco de dados.";
+            else
+            {
+                R.Carregar(salva);
+                _msg = $"Proposta {Servicos.NumeroCompleto(salva)} carregada para edição.";
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(P.PreparadaPor)) P.PreparadaPor = Usuario;
+    }
+
+    private void MudarBu(ChangeEventArgs e)
+    {
+        P.Bu = e.Value?.ToString() ?? P.Bu;
+        R.Params.IssPct = Servicos.IssPadrao(P.Bu);
+    }
+
+    private void Cadastrar()
+    {
+        _erro = null; _msg = null;
+        if (string.IsNullOrWhiteSpace(P.Cliente)) { _erro = "Informe o cliente antes de cadastrar."; return; }
+        if (Doc.MO.Count == 0 && Doc.Despesas.Count == 0) { _erro = "A proposta não tem nenhum item com valor."; return; }
+
+        if (string.IsNullOrWhiteSpace(P.Id)) P.Id = $"prop-{Guid.NewGuid():N}"[..17];
+        if (string.IsNullOrWhiteSpace(P.Numero))
+            P.Numero = $"SRV-{P.Ano}-{Propostas.All().Count + 1:D3}";
+        if (string.IsNullOrWhiteSpace(P.CriadaEm))
+            P.CriadaEm = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        if (string.IsNullOrWhiteSpace(P.Status)) P.Status = "Rascunho";
+
+        Propostas.Save(R.ParaGravar());
+        _msg = $"Proposta {P.Numero} cadastrada no banco de dados.";
+    }
+
+    private async Task Imprimir() => await JS.InvokeVoidAsync("appPrint");
+
+    private async Task GerarWord()
+    {
+        var html = Servicos.DocHtml(P, Doc, _logo, Faturamento());
+        var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
+        var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };
+        var nome = $"{prefixo}-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.doc";
+        await JS.InvokeVoidAsync("appDownload", nome, "application/msword", b64);
+    }
+}

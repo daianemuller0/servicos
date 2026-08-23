@@ -1,0 +1,174 @@
+@page "/servicos/pricing"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits PaginaProposta
+
+<div class="page-head">
+    <div>
+        <h1>Pricing</h1>
+        <p class="subtitle">
+            Do custo ao preço de venda — a guia PRICING da planilha. O preço é montado
+            <strong>a partir da margem alvo</strong>: custo + risco, dividido por (1 − provisões − margem),
+            e depois acrescido dos impostos do serviço.
+        </p>
+    </div>
+    <div class="page-actions">
+        <a class="btn-ghost" href="/servicos/custo">← Voltar ao Custo</a>
+        <a class="btn-primary" href="/servicos/proposta">Gerar Proposta →</a>
+    </div>
+</div>
+
+<div class="kpis kpis-8">
+    <div class="kpi k-sem">
+        <div class="kpi-label">Custo total</div>
+        <div class="kpi-value">@Pricing.Moeda0(C.CustoTotal)</div>
+        <div class="kpi-sub">MO + despesas</div>
+    </div>
+    <div class="kpi k-aten">
+        <div class="kpi-label">Custo c/ risco</div>
+        <div class="kpi-value">@Pricing.Moeda0(C.CustoComRisco)</div>
+        <div class="kpi-sub">+ @Pricing.Moeda0(C.Risco)</div>
+    </div>
+    <div class="kpi k-risk">
+        <div class="kpi-label">Venda líquida</div>
+        <div class="kpi-value">@Pricing.Moeda0(C.VendaLiquida)</div>
+        <div class="kpi-sub">sem impostos</div>
+    </div>
+    <div class="kpi k-po">
+        <div class="kpi-label">C/ PIS e COFINS</div>
+        <div class="kpi-value">@Pricing.Moeda0(C.ComPisCofins)</div>
+        <div class="kpi-sub">fator @C.FatorPisCofins.ToString("0.0000")</div>
+    </div>
+    <div class="kpi k-ren">
+        <div class="kpi-label">C/ PIS, COFINS e ISS</div>
+        <div class="kpi-value">@Pricing.Moeda0(C.ComImpostos)</div>
+        <div class="kpi-sub">preço de venda</div>
+    </div>
+    <div class="kpi k-plan">
+        <div class="kpi-label">Project Margin</div>
+        <div class="kpi-value">@Pricing.Porcento(C.ProjectMargin)</div>
+        <div class="kpi-sub">alvo @R.Params.MargemAlvoPct%</div>
+    </div>
+    <div class="kpi k-urg">
+        <div class="kpi-label">Contribution Margin</div>
+        <div class="kpi-value">@Pricing.Porcento(C.ContributionMargin)</div>
+        <div class="kpi-sub">sem comissões</div>
+    </div>
+    <div class="kpi k-venc">
+        <div class="kpi-label">Markup</div>
+        <div class="kpi-value">@C.Markup.ToString("0.0000")</div>
+        <div class="kpi-sub">sobre custo c/ risco</div>
+    </div>
+</div>
+
+<div class="prop-grid">
+    <div>
+        <div class="panel">
+            <h3 class="dash-title">Riscos e provisões (% sobre a venda líquida)</h3>
+            <div class="form3">
+                <label>Risco de variação (%)
+                    <input class="cell num" @bind="R.Params.RiscoPct" />
+                </label>
+                <label>Comissões (%)
+                    <input class="cell num" @bind="R.Params.ComissoesPct" />
+                </label>
+                <label>Margem de negociação (%)
+                    <input class="cell num" @bind="R.Params.MargemNegociacaoPct" />
+                </label>
+                <label>PM + SACH (%)
+                    <input class="cell num" @bind="R.Params.PmSachPct" />
+                </label>
+                <label>Garantia do projeto (%)
+                    <input class="cell num" @bind="R.Params.GarantiaProjetoPct" />
+                </label>
+                <label>Portal (%)
+                    <input class="cell num" @bind="R.Params.PortalPct" />
+                </label>
+                <label>Seguro garantia / fiança (R$)
+                    <input class="cell num" @bind="R.Params.Fianca" />
+                </label>
+                <label>Margem alvo — Project Margin (%)
+                    <input class="cell num" @bind="R.Params.MargemAlvoPct" />
+                </label>
+                <label>Qtd. de técnicos
+                    <input class="cell num" @bind="R.Params.QtdTecnicos" />
+                </label>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">Impostos do serviço</h3>
+            <div class="form3">
+                <label>PIS (%)
+                    <input class="cell num" @bind="R.Params.PisPct" />
+                </label>
+                <label>COFINS (%)
+                    <input class="cell num" @bind="R.Params.CofinsPct" />
+                </label>
+                <label>ISS (%)
+                    <input class="cell num" @bind="R.Params.IssPct" />
+                </label>
+            </div>
+            <div class="side-note" style="margin-top:12px">
+                Serviço não tem ICMS nem IPI. O ISS padrão é 2% (Itatiba — HSA-SP) ou 5% (Serra — HSA-ES);
+                quando o serviço é prestado em outro município, some as duas alíquotas (7%), como a planilha faz.
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">Composição do preço</h3>
+            <table class="grid">
+                <thead>
+                    <tr><th>Etapa</th><th class="right">%</th><th class="right">Valor (R$)</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Custo total (MO + despesas)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(C.CustoTotal)</td></tr>
+                    <tr><td>Risco de variação</td><td class="right">@R.Params.RiscoPct%</td><td class="right nowrap">@Pricing.Moeda(C.Risco)</td></tr>
+                    <tr><td><strong>Custo total com riscos</strong></td><td class="right">—</td><td class="right nowrap"><strong>@Pricing.Moeda(C.CustoComRisco)</strong></td></tr>
+                    <tr><td>Seguro garantia / fiança</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(C.Fianca)</td></tr>
+                    <tr><td>Comissões</td><td class="right">@R.Params.ComissoesPct%</td><td class="right nowrap">@Pricing.Moeda(C.Comissoes)</td></tr>
+                    <tr><td>Margem de negociação</td><td class="right">@R.Params.MargemNegociacaoPct%</td><td class="right nowrap">@Pricing.Moeda(C.MargemNegociacao)</td></tr>
+                    <tr><td>PM + SACH</td><td class="right">@R.Params.PmSachPct%</td><td class="right nowrap">@Pricing.Moeda(C.PmSach)</td></tr>
+                    <tr><td>Garantia do projeto</td><td class="right">@R.Params.GarantiaProjetoPct%</td><td class="right nowrap">@Pricing.Moeda(C.GarantiaProjeto)</td></tr>
+                    <tr><td>Portal</td><td class="right">@R.Params.PortalPct%</td><td class="right nowrap">@Pricing.Moeda(C.Portal)</td></tr>
+                    <tr><td><strong>VENDA LÍQUIDA (sem impostos)</strong></td><td class="right">margem @Pricing.Porcento(C.ProjectMargin)</td><td class="right nowrap"><strong>@Pricing.Moeda(C.VendaLiquida)</strong></td></tr>
+                    <tr><td>PIS</td><td class="right">@R.Params.PisPct%</td><td class="right nowrap">@Pricing.Moeda(C.Pis)</td></tr>
+                    <tr><td>COFINS</td><td class="right">@R.Params.CofinsPct%</td><td class="right nowrap">@Pricing.Moeda(C.Cofins)</td></tr>
+                    <tr><td>ISS</td><td class="right">@R.Params.IssPct%</td><td class="right nowrap">@Pricing.Moeda(C.Iss)</td></tr>
+                    <tr><td><strong>VALOR COM IMPOSTOS</strong></td><td class="right">fator @C.FatorComImpostos.ToString("0.0000")</td><td class="right nowrap"><strong>@Pricing.Moeda(C.ComImpostos)</strong></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="prop-side">
+        <div class="side-total">
+            <div class="kpi-label" style="color:#cfe3f7">Preço de venda (c/ impostos)</div>
+            <div class="side-total-value">R$ @Pricing.Moeda(C.ComImpostos)</div>
+        </div>
+
+        <div class="panel" style="padding:14px">
+            <div class="side-item"><span>Custo total</span><strong>R$ @Pricing.Moeda(C.CustoTotal)</strong></div>
+            <div class="side-item"><span>Venda líquida</span><strong>R$ @Pricing.Moeda(C.VendaLiquida)</strong></div>
+            <div class="side-item"><span>C/ PIS e COFINS</span><strong>R$ @Pricing.Moeda(C.ComPisCofins)</strong></div>
+            <div class="side-item side-item-total"><span>C/ PIS, COFINS e ISS</span><strong>R$ @Pricing.Moeda(C.ComImpostos)</strong></div>
+        </div>
+
+        <div class="panel" style="padding:14px">
+            <div class="side-item"><span>Fator líquido</span><strong>@C.FatorLiquido.ToString("0.0000")</strong></div>
+            <div class="side-item"><span>Fator c/ PIS e COFINS</span><strong>@C.FatorPisCofins.ToString("0.0000")</strong></div>
+            <div class="side-item"><span>Fator c/ todos os impostos</span><strong>@C.FatorComImpostos.ToString("0.0000")</strong></div>
+        </div>
+
+        @if (C.CustoTotal <= 0)
+        {
+            <div class="alert-warn">Sem custo lançado — preencha a guia Custo primeiro.</div>
+        }
+
+        <a class="btn-accent btn-block" href="/servicos/proposta">Gerar Proposta →</a>
+    </div>
+</div>
+
+@code {
+    private Pricing.Resultado C => R.Calculo();
+}
