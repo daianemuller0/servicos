@@ -1,4 +1,6 @@
 @page "/servicos/proposta"
+@page "/servicos/custo"
+@page "/servicos/pricing"
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inherits PaginaProposta
@@ -10,22 +12,22 @@
 
 <div class="page-head">
     <div>
-        <h1>Gerar Proposta</h1>
+        <h1>Nova Proposta</h1>
         <p class="subtitle">
-            Cadastro do cliente, itens precificados e o documento pronto para PDF ou Word.
-            Os valores vêm do Custo distribuído pelo Pricing — cada item recebe a sua fatia do preço.
+            Tudo em uma tela: dados do cliente, margem, custos e a proposta pronta —
+            o mesmo caminho da planilha, sem trocar de guia.
         </p>
     </div>
     <div class="page-actions">
-        <a class="btn-ghost" href="/servicos/custo">Editar custo</a>
-        <a class="btn-ghost" href="/servicos/pricing">Editar pricing</a>
+        <button class="btn-ghost" @onclick="Zerar">Nova proposta</button>
     </div>
 </div>
 
 <div class="prop-grid">
     <div>
+        @* ================== 1. DADOS DO CLIENTE E DA PROPOSTA ================== *@
         <div class="panel">
-            <h3 class="dash-title">Cliente</h3>
+            <h3 class="dash-title">1 · Dados do cliente e da proposta</h3>
             <div class="form3">
                 <label>Cliente
                     <input class="cell" placeholder="Empresa cliente" @bind="P.Cliente" />
@@ -56,23 +58,14 @@
                 <label>Representante
                     <input class="cell" @bind="P.Representante" />
                 </label>
-            </div>
-        </div>
-
-        <div class="panel" style="margin-top:16px">
-            <h3 class="dash-title">Cabeçalho da proposta</h3>
-            <div class="form3">
                 <label>Número da proposta
-                    <input class="cell" placeholder="HCHLROU.AFM.000048" @bind="P.Numero" />
+                    <input class="cell" placeholder="Gera sozinho se ficar vazio" @bind="P.Numero" />
                 </label>
                 <label>Revisão
                     <input class="cell" @bind="P.Revisao" />
                 </label>
                 <label>Data
                     <input class="cell" type="date" @bind="DataProposta" />
-                </label>
-                <label>Ano
-                    <input class="cell num" @bind="P.Ano" />
                 </label>
                 <label>BU emissora
                     <select class="cell" value="@P.Bu" @onchange="MudarBu">
@@ -148,102 +141,241 @@
             </div>
         </div>
 
+        @* ================== 2. MARGEM, RISCOS E IMPOSTOS ================== *@
         <div class="panel" style="margin-top:16px">
-            <h3 class="dash-title">Assessoria técnica (preço distribuído)</h3>
-            @if (Doc.MO.Count == 0)
-            {
-                <p class="empty" style="padding:14px 0">Nenhum serviço com valor — lance as diárias na guia Custo.</p>
-            }
-            else
-            {
-                <table class="grid">
-                    <thead>
-                        <tr>
-                            <th>Serviço</th><th>Obs</th><th class="right">Horas</th>
-                            <th class="right">Valor hora</th><th class="right">Valor 1 diária</th>
-                            <th class="right">Qtd. diária</th><th class="right">Valor total</th>
-                            <th class="right">Partic.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var i in Doc.MO)
-                        {
-                            <tr>
-                                <td>@i.Servico</td>
-                                <td>@i.Obs</td>
-                                <td class="right">@Pricing.Moeda0(i.Horas)</td>
-                                <td class="right nowrap">@Pricing.Moeda(i.ValorHora)</td>
-                                <td class="right nowrap">@Pricing.Moeda(i.ValorDiaria)</td>
-                                <td class="right">@Pricing.Moeda0(i.QtdDiaria)</td>
-                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(i.ValorTotal)</strong></td>
-                                <td class="right">@Pricing.Porcento(i.Participacao)</td>
-                            </tr>
-                        }
-                        <tr>
-                            <td colspan="6"><strong>TOTAL ASSESSORIA C/ IMPOSTOS</strong></td>
-                            <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(Doc.TotalMO)</strong></td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-            }
+            <h3 class="dash-title">2 · Margem, riscos e impostos</h3>
+            <div class="form3">
+                <label>Margem alvo — Project Margin (%)
+                    <input class="cell num" @bind="R.Params.MargemAlvoPct" />
+                </label>
+                <label>Risco de variação (%)
+                    <input class="cell num" @bind="R.Params.RiscoPct" />
+                </label>
+                <label>Comissões (%)
+                    <input class="cell num" @bind="R.Params.ComissoesPct" />
+                </label>
+                <label>Margem de negociação (%)
+                    <input class="cell num" @bind="R.Params.MargemNegociacaoPct" />
+                </label>
+                <label>PM + SACH (%)
+                    <input class="cell num" @bind="R.Params.PmSachPct" />
+                </label>
+                <label>Garantia do projeto (%)
+                    <input class="cell num" @bind="R.Params.GarantiaProjetoPct" />
+                </label>
+                <label>Portal (%)
+                    <input class="cell num" @bind="R.Params.PortalPct" />
+                </label>
+                <label>Seguro garantia / fiança (R$)
+                    <input class="cell num" @bind="R.Params.Fianca" />
+                </label>
+                <label>PIS (%)
+                    <input class="cell num" @bind="R.Params.PisPct" />
+                </label>
+                <label>COFINS (%)
+                    <input class="cell num" @bind="R.Params.CofinsPct" />
+                </label>
+                <label>ISS (%)
+                    <input class="cell num" @bind="R.Params.IssPct" />
+                </label>
+                <label>Qtd. de técnicos
+                    <input class="cell num" @bind="R.Params.QtdTecnicos" />
+                </label>
+            </div>
+            <div class="side-note" style="margin-top:12px">
+                O preço é montado a partir da margem alvo: custo + risco, dividido por
+                (1 − provisões − margem), e depois acrescido de PIS, COFINS e ISS.
+                ISS padrão: 2% (Itatiba — HSA-SP) ou 5% (Serra — HSA-ES); em outro município, 7%.
+            </div>
         </div>
 
-        @if (Doc.Despesas.Count > 0)
-        {
-            <div class="panel" style="margin-top:16px">
-                <h3 class="dash-title">Despesas (preço distribuído)</h3>
-                <table class="grid">
-                    <thead>
-                        <tr>
-                            <th>Despesa</th><th>Obs</th><th class="right">Qtd</th>
-                            <th class="right">Valor unitário</th><th class="right">Valor total</th>
-                            <th class="right">Partic.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var d in Doc.Despesas)
-                        {
-                            <tr>
-                                <td>@d.Despesa</td>
-                                <td>@d.Obs</td>
-                                <td class="right">@Pricing.Moeda0(d.Qtd)</td>
-                                <td class="right nowrap">@Pricing.Moeda(d.ValorUnitario)</td>
-                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(d.ValorTotal)</strong></td>
-                                <td class="right">@Pricing.Porcento(d.Participacao)</td>
-                            </tr>
-                        }
-                        <tr>
-                            <td colspan="4"><strong>TOTAL DESPESAS C/ IMPOSTOS</strong></td>
-                            <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(Doc.TotalDespesas)</strong></td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        }
-
+        @* ================== 3. CUSTOS: MÃO DE OBRA ================== *@
         <div class="panel" style="margin-top:16px">
-            <h3 class="dash-title">Informações complementares — não incluso</h3>
-            <table class="grid">
+            <h3 class="dash-title">3 · Custo — mão de obra</h3>
+            <table class="grid tbl-custo">
                 <thead>
-                    <tr><th>Descrição</th><th>Obs</th><th class="right">Qtd</th><th class="right">Valor c/ PIS, COFINS e ISS</th></tr>
+                    <tr>
+                        <th class="col-desc">Serviço</th>
+                        <th class="col-obs">Obs</th>
+                        <th class="right col-num">Horas</th>
+                        <th class="right col-num">Custo hora</th>
+                        <th class="right col-num">Qtd. diária</th>
+                        <th class="center col-flag">× técnicos</th>
+                        <th class="right col-total">Custo total</th>
+                        <th class="col-acao"></th>
+                    </tr>
                 </thead>
                 <tbody>
-                    @foreach (var c in Doc.Complementares)
+                    @foreach (var i in R.ItensMO)
                     {
                         <tr>
-                            <td>@c.Descricao</td>
-                            <td>@c.Obs</td>
-                            <td class="right">@Pricing.Moeda0(c.Qtd)</td>
-                            <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(c.Valor)</strong></td>
+                            <td><input class="cell" @bind="i.Servico" /></td>
+                            <td><input class="cell" @bind="i.Obs" /></td>
+                            <td><input class="cell num" @bind="i.Horas" /></td>
+                            <td><input class="cell num" @bind="i.CustoHora" /></td>
+                            <td><input class="cell num" @bind="i.QtdDiaria" /></td>
+                            <td class="center"><input type="checkbox" @bind="i.PorTecnico" /></td>
+                            <td class="right nowrap"><strong>R$ @Pricing.Moeda(Pricing.CustoMO(i, Tec))</strong></td>
+                            <td class="center"><button class="btn-link" title="Remover" @onclick="() => R.ItensMO.Remove(i)">✕</button></td>
                         </tr>
                     }
+                    <tr class="total">
+                        <td colspan="6"><strong>TOTAL MO</strong></td>
+                        <td class="right nowrap"><strong>R$ @Pricing.Moeda(Calc.TotalMO)</strong></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="btn-ghost" style="margin-top:10px" @onclick="() => R.ItensMO.Add(new ItemMO())">+ Adicionar serviço</button>
+        </div>
+
+        @* ================== 4. CUSTOS: DESPESAS ================== *@
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">4 · Custo — despesas</h3>
+            <table class="grid tbl-custo">
+                <thead>
+                    <tr>
+                        <th class="col-desc">Despesa</th>
+                        <th class="col-obs">Obs</th>
+                        <th class="right col-num">Qtd</th>
+                        <th class="right col-num">Custo unitário</th>
+                        <th class="center col-flag">× técnicos</th>
+                        <th class="right col-total">Custo total</th>
+                        <th class="col-acao"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in R.ItensDespesa)
+                    {
+                        <tr>
+                            <td><input class="cell" @bind="d.Despesa" /></td>
+                            <td><input class="cell" @bind="d.Obs" /></td>
+                            <td><input class="cell num" @bind="d.Qtd" /></td>
+                            <td><input class="cell num" @bind="d.CustoUnitario" /></td>
+                            <td class="center"><input type="checkbox" @bind="d.PorTecnico" /></td>
+                            <td class="right nowrap"><strong>R$ @Pricing.Moeda(Pricing.CustoDespesa(d, Tec))</strong></td>
+                            <td class="center"><button class="btn-link" title="Remover" @onclick="() => R.ItensDespesa.Remove(d)">✕</button></td>
+                        </tr>
+                    }
+                    <tr class="total">
+                        <td colspan="5"><strong>TOTAL DESPESAS</strong></td>
+                        <td class="right nowrap"><strong>R$ @Pricing.Moeda(Calc.TotalDespesas)</strong></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="btn-ghost" style="margin-top:10px" @onclick="() => R.ItensDespesa.Add(new ItemDespesa())">+ Adicionar despesa</button>
+        </div>
+
+        @* ================== 5. COMPOSIÇÃO DO PREÇO ================== *@
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">5 · Do custo ao preço</h3>
+            <table class="grid">
+                <thead>
+                    <tr><th>Etapa</th><th class="right">%</th><th class="right">Valor (R$)</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Custo total (MO + despesas)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.CustoTotal)</td></tr>
+                    <tr><td>Risco de variação</td><td class="right">@R.Params.RiscoPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.Risco)</td></tr>
+                    <tr><td>Seguro garantia / fiança</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Fianca)</td></tr>
+                    <tr><td>Comissões + provisões</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Comissoes + Calc.MargemNegociacao + Calc.PmSach + Calc.GarantiaProjeto + Calc.Portal)</td></tr>
+                    <tr><td><strong>VENDA LÍQUIDA (sem impostos)</strong></td><td class="right">margem @Pricing.Porcento(Calc.ProjectMargin)</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.VendaLiquida)</strong></td></tr>
+                    <tr><td>PIS + COFINS + ISS</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Pis + Calc.Cofins + Calc.Iss)</td></tr>
+                    <tr><td><strong>PREÇO DE VENDA (com impostos)</strong></td><td class="right">fator @Calc.FatorComImpostos.ToString("0.0000")</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.ComImpostos)</strong></td></tr>
                 </tbody>
             </table>
         </div>
+
+        @* ================== 6. A PROPOSTA (itens precificados) ================== *@
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">6 · A proposta — itens com preço distribuído</h3>
+            @if (Doc.MO.Count == 0 && Doc.Despesas.Count == 0)
+            {
+                <p class="empty" style="padding:14px 0">Nenhum item com valor — lance as diárias e despesas nas seções 3 e 4.</p>
+            }
+            else
+            {
+                @if (Doc.MO.Count > 0)
+                {
+                    <table class="grid">
+                        <thead>
+                            <tr>
+                                <th>Serviço</th><th>Obs</th><th class="right">Horas</th>
+                                <th class="right">Valor hora</th><th class="right">Valor 1 diária</th>
+                                <th class="right">Qtd. diária</th><th class="right">Valor total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var i in Doc.MO)
+                            {
+                                <tr>
+                                    <td>@i.Servico</td>
+                                    <td>@i.Obs</td>
+                                    <td class="right">@Pricing.Moeda0(i.Horas)</td>
+                                    <td class="right nowrap">@Pricing.Moeda(i.ValorHora)</td>
+                                    <td class="right nowrap">@Pricing.Moeda(i.ValorDiaria)</td>
+                                    <td class="right">@Pricing.Moeda0(i.QtdDiaria)</td>
+                                    <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(i.ValorTotal)</strong></td>
+                                </tr>
+                            }
+                            <tr>
+                                <td colspan="6"><strong>TOTAL ASSESSORIA C/ IMPOSTOS</strong></td>
+                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(Doc.TotalMO)</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                }
+
+                @if (Doc.Despesas.Count > 0)
+                {
+                    <table class="grid" style="margin-top:12px">
+                        <thead>
+                            <tr>
+                                <th>Despesa</th><th>Obs</th><th class="right">Qtd</th>
+                                <th class="right">Valor unitário</th><th class="right">Valor total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var d in Doc.Despesas)
+                            {
+                                <tr>
+                                    <td>@d.Despesa</td>
+                                    <td>@d.Obs</td>
+                                    <td class="right">@Pricing.Moeda0(d.Qtd)</td>
+                                    <td class="right nowrap">@Pricing.Moeda(d.ValorUnitario)</td>
+                                    <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(d.ValorTotal)</strong></td>
+                                </tr>
+                            }
+                            <tr>
+                                <td colspan="4"><strong>TOTAL DESPESAS C/ IMPOSTOS</strong></td>
+                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(Doc.TotalDespesas)</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                }
+
+                <h3 class="dash-title" style="margin-top:16px">Informações complementares — não incluso</h3>
+                <table class="grid">
+                    <thead>
+                        <tr><th>Descrição</th><th>Obs</th><th class="right">Qtd</th><th class="right">Valor c/ PIS, COFINS e ISS</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Doc.Complementares)
+                        {
+                            <tr>
+                                <td>@c.Descricao</td>
+                                <td>@c.Obs</td>
+                                <td class="right">@Pricing.Moeda0(c.Qtd)</td>
+                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(c.Valor)</strong></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
     </div>
 
+    @* ================== RESUMO LATERAL (sempre visível) ================== *@
     <div class="prop-side">
         <div class="side-total">
             <div class="kpi-label" style="color:#cfe3f7">Total da proposta (c/ impostos)</div>
@@ -251,18 +383,15 @@
         </div>
 
         <div class="panel" style="padding:14px">
-            <div class="side-item"><span>Valor sem impostos</span><strong>@Cifrao @Pricing.Moeda(Doc.Calculo.VendaLiquida)</strong></div>
-            <div class="side-item"><span>Valor c/ PIS e COFINS</span><strong>@Cifrao @Pricing.Moeda(Doc.Calculo.ComPisCofins)</strong></div>
-            <div class="side-item"><span>Valor c/ PIS, COFINS e ISS</span><strong>@Cifrao @Pricing.Moeda(Doc.Calculo.ComImpostos)</strong></div>
-            <div class="side-item side-item-total">
-                <span>Total dos itens (@(Doc.MO.Count + Doc.Despesas.Count) itens)</span>
-                <strong>@Cifrao @Pricing.Moeda(Doc.Total)</strong>
-            </div>
+            <div class="side-item"><span>Custo total</span><strong>R$ @Pricing.Moeda(Calc.CustoTotal)</strong></div>
+            <div class="side-item"><span>Valor sem impostos</span><strong>@Cifrao @Pricing.Moeda(Calc.VendaLiquida)</strong></div>
+            <div class="side-item"><span>Valor c/ PIS e COFINS</span><strong>@Cifrao @Pricing.Moeda(Calc.ComPisCofins)</strong></div>
+            <div class="side-item side-item-total"><span>Valor c/ PIS, COFINS e ISS</span><strong>@Cifrao @Pricing.Moeda(Calc.ComImpostos)</strong></div>
         </div>
 
         <div class="side-note">
-            ✦ Margem do projeto: <strong>@Pricing.Porcento(Doc.Calculo.ProjectMargin)</strong> ·
-            custo R$ @Pricing.Moeda(Doc.Calculo.CustoTotal) · fator @Doc.Calculo.FatorComImpostos.ToString("0.0000")
+            ✦ Margem do projeto: <strong>@Pricing.Porcento(Calc.ProjectMargin)</strong> ·
+            markup @Calc.Markup.ToString("0.0000") · fator @Calc.FatorComImpostos.ToString("0.0000")
         </div>
 
         @if (_erro is not null)
@@ -296,7 +425,9 @@
 
     private Proposta P => R.Proposta;
     private Pricing.Documento Doc => R.Documento();
+    private Pricing.Resultado Calc => R.Calculo();
     private string Cifrao => Servicos.Simbolo(P.Moeda);
+    private int Tec => Math.Max(Pricing.Inteiro(R.Params.QtdTecnicos), 1);
 
     private DateTime DataProposta
     {
@@ -324,7 +455,13 @@
                 _msg = $"Proposta {Servicos.NumeroCompleto(salva)} carregada para edição.";
             }
         }
+    }
 
+    private async Task Zerar()
+    {
+        await NovaProposta();
+        _msg = "Proposta nova — itens recarregados da Tabela de Custos.";
+        _erro = null;
         if (string.IsNullOrWhiteSpace(P.PreparadaPor)) P.PreparadaPor = Usuario;
     }
 
