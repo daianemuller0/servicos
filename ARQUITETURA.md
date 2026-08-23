@@ -21,7 +21,8 @@ com o resumo e os botões (cadastrar, PDF, Word, e-mails) fixos na lateral.
 
 | Planilha | Aplicação |
 |---|---|
-| Guias **CUSTO** + **PRICING** + **PROPOSTA** | `/servicos/proposta` (seções 1–6) |
+| Guia **PROPOSTA** (preencher no documento) | `/servicos/documento` — aba "Proposta" |
+| Guias **CUSTO** + **PRICING** (detalhes) | `/servicos/proposta` — aba "Pricing e Custos" |
 | Guia **listas** (valores fixos) | `/servicos/parametros` (Tabela de Custos) |
 | Cabeçalho/logo do documento | `/servicos/marca` (Identidade Visual) |
 | Bloco de faturamento | `/servicos/faturamento` |
@@ -203,7 +204,8 @@ O botão **Nova proposta** limpa e recarrega os itens padrão da Tabela de Custo
 
 | Rota | Página | O que faz |
 |---|---|---|
-| `/` | Home | Redireciona para `/servicos/proposta` |
+| `/` | Home | Redireciona para `/servicos/documento` |
+| `/servicos/documento` | Proposta | O documento comercial editável: preenche-se cliente, contato e quantidades direto na proposta; custos internos ajustáveis em colunas que não saem no PDF/Word |
 | `/login` | Login | Formulário que posta em `/auth/login` |
 | `/servicos/proposta` | Nova Proposta | A tela única: cadastro, margem, custos, composição do preço, itens precificados, PDF/Word e gravação (`/servicos/custo` e `/servicos/pricing` são apelidos da mesma página) |
 | `/servicos/propostas` | Propostas Enviadas | Lista, busca, reabre e exporta CSV |

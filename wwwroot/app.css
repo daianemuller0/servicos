@@ -499,3 +499,40 @@ h1 { font-size: 24px; margin: 0 0 4px; color: var(--primary); letter-spacing: -.
 .tbl-custo tfoot td, .tbl-custo tr.total td {
     background: #f7f9fc; font-weight: 600; color: var(--primary);
 }
+
+/* ---- aba Proposta: documento editável ---- */
+.paper {
+    background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 42px 48px; max-width: 1080px;
+    font-family: Arial, sans-serif; color: #3C465A; font-size: 13px;
+}
+.paper h2 { font-size: 15px; color: #141E32; margin: 22px 0 8px; }
+.de {
+    border: none; border-bottom: 1px dashed transparent; background: #f8fafc;
+    font: inherit; color: inherit; padding: 3px 6px; border-radius: 4px;
+    transition: background .15s, border-color .15s; min-width: 40px;
+}
+.de:hover { background: #eef4fb; }
+.de:focus { outline: none; background: #fff; border-bottom-color: var(--secondary); }
+.de.num { text-align: right; }
+.de.qtd { width: 64px; text-align: center; font-weight: 700; background: #fff7d6; }
+.de.qtd:hover { background: #fdeeb0; }
+.paper .doc-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.paper .doc-tbl th { background: #004785; color: #fff; padding: 7px 9px; text-align: left; font-size: 11px; }
+.paper .doc-tbl td { border: 1px solid #d5dae4; padding: 5px 8px; }
+.paper .doc-tbl .right { text-align: right; }
+.paper .doc-tbl .center { text-align: center; }
+.paper .doc-tbl tr.zero td { opacity: .45; }
+.paper .doc-tbl tr.total-row td { background: #f2f6fb; font-weight: 700; color: #141E32; }
+.doc-bluebox { background: #004785; color: #fff; }
+.doc-bluebox td { padding: 8px 14px; font-size: 12px; border-bottom: 2px solid #fff; }
+.doc-bluebox .de { background: rgba(255,255,255,.14); color: #fff; }
+.doc-bluebox .de:focus { background: rgba(255,255,255,.28); color: #fff; }
+.doc-total { background: #004785; color: #fff; font-weight: 700; padding: 10px 16px; }
+.doc-hr { border: none; border-top: 3px solid #004785; margin: 18px 0 14px; }
+.doc-muted { color: #6E7890; }
+.doc-navy { color: #141E32; font-weight: 700; }
+
+/* colunas internas do documento (custo) — visíveis só na tela */
+.paper .doc-tbl th.doc-interno { background: #46648c; font-style: italic; }
+.paper .doc-tbl td.doc-interno { background: #f6f8fb; }

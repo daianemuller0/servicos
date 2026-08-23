@@ -11,7 +11,7 @@
     </div>
     <div class="page-actions">
         <a class="btn-ghost" href="/servicos/propostas/export">Exportar CSV</a>
-        <a class="btn-primary" href="/servicos/custo">Nova proposta</a>
+        <a class="btn-primary" href="/servicos/documento">Nova proposta</a>
     </div>
 </div>
 
@@ -92,7 +92,7 @@
         _ => "st-plan",
     };
 
-    private void Abrir(Proposta p) => Nav.NavigateTo($"/servicos/proposta?id={p.Id}");
+    private void Abrir(Proposta p) => Nav.NavigateTo($"/servicos/documento?id={p.Id}");
 
     private void Excluir(Proposta p)
     {

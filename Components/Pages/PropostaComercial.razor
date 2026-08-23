@@ -1,0 +1,394 @@
+@page "/servicos/documento"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inherits PaginaProposta
+@inject PropostaRepository Propostas
+@inject BrandingRepository Branding
+@inject FaturamentoRepository Faturamentos
+@inject RepresentanteRepository Representantes
+
+<div class="no-print">
+
+<div class="page-head">
+    <div>
+        <h1>Proposta</h1>
+        <p class="subtitle">
+            Preencha direto no documento: empresa, contato e as quantidades (campos amarelos).
+            Os valores saem calculados na hora. Margem, comissões e custos finos ficam em
+            <a href="/servicos/proposta">Pricing e Custos</a> — tudo sincronizado.
+        </p>
+    </div>
+    <div class="page-actions">
+        @if (_erro is not null)
+        {
+            <span class="alert-error" style="margin:0">@_erro</span>
+        }
+        @if (_msg is not null)
+        {
+            <span class="saved-flag">@_msg</span>
+        }
+        <button class="btn-ghost" @onclick="Zerar">Nova proposta</button>
+        <button class="btn-accent" @onclick="Cadastrar">🗄 Cadastrar</button>
+        <button class="btn-primary" @onclick="Imprimir">🖨 PDF</button>
+        <button class="btn-ghost" @onclick="GerarWord">📄 Word</button>
+    </div>
+</div>
+
+<div class="paper">
+    @* ---------- cabeçalho ---------- *@
+    <table style="width:100%; border-collapse:collapse">
+        <tr>
+            <td style="vertical-align:top">
+                <div style="font-weight:bold; font-size:17px; color:#141E32">Howden South America</div>
+                <div style="margin-top:10px">
+                    <input class="de" style="font-weight:bold; width:220px" placeholder="Quem assina (nome)" @bind="P.AssinaNome" /><br />
+                    <input class="de" style="width:220px" placeholder="Cargo" @bind="P.AssinaCargo" /><br />
+                    <input class="de" style="width:220px" placeholder="E-mail" @bind="P.AssinaEmail" /><br />
+                    <input class="de" style="width:220px" placeholder="Telefones" @bind="P.AssinaFones" />
+                </div>
+            </td>
+            <td style="vertical-align:top; text-align:right">
+                @((MarkupString)Servicos.LogoHtml(_logo))
+            </td>
+        </tr>
+    </table>
+
+    @* ---------- dados do cliente + caixa azul ---------- *@
+    <table style="width:100%; border-collapse:collapse; margin-top:22px">
+        <tr>
+            <td style="vertical-align:top">
+                <div class="doc-navy" style="font-size:14px">DADOS DO CLIENTE</div>
+                <div style="margin-top:8px">
+                    Cliente: <input class="de" style="width:280px; font-weight:700" placeholder="Empresa cliente" @bind="P.Cliente" /><br />
+                    Aos cuidados de: <input class="de" style="width:240px" placeholder="Nome do contato" @bind="P.ContatoNome" /><br />
+                    E-mail: <input class="de" style="width:240px" placeholder="contato@empresa.com" @bind="P.ContatoEmail" /><br />
+                    Telefone: <input class="de" style="width:200px" placeholder="+55 …" @bind="P.ContatoTelefone" />
+                </div>
+                <div style="margin-top:10px">
+                    Representante:
+                    <select class="de" style="width:250px" value="@P.Representante" @onchange="e => MudarRep(e, 1)">
+                        <option value="-">— sem representante —</option>
+                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome (@x.ComissaoPct%)</option> }
+                    </select>
+                </div>
+            </td>
+            <td style="vertical-align:top; width:330px">
+                <table class="doc-bluebox" style="width:100%; border-collapse:collapse">
+                    <tr><td colspan="2" style="font-weight:bold">
+                        Proposta <input class="de" style="width:170px" placeholder="número (gera sozinho)" @bind="P.Numero" />
+                        · Rev. <input class="de" style="width:34px" @bind="P.Revisao" />
+                    </td></tr>
+                    <tr>
+                        <td style="font-weight:bold">DATA</td>
+                        <td style="text-align:right"><input class="de" type="date" @bind="DataProposta" /></td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:bold">VALIDADE</td>
+                        <td style="text-align:right">
+                            <input class="de num" style="width:44px" @bind="P.ValidadeDias" /> dias → @Servicos.ValidadeData(P)
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <hr class="doc-hr" />
+
+    @* ---------- projeto / cidade / estado / prazo ---------- *@
+    <table style="width:100%; border-collapse:collapse">
+        <tr>
+            <td style="width:38%"><span class="doc-navy">PROJETO</span><br />
+                <input class="de" style="width:95%" placeholder="—" @bind="P.Projeto" /></td>
+            <td style="width:32%"><span class="doc-navy">CIDADE</span><br />
+                <input class="de" style="width:90%" placeholder="Jaguarari - BA" @bind="P.Cidade" /></td>
+            <td style="width:30%"><span class="doc-navy">ESTADO</span><br />
+                <select class="de" @bind="P.Estado">
+                    @foreach (var o in Servicos.Estados) { <option value="@o">@o</option> }
+                </select></td>
+        </tr>
+    </table>
+    <div style="margin-top:10px">
+        <span class="doc-navy">Ref.:</span>
+        <input class="de" style="width:60%" placeholder="Suporte Engenharia de Ventilação" @bind="P.Referencia" />
+    </div>
+    <div style="margin-top:8px">
+        Prazo de entrega: <input class="de num" style="width:44px" @bind="P.PrazoEntregaDias" /> dias ·
+        Qtd. de técnicos: <input class="de qtd" @bind="R.Params.QtdTecnicos" /> ·
+        Moeda: <select class="de" @bind="P.Moeda">
+            @foreach (var o in Servicos.Moedas) { <option value="@o">@o</option> }
+        </select> ·
+        Idioma: <select class="de" @bind="P.Idioma">
+            @foreach (var o in Servicos.Idiomas) { <option value="@o">@o</option> }
+        </select>
+    </div>
+
+    @* ---------- assessoria técnica ---------- *@
+    <h2>ASSESSORIA TÉCNICA</h2>
+    <table class="doc-tbl">
+        <thead>
+            <tr>
+                <th>SERVIÇOS</th><th>OBS</th>
+                <th style="text-align:center">HORAS</th>
+                <th style="text-align:right" class="doc-interno">CUSTO HORA ᵢ</th>
+                <th style="text-align:right">VALOR HORA</th>
+                <th style="text-align:right">VALOR 1 DIARIA</th>
+                <th style="text-align:center">QTD. DIARIA</th>
+                <th style="text-align:right">VALOR TOTAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in R.ItensMO)
+            {
+                var linha = LinhaDe(i);
+                <tr class="@(linha is null ? "zero" : "")">
+                    <td><input class="de" style="width:97%" @bind="i.Servico" /></td>
+                    <td><input class="de" style="width:95%" @bind="i.Obs" /></td>
+                    <td class="center"><input class="de num" style="width:40px; text-align:center" @bind="i.Horas" /></td>
+                    <td class="right doc-interno"><input class="de num" style="width:64px" @bind="i.CustoHora" /></td>
+                    <td class="right">@(linha is null ? "—" : Pricing.Moeda(linha.ValorHora))</td>
+                    <td class="right">@(linha is null ? "—" : Pricing.Moeda(linha.ValorDiaria))</td>
+                    <td class="center"><input class="de qtd" @bind="i.QtdDiaria" /></td>
+                    <td class="right">@(linha is null ? "—" : $"{Cifrao} {Pricing.Moeda(linha.ValorTotal)}")</td>
+                </tr>
+            }
+            <tr class="total-row">
+                <td colspan="7">TOTAL ASSESSORIA C/ IMPOSTOS</td>
+                <td class="right">@Cifrao @Pricing.Moeda(Doc.TotalMO)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    @* ---------- despesas ---------- *@
+    <h2>DESPESAS</h2>
+    <table class="doc-tbl">
+        <thead>
+            <tr>
+                <th>DESPESAS</th><th>OBS</th>
+                <th style="text-align:center">QTD</th>
+                <th style="text-align:right" class="doc-interno">CUSTO UNIT. ᵢ</th>
+                <th style="text-align:right">VALOR UNITARIO</th>
+                <th style="text-align:right">VALOR TOTAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in R.ItensDespesa)
+            {
+                var linha = LinhaDe(d);
+                <tr class="@(linha is null ? "zero" : "")">
+                    <td><input class="de" style="width:97%" @bind="d.Despesa" /></td>
+                    <td><input class="de" style="width:95%" @bind="d.Obs" /></td>
+                    <td class="center"><input class="de qtd" @bind="d.Qtd" /></td>
+                    <td class="right doc-interno"><input class="de num" style="width:64px" @bind="d.CustoUnitario" /></td>
+                    <td class="right">@(linha is null ? "—" : Pricing.Moeda(linha.ValorUnitario))</td>
+                    <td class="right">@(linha is null ? "—" : $"{Cifrao} {Pricing.Moeda(linha.ValorTotal)}")</td>
+                </tr>
+            }
+            <tr class="total-row">
+                <td colspan="5">TOTAL DESPESAS C/ IMPOSTOS</td>
+                <td class="right">@Cifrao @Pricing.Moeda(Doc.TotalDespesas)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    @* ---------- total ---------- *@
+    <table style="width:100%; border-collapse:collapse; margin-top:14px">
+        <tr>
+            <td></td>
+            <td class="doc-total" style="width:220px">TOTAL C/ IMPOSTOS</td>
+            <td class="doc-total" style="width:170px; text-align:right">@Cifrao @Pricing.Moeda(Doc.Total)</td>
+        </tr>
+    </table>
+
+    <table class="doc-tbl" style="margin-top:14px; max-width:520px">
+        <tr><td>VALOR SEM IMPOSTOS</td><td class="right">@Cifrao @Pricing.Moeda(Doc.Calculo.VendaLiquida)</td></tr>
+        <tr><td>VALOR C/ PIS E COFINS</td><td class="right">@Cifrao @Pricing.Moeda(Doc.Calculo.ComPisCofins)</td></tr>
+        <tr class="total-row"><td>VALOR C/ PIS, COFINS E ISS</td><td class="right">@Cifrao @Pricing.Moeda(Doc.Calculo.ComImpostos)</td></tr>
+    </table>
+
+    @* ---------- complementares ---------- *@
+    <h2>INFORMAÇÕES COMPLEMENTARES — NÃO INCLUSO</h2>
+    <table class="doc-tbl">
+        <thead>
+            <tr><th>DESCRIÇÃO</th><th>OBS</th><th style="text-align:center">QTD</th><th style="text-align:right">VALOR C/ PIS, COFINS E ISS</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Doc.Complementares)
+            {
+                <tr>
+                    <td class="doc-navy">@c.Descricao</td>
+                    <td>@c.Obs</td>
+                    <td class="center">@Pricing.Moeda0(c.Qtd)</td>
+                    <td class="right">@Cifrao @Pricing.Moeda(c.Valor)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @* ---------- faturamento ---------- *@
+    <h2>DADOS PARA FATURAMENTO</h2>
+    <div>
+        <span class="doc-navy">@Fat.Razao</span><br />
+        @Fat.Endereco@(string.IsNullOrWhiteSpace(Fat.Registro) ? "" : "")<br />
+        <span class="doc-muted">@Fat.Registro</span>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Fat.BancoNome))
+    {
+        <div style="margin-top:10px">
+            <span style="border:1px solid #d5dae4; border-radius:3px; padding:5px 12px; display:inline-block">
+                <b>Banco: @Fat.BancoNome – Agência: @Fat.Agencia Conta: @Fat.Conta</b>
+            </span>
+        </div>
+    }
+
+    <div class="doc-muted" style="font-style:italic; margin-top:22px">
+        Preparada por: <input class="de" style="width:170px" @bind="P.PreparadaPor" /> ·
+        BU: <select class="de" value="@P.Bu" @onchange="MudarBu">
+            @foreach (var o in Servicos.Bus) { <option value="@o">@o</option> }
+        </select> ·
+        Margem: <strong>@Pricing.Porcento(Doc.Calculo.ProjectMargin)</strong> ·
+        Situação: <select class="de" @bind="P.Status">
+            <option value="Rascunho">Rascunho</option>
+            <option value="Enviada">Enviada</option>
+            <option value="Aprovada">Aprovada</option>
+            <option value="Perdida">Perdida</option>
+        </select>
+    </div>
+</div>
+
+<div style="max-width:1080px; margin-top:14px; display:flex; justify-content:space-between; align-items:center">
+    <div class="side-note" style="flex:1; margin-right:14px">
+        ✦ Campos <span class="de qtd" style="padding:1px 8px">amarelos</span> = quantidades.
+        Colunas <strong>ᵢ (internas)</strong> = custo, já preenchido pelo padrão e ajustável aqui
+        — elas não saem no PDF/Word. Margem e comissões: <a href="/servicos/proposta">Pricing e Custos</a>.
+    </div>
+    <div style="display:flex; gap:8px">
+        <a class="btn-ghost" href="@Servicos.MailtoEnvio(P, Doc)">✉ E-mail de envio</a>
+        <a class="btn-ghost" href="@Servicos.MailtoAprovacao(P, Doc)">✅ E-mail de aprovação</a>
+    </div>
+</div>
+
+</div>
+
+<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, Doc, _logo, Fat, RepInfo()))</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
+
+    private string? _msg, _erro, _logo;
+    private List<BillingInfo> _faturamentos = new();
+    private List<Representante> _reps = new();
+
+    private Proposta P => R.Proposta;
+    private Pricing.Documento Doc => R.Documento();
+    private string Cifrao => Servicos.Simbolo(P.Moeda);
+
+    private DateTime DataProposta
+    {
+        get => DateTime.TryParse(P.Data, out var d) ? d : DateTime.Today;
+        set => P.Data = value.ToString("yyyy-MM-dd");
+    }
+
+    private BillingInfo Fat =>
+        _faturamentos.FirstOrDefault(x => x.Id == P.Bu && !string.IsNullOrWhiteSpace(x.Razao))
+        ?? Servicos.FaturamentoPadrao(P.Bu);
+
+    // Linha precificada correspondente a cada item (os itens sem valor ficam esmaecidos).
+    private Dictionary<object, object>? _mapa;
+    private Pricing.LinhaMO? LinhaDe(ItemMO i) { Mapear(); return _mapa!.TryGetValue(i, out var l) ? (Pricing.LinhaMO)l : null; }
+    private Pricing.LinhaDespesa? LinhaDe(ItemDespesa d) { Mapear(); return _mapa!.TryGetValue(d, out var l) ? (Pricing.LinhaDespesa)l : null; }
+
+    private void Mapear()
+    {
+        var doc = Doc;
+        var tec = Math.Max(Pricing.Inteiro(R.Params.QtdTecnicos), 1);
+        _mapa = new Dictionary<object, object>();
+        var im = 0;
+        foreach (var i in R.ItensMO)
+            if (Pricing.CustoMO(i, tec) > 0 && im < doc.MO.Count) _mapa[i] = doc.MO[im++];
+        var id = 0;
+        foreach (var d in R.ItensDespesa)
+            if (Pricing.CustoDespesa(d, tec) > 0 && id < doc.Despesas.Count) _mapa[d] = doc.Despesas[id++];
+    }
+
+    protected override bool ShouldRender() { _mapa = null; return true; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _logo = Branding.GetLogo();
+        _faturamentos = Faturamentos.All();
+        _reps = Representantes.All();
+
+        if (!string.IsNullOrWhiteSpace(PropostaId))
+        {
+            var salva = Propostas.All().FirstOrDefault(x => x.Id == PropostaId);
+            if (salva is null) _erro = "Proposta não encontrada no banco de dados.";
+            else
+            {
+                R.Carregar(salva);
+                _msg = $"Proposta {Servicos.NumeroCompleto(salva)} carregada.";
+            }
+        }
+    }
+
+    private async Task Zerar()
+    {
+        await NovaProposta();
+        _msg = "Proposta nova.";
+        _erro = null;
+        if (string.IsNullOrWhiteSpace(P.PreparadaPor)) P.PreparadaPor = Usuario;
+    }
+
+    private void MudarBu(ChangeEventArgs e)
+    {
+        P.Bu = e.Value?.ToString() ?? P.Bu;
+        R.Params.IssPct = Servicos.IssPadrao(P.Bu);
+    }
+
+    private void MudarRep(ChangeEventArgs e, int qual)
+    {
+        var nome = e.Value?.ToString() ?? "-";
+        var rep = _reps.FirstOrDefault(x => x.Nome == nome);
+        if (qual == 1) { P.Representante = nome; R.Params.Rep1Pct = rep?.ComissaoPct ?? "0"; }
+        else { P.Representante2 = nome; R.Params.Rep2Pct = rep?.ComissaoPct ?? "0"; }
+    }
+
+    private string? RepInfo()
+    {
+        var partes = new[] { P.Representante, P.Representante2 }
+            .Where(n => n is not ("" or "-"))
+            .Select(n => _reps.FirstOrDefault(x => x.Nome == n)?.Contato ?? "")
+            .Where(c => c != "");
+        var txt = string.Join(" · ", partes);
+        return txt == "" ? null : txt;
+    }
+
+    private void Cadastrar()
+    {
+        _erro = null; _msg = null;
+        if (string.IsNullOrWhiteSpace(P.Cliente)) { _erro = "Informe o cliente antes de cadastrar."; return; }
+        if (Doc.MO.Count == 0 && Doc.Despesas.Count == 0) { _erro = "A proposta não tem nenhum item com valor."; return; }
+
+        if (string.IsNullOrWhiteSpace(P.Id)) P.Id = $"prop-{Guid.NewGuid():N}"[..17];
+        if (string.IsNullOrWhiteSpace(P.Numero))
+            P.Numero = $"SRV-{P.Ano}-{Propostas.All().Count + 1:D3}";
+        if (string.IsNullOrWhiteSpace(P.CriadaEm))
+            P.CriadaEm = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        if (string.IsNullOrWhiteSpace(P.Status)) P.Status = "Rascunho";
+
+        Propostas.Save(R.ParaGravar());
+        _msg = $"Proposta {P.Numero} cadastrada.";
+    }
+
+    private async Task Imprimir() => await JS.InvokeVoidAsync("appPrint");
+
+    private async Task GerarWord()
+    {
+        var html = Servicos.DocHtml(P, Doc, _logo, Fat, RepInfo());
+        var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
+        var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };
+        var nome = $"{prefixo}-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.doc";
+        await JS.InvokeVoidAsync("appDownload", nome, "application/msword", b64);
+    }
+}
