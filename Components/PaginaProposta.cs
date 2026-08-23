@@ -13,8 +13,10 @@ namespace HowdenServicos.Poc.Components;
 /// direto) começa um circuito novo, cada render também grava o rascunho no
 /// localStorage do navegador e o restaura na primeira renderização.
 /// </summary>
-public abstract class PaginaProposta : ComponentBase
+public abstract class PaginaProposta : ComponentBase, IDisposable
 {
+    private DotNetObjectReference<PaginaProposta>? _jsRef;
+
     [Inject] protected Rascunho R { get; set; } = default!;
     [Inject] protected IJSRuntime JS { get; set; } = default!;
     [Inject] protected ParametroRepository Parametros { get; set; } = default!;
@@ -40,6 +42,11 @@ public abstract class PaginaProposta : ComponentBase
             if (R.Vazio) R.FromJson(json);
             if (R.Vazio) R.Novo(Parametros.All(), Usuario);
             _ultimoSalvo = R.ToJson();
+
+            // Escuta alterações feitas em OUTRAS guias do navegador.
+            _jsRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("appWatchDraft", _jsRef);
+
             StateHasChanged();
             return;
         }
@@ -58,10 +65,28 @@ public abstract class PaginaProposta : ComponentBase
         await JS.InvokeVoidAsync("appSaveDraft", _ultimoSalvo);
     }
 
-    /// <summary>Grava o rascunho agora (usado depois de importar a planilha, por exemplo).</summary>
+    /// <summary>Grava o rascunho agora.</summary>
     protected async Task SalvarRascunho()
     {
         _ultimoSalvo = R.ToJson();
         await JS.InvokeVoidAsync("appSaveDraft", _ultimoSalvo);
     }
+
+    /// <summary>
+    /// Chamado pelo JavaScript quando OUTRA guia do navegador altera o rascunho:
+    /// aplica o novo estado e re-renderiza — as duas guias ficam 100% espelhadas.
+    /// </summary>
+    [JSInvokable]
+    public Task DraftAtualizado(string json)
+    {
+        if (json == _ultimoSalvo) return Task.CompletedTask;
+        if (R.FromJson(json))
+        {
+            _ultimoSalvo = json;
+            return InvokeAsync(StateHasChanged);
+        }
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _jsRef?.Dispose();
 }

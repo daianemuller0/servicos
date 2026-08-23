@@ -25,3 +25,13 @@ window.appLoadDraft = () => {
 window.appClearDraft = () => {
     try { localStorage.removeItem(RASCUNHO); } catch { /* ignora */ }
 };
+
+// Sincronização entre guias do navegador: o evento 'storage' dispara nas OUTRAS
+// guias quando esta grava o rascunho — a página avisada recarrega o estado.
+let draftRef = null;
+window.appWatchDraft = (ref) => { draftRef = ref; };
+window.addEventListener('storage', (e) => {
+    if (e.key === RASCUNHO && e.newValue && draftRef) {
+        draftRef.invokeMethodAsync('DraftAtualizado', e.newValue);
+    }
+});
