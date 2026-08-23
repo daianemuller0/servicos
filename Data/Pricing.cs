@@ -215,6 +215,62 @@ public static class Pricing
     }
 
     /// <summary>
+    /// Versão do documento APRESENTADA ao cliente. O pricing interno não muda —
+    /// só a distribuição entre as tabelas:
+    ///
+    ///  - "ComDespesas": as despesas saem a custo + taxa administrativa (ex.: 30%);
+    ///    a diferença até o preço real delas é embutida nas diárias da assessoria.
+    ///  - "SemDespesas": a tabela de despesas some e todo o valor vai para as diárias.
+    ///
+    /// O TOTAL C/ IMPOSTOS é exatamente o mesmo nas duas formas.
+    /// </summary>
+    public static Documento Apresentar(Documento doc, string modo, double taxaAdmPct)
+    {
+        // Sem linhas de assessoria não há onde embutir — mantém como está.
+        if (doc.MO.Count == 0 || doc.Despesas.Count == 0) return doc;
+
+        List<LinhaDespesa> desp;
+        if (modo == "SemDespesas")
+        {
+            desp = new List<LinhaDespesa>();
+        }
+        else
+        {
+            var adm = 1 + taxaAdmPct / 100.0;
+            desp = doc.Despesas.Select(d =>
+            {
+                var custoUnit = d.Qtd > 0 ? d.Custo / d.Qtd : d.Custo;
+                var unit = ParaCima(custoUnit * adm);
+                var total = unit * Math.Max(d.Qtd, 1);
+                return new LinhaDespesa(d.Despesa, d.Obs, d.Qtd, d.Custo, d.Participacao, unit, total);
+            }).ToList();
+        }
+
+        // O que as despesas deixaram de mostrar vai para a assessoria,
+        // proporcional ao valor de cada linha; a última fecha a conta no centavo.
+        var alvoMO = doc.Total - desp.Sum(d => d.ValorTotal);
+        if (alvoMO <= 0 || doc.TotalMO <= 0) return doc;
+
+        var mo = new List<LinhaMO>();
+        double acumulado = 0;
+        for (var i = 0; i < doc.MO.Count; i++)
+        {
+            var l = doc.MO[i];
+            double total = i == doc.MO.Count - 1
+                ? alvoMO - acumulado
+                : ParaCima(alvoMO * (l.ValorTotal / doc.TotalMO));
+            acumulado += total;
+            var diaria = l.QtdDiaria > 0 ? Math.Round(total / l.QtdDiaria, 2) : 0;
+            var hora = l.Horas > 0 ? Math.Round(diaria / l.Horas, 2) : 0;
+            mo.Add(new LinhaMO(l.Servico, l.Obs, l.Horas, l.QtdDiaria, l.Custo, l.Participacao, total, diaria, hora));
+        }
+
+        var totalMO = mo.Sum(l => l.ValorTotal);
+        var totalDesp = desp.Sum(d => d.ValorTotal);
+        return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp, totalMO + totalDesp, doc.Calculo);
+    }
+
+    /// <summary>
     /// "INFORMAÇÕES COMPLEMENTARES — NÃO INCLUSO": diária adicional e horas
     /// extras, na mesma regra da ClasseInfoComplementares do VBA.
     /// </summary>

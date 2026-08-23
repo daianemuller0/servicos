@@ -27,6 +27,10 @@
         {
             <span class="saved-flag">@_msg</span>
         }
+        <select class="cell" style="width:auto" @bind="P.ModoApresentacao" title="Como o documento sai para o cliente">
+            <option value="ComDespesas">Mostrar despesas (custo + taxa adm.)</option>
+            <option value="SemDespesas">Sem despesas (embutidas nas diárias)</option>
+        </select>
         <button class="btn-ghost" @onclick="Zerar">Nova proposta</button>
         <button class="btn-accent" @onclick="Cadastrar">🗄 Cadastrar</button>
         <button class="btn-primary" @onclick="Imprimir">🖨 PDF</button>
@@ -68,8 +72,12 @@
                     Representante:
                     <select class="de" style="width:250px" value="@P.Representante" @onchange="e => MudarRep(e, 1)">
                         <option value="-">— sem representante —</option>
-                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome (@x.ComissaoPct%)</option> }
+                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome</option> }
                     </select>
+                    @if (RepInfo() is { } info)
+                    {
+                        <div class="doc-muted" style="margin-top:3px; font-size:11.5px">@info</div>
+                    }
                 </div>
             </td>
             <td style="vertical-align:top; width:330px">
@@ -154,13 +162,20 @@
             }
             <tr class="total-row">
                 <td colspan="7">TOTAL ASSESSORIA C/ IMPOSTOS</td>
-                <td class="right">@Cifrao @Pricing.Moeda(Doc.TotalMO)</td>
+                <td class="right">@Cifrao @Pricing.Moeda(DocA.TotalMO)</td>
             </tr>
         </tbody>
     </table>
 
     @* ---------- despesas ---------- *@
-    <h2>DESPESAS</h2>
+    @if (P.ModoApresentacao == "SemDespesas")
+    {
+        <div class="side-note no-print" style="margin-top:16px">
+            Modo <strong>sem despesas</strong>: a tabela abaixo é interna (não sai no documento) —
+            os valores das despesas estão embutidos nas diárias da assessoria.
+        </div>
+    }
+    <h2>DESPESAS @(P.ModoApresentacao == "SemDespesas" ? "(interno)" : "")</h2>
     <table class="doc-tbl">
         <thead>
             <tr>
@@ -186,7 +201,7 @@
             }
             <tr class="total-row">
                 <td colspan="5">TOTAL DESPESAS C/ IMPOSTOS</td>
-                <td class="right">@Cifrao @Pricing.Moeda(Doc.TotalDespesas)</td>
+                <td class="right">@Cifrao @Pricing.Moeda(DocA.TotalDespesas)</td>
             </tr>
         </tbody>
     </table>
@@ -196,7 +211,7 @@
         <tr>
             <td></td>
             <td class="doc-total" style="width:220px">TOTAL C/ IMPOSTOS</td>
-            <td class="doc-total" style="width:170px; text-align:right">@Cifrao @Pricing.Moeda(Doc.Total)</td>
+            <td class="doc-total" style="width:170px; text-align:right">@Cifrao @Pricing.Moeda(DocA.Total)</td>
         </tr>
     </table>
 
@@ -213,7 +228,7 @@
             <tr><th>DESCRIÇÃO</th><th>OBS</th><th style="text-align:center">QTD</th><th style="text-align:right">VALOR C/ PIS, COFINS E ISS</th></tr>
         </thead>
         <tbody>
-            @foreach (var c in Doc.Complementares)
+            @foreach (var c in DocA.Complementares)
             {
                 <tr>
                     <td class="doc-navy">@c.Descricao</td>
@@ -263,14 +278,14 @@
         — elas não saem no PDF/Word. Margem e comissões: <a href="/servicos/proposta">Pricing e Custos</a>.
     </div>
     <div style="display:flex; gap:8px">
-        <a class="btn-ghost" href="@Servicos.MailtoEnvio(P, Doc)">✉ E-mail de envio</a>
+        <a class="btn-ghost" href="@Servicos.MailtoEnvio(P, DocA)">✉ E-mail de envio</a>
         <a class="btn-ghost" href="@Servicos.MailtoAprovacao(P, Doc)">✅ E-mail de aprovação</a>
     </div>
 </div>
 
 </div>
 
-<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, Doc, _logo, Fat, RepInfo()))</div>
+<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, DocA, _logo, Fat, RepInfo()))</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
@@ -281,6 +296,8 @@
 
     private Proposta P => R.Proposta;
     private Pricing.Documento Doc => R.Documento();
+    private Pricing.Documento DocA =>
+        Pricing.Apresentar(Doc, P.ModoApresentacao, Pricing.Num(R.Params.TaxaAdmPct));
     private string Cifrao => Servicos.Simbolo(P.Moeda);
 
     private DateTime DataProposta
@@ -300,7 +317,10 @@
 
     private void Mapear()
     {
-        var doc = Doc;
+        var doc = DocA;
+        // No modo sem despesas a lista apresentada fica vazia — a tabela interna
+        // da tela mostra os valores reais distribuídos (Doc), para conferência.
+        var docDespesas = doc.Despesas.Count > 0 ? doc : Doc;
         var tec = Math.Max(Pricing.Inteiro(R.Params.QtdTecnicos), 1);
         _mapa = new Dictionary<object, object>();
         var im = 0;
@@ -308,7 +328,7 @@
             if (Pricing.CustoMO(i, tec) > 0 && im < doc.MO.Count) _mapa[i] = doc.MO[im++];
         var id = 0;
         foreach (var d in R.ItensDespesa)
-            if (Pricing.CustoDespesa(d, tec) > 0 && id < doc.Despesas.Count) _mapa[d] = doc.Despesas[id++];
+            if (Pricing.CustoDespesa(d, tec) > 0 && id < docDespesas.Despesas.Count) _mapa[d] = docDespesas.Despesas[id++];
     }
 
     protected override bool ShouldRender() { _mapa = null; return true; }
@@ -385,7 +405,7 @@
 
     private async Task GerarWord()
     {
-        var html = Servicos.DocHtml(P, Doc, _logo, Fat, RepInfo());
+        var html = Servicos.DocHtml(P, DocA, _logo, Fat, RepInfo());
         var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
         var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };
         var nome = $"{prefixo}-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.doc";

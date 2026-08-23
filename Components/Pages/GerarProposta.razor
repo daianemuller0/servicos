@@ -60,13 +60,13 @@
                 <label>Representante 1
                     <select class="cell" value="@P.Representante" @onchange="e => MudarRep(e, 1)">
                         <option value="-">— sem representante —</option>
-                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome (@x.ComissaoPct%)</option> }
+                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome</option> }
                     </select>
                 </label>
                 <label>Representante 2
                     <select class="cell" value="@P.Representante2" @onchange="e => MudarRep(e, 2)">
                         <option value="-">— sem representante —</option>
-                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome (@x.ComissaoPct%)</option> }
+                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome</option> }
                     </select>
                 </label>
                 <label>Número da proposta
@@ -212,6 +212,9 @@
                 </label>
                 <label>Portal (%)
                     <input class="cell num" @bind="R.Params.PortalPct" />
+                </label>
+                <label>Taxa adm. mostrada sobre despesas (%)
+                    <input class="cell num" @bind="R.Params.TaxaAdmPct" />
                 </label>
             </div>
 
@@ -363,14 +366,20 @@
 
         @* ================== 6. A PROPOSTA (itens precificados) ================== *@
         <div class="panel" style="margin-top:16px">
-            <h3 class="dash-title">6 · A proposta — itens com preço distribuído</h3>
-            @if (Doc.MO.Count == 0 && Doc.Despesas.Count == 0)
+            <div class="toolbar" style="justify-content:space-between">
+                <h3 class="dash-title" style="margin:0">6 · A proposta — como o cliente vê</h3>
+                <select class="cell" style="width:auto" @bind="P.ModoApresentacao">
+                    <option value="ComDespesas">Mostrar despesas (custo + taxa adm.)</option>
+                    <option value="SemDespesas">Sem despesas (embutidas nas diárias)</option>
+                </select>
+            </div>
+            @if (DocA.MO.Count == 0 && DocA.Despesas.Count == 0)
             {
                 <p class="empty" style="padding:14px 0">Nenhum item com valor — lance as diárias e despesas nas seções 3 e 4.</p>
             }
             else
             {
-                @if (Doc.MO.Count > 0)
+                @if (DocA.MO.Count > 0)
                 {
                     <table class="grid">
                         <thead>
@@ -381,7 +390,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var i in Doc.MO)
+                            @foreach (var i in DocA.MO)
                             {
                                 <tr>
                                     <td>@i.Servico</td>
@@ -395,13 +404,13 @@
                             }
                             <tr>
                                 <td colspan="6"><strong>TOTAL ASSESSORIA C/ IMPOSTOS</strong></td>
-                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(Doc.TotalMO)</strong></td>
+                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(DocA.TotalMO)</strong></td>
                             </tr>
                         </tbody>
                     </table>
                 }
 
-                @if (Doc.Despesas.Count > 0)
+                @if (DocA.Despesas.Count > 0)
                 {
                     <table class="grid" style="margin-top:12px">
                         <thead>
@@ -411,7 +420,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var d in Doc.Despesas)
+                            @foreach (var d in DocA.Despesas)
                             {
                                 <tr>
                                     <td>@d.Despesa</td>
@@ -423,7 +432,7 @@
                             }
                             <tr>
                                 <td colspan="4"><strong>TOTAL DESPESAS C/ IMPOSTOS</strong></td>
-                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(Doc.TotalDespesas)</strong></td>
+                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(DocA.TotalDespesas)</strong></td>
                             </tr>
                         </tbody>
                     </table>
@@ -435,7 +444,7 @@
                         <tr><th>Descrição</th><th>Obs</th><th class="right">Qtd</th><th class="right">Valor c/ PIS, COFINS e ISS</th></tr>
                     </thead>
                     <tbody>
-                        @foreach (var c in Doc.Complementares)
+                        @foreach (var c in DocA.Complementares)
                         {
                             <tr>
                                 <td>@c.Descricao</td>
@@ -454,7 +463,7 @@
     <div class="prop-side">
         <div class="side-total">
             <div class="kpi-label" style="color:#cfe3f7">Total da proposta (c/ impostos)</div>
-            <div class="side-total-value">@Cifrao @Pricing.Moeda(Doc.Total)</div>
+            <div class="side-total-value">@Cifrao @Pricing.Moeda(DocA.Total)</div>
         </div>
 
         <div class="panel" style="padding:14px">
@@ -482,7 +491,7 @@
         <div class="side-caption">Salva em Banco de Dados › Propostas Enviadas</div>
         <button class="btn-primary btn-block" @onclick="Imprimir">🖨 Gerar proposta (PDF)</button>
         <button class="btn-ghost btn-block" @onclick="GerarWord">📄 Gerar proposta (Word)</button>
-        <a class="btn-ghost btn-block" href="@Servicos.MailtoEnvio(P, Doc)">✉ E-mail de envio ao cliente</a>
+        <a class="btn-ghost btn-block" href="@Servicos.MailtoEnvio(P, DocA)">✉ E-mail de envio ao cliente</a>
         <a class="btn-ghost btn-block" href="@Servicos.MailtoAprovacao(P, Doc)">✅ E-mail de aprovação (interno)</a>
         <div class="side-caption">Os e-mails abrem já preenchidos no seu cliente de e-mail — anexe o PDF/Word gerado.</div>
     </div>
@@ -490,7 +499,7 @@
 
 </div>
 
-<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, Doc, _logo, Faturamento(), RepInfo()))</div>
+<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, DocA, _logo, Faturamento(), RepInfo()))</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
@@ -501,6 +510,8 @@
 
     private Proposta P => R.Proposta;
     private Pricing.Documento Doc => R.Documento();
+    private Pricing.Documento DocA =>
+        Pricing.Apresentar(Doc, P.ModoApresentacao, Pricing.Num(R.Params.TaxaAdmPct));
     private Pricing.Resultado Calc => R.Calculo();
     private string Cifrao => Servicos.Simbolo(P.Moeda);
     private int Tec => Math.Max(Pricing.Inteiro(R.Params.QtdTecnicos), 1);
@@ -605,7 +616,7 @@
 
     private async Task GerarWord()
     {
-        var html = Servicos.DocHtml(P, Doc, _logo, Faturamento());
+        var html = Servicos.DocHtml(P, DocA, _logo, Faturamento(), RepInfo());
         var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
         var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };
         var nome = $"{prefixo}-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.doc";

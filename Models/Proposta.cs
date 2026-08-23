@@ -55,6 +55,13 @@ public class Proposta
     public string Total { get; set; } = "0";
     public string CriadaEm { get; set; } = "";
     public string Status { get; set; } = "Rascunho";
+
+    /// <summary>
+    /// Como o documento sai para o cliente: "ComDespesas" (despesas a custo +
+    /// taxa administrativa, diferença embutida nas diárias) ou "SemDespesas"
+    /// (despesas totalmente embutidas nas diárias).
+    /// </summary>
+    public string ModoApresentacao { get; set; } = "ComDespesas";
 }
 
 /// <summary>Item de mão de obra (guia CUSTO, linhas 8–17).</summary>
@@ -122,6 +129,6 @@ public class PricingParams
     public string CofinsPct { get; set; } = "7.6";
     public string IssPct { get; set; } = "7";             // 2% Itatiba + 5% outro município
 
-    // taxa administrativa das despesas informativas (CUSTO C51/C61)
-    public string TaxaAdmPct { get; set; } = "40";
+    /// <summary>Taxa administrativa mostrada sobre as despesas na apresentação ao cliente.</summary>
+    public string TaxaAdmPct { get; set; } = "30";
 }

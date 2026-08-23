@@ -14,7 +14,7 @@ public class PropostaRepository
         "numero, revisao, ano, data, bu, idioma, moeda, validadeDias, prazoEntregaDias, " +
         "preparadaPor, revisadaPor, representante, representante2, estado, segmento, marketSegment, vendaPara, destino, " +
         "assinaNome, assinaCargo, assinaEmail, assinaFones, " +
-        "itensMoJson, itensDespesaJson, pricingJson, custoTotal, total, criadaEm, status",
+        "itensMoJson, itensDespesaJson, pricingJson, custoTotal, total, criadaEm, status, modoApresentacao",
         r => new Proposta
         {
             Id = S(r, 0), Cliente = S(r, 1), Cidade = S(r, 2), ContatoNome = S(r, 3),
@@ -27,6 +27,7 @@ public class PropostaRepository
             AssinaNome = S(r, 26), AssinaCargo = S(r, 27), AssinaEmail = S(r, 28), AssinaFones = S(r, 29),
             ItensMoJson = S(r, 30), ItensDespesaJson = S(r, 31), PricingJson = S(r, 32),
             CustoTotal = S(r, 33), Total = S(r, 34), CriadaEm = S(r, 35), Status = S(r, 36),
+            ModoApresentacao = S(r, 37) == "" ? "ComDespesas" : S(r, 37),
         }, "criadaEm DESC");
 
     public void Save(Proposta p) => _store.WriteRow(Entidade, new KeyValuePair<string, object?>[]
@@ -45,7 +46,7 @@ public class PropostaRepository
         new("assinaFones", p.AssinaFones), new("itensMoJson", p.ItensMoJson),
         new("itensDespesaJson", p.ItensDespesaJson), new("pricingJson", p.PricingJson),
         new("custoTotal", p.CustoTotal), new("total", p.Total), new("criadaEm", p.CriadaEm),
-        new("status", p.Status),
+        new("status", p.Status), new("modoApresentacao", p.ModoApresentacao),
     });
 
     public void Delete(string id) => _store.WriteRow(Entidade,
