@@ -35,6 +35,7 @@
         <button class="btn-accent" @onclick="Cadastrar">🗄 Cadastrar</button>
         <button class="btn-primary" @onclick="Imprimir">🖨 PDF</button>
         <button class="btn-ghost" @onclick="GerarWord">📄 Word</button>
+        <button class="btn-ghost" @onclick="GerarExcel">📊 Excel</button>
     </div>
 </div>
 
@@ -410,5 +411,15 @@
         var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };
         var nome = $"{prefixo}-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.doc";
         await JS.InvokeVoidAsync("appDownload", nome, "application/msword", b64);
+    }
+
+    // Excel de registro (guias PROPOSTA/CUSTO/PRICING preenchidas) p/ guardar na pasta.
+    private async Task GerarExcel()
+    {
+        var bytes = ExcelExport.Gerar(P, R.ItensMO, R.ItensDespesa, R.Params, Doc, DocA, RepInfo(), Fat);
+        var nome = $"Proposta-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.xlsx";
+        await JS.InvokeVoidAsync("appDownload", nome,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            Convert.ToBase64String(bytes));
     }
 }
