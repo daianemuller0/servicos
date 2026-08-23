@@ -33,6 +33,7 @@
             <th style="width:26%">Obs</th>
             @if (_aba == "MO") { <th class="right">Horas</th> }
             <th class="right">@(_aba == "MO" ? "Custo hora (R$)" : "Custo unitário (R$)")</th>
+            @if (_aba == "MO") { <th class="right">× hora-base</th> }
             <th class="center">× técnicos</th>
             <th class="right">Ordem</th>
             <th></th>
@@ -49,6 +50,10 @@
                     <td><input class="cell num" @bind="p.Horas" @bind:after="() => Salvar(p)" /></td>
                 }
                 <td><input class="cell num" @bind="p.Valor" @bind:after="() => Salvar(p)" /></td>
+                @if (_aba == "MO")
+                {
+                    <td><input class="cell num" @bind="p.Mult" @bind:after="() => Salvar(p)" /></td>
+                }
                 <td class="center">
                     <select class="cell" @bind="p.PorTecnico" @bind:after="() => Salvar(p)">
                         <option value="Sim">Sim</option>
@@ -64,7 +69,9 @@
 
 <div class="side-note" style="margin-top:14px; max-width:760px">
     Alterar a tabela não mexe nas propostas já cadastradas — ela vale para as próximas.
-    "× técnicos" indica se o item é multiplicado pela quantidade de técnicos em campo.
+    "× técnicos" indica se o item é multiplicado pela quantidade de técnicos em campo;
+    "× hora-base" é o multiplicador sobre a hora do 1º turno (1,5 = HE/2º turno; 2 = sáb/dom/fer;
+    0 = valor independente).
 </div>
 
 @code {

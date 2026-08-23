@@ -16,4 +16,6 @@ public class Parametro
     public string Valor { get; set; } = "0";
     public string PorTecnico { get; set; } = "Sim";
     public string Ordem { get; set; } = "0";
+    /// <summary>Multiplicador sobre a hora-base (só mão de obra; 0 = independente).</summary>
+    public string Mult { get; set; } = "0";
 }

@@ -7,6 +7,7 @@
 @inject PropostaRepository Propostas
 @inject BrandingRepository Branding
 @inject FaturamentoRepository Faturamentos
+@inject RepresentanteRepository Representantes
 
 <div class="no-print">
 
@@ -55,8 +56,17 @@
                 <label>Referência / escopo
                     <input class="cell" placeholder="Suporte Engenharia de Ventilação" @bind="P.Referencia" />
                 </label>
-                <label>Representante
-                    <input class="cell" @bind="P.Representante" />
+                <label>Representante 1
+                    <select class="cell" value="@P.Representante" @onchange="e => MudarRep(e, 1)">
+                        <option value="-">— sem representante —</option>
+                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome (@x.ComissaoPct%)</option> }
+                    </select>
+                </label>
+                <label>Representante 2
+                    <select class="cell" value="@P.Representante2" @onchange="e => MudarRep(e, 2)">
+                        <option value="-">— sem representante —</option>
+                        @foreach (var x in _reps) { <option value="@x.Nome">@x.Nome (@x.ComissaoPct%)</option> }
+                    </select>
                 </label>
                 <label>Número da proposta
                     <input class="cell" placeholder="Gera sozinho se ficar vazio" @bind="P.Numero" />
@@ -89,7 +99,7 @@
                     <input class="cell num" @bind="P.PrazoEntregaDias" />
                 </label>
                 <label>Segmento (margem)
-                    <select class="cell" @bind="P.Segmento">
+                    <select class="cell" value="@P.Segmento" @onchange="MudarSegmento">
                         @foreach (var o in Servicos.Segmentos) { <option value="@o">@o</option> }
                     </select>
                 </label>
@@ -141,9 +151,11 @@
             </div>
         </div>
 
-        @* ================== 2. MARGEM, RISCOS E IMPOSTOS ================== *@
+        @* ================== 2. MARGEM, COMISSÕES, RISCOS E IMPOSTOS ================== *@
         <div class="panel" style="margin-top:16px">
-            <h3 class="dash-title">2 · Margem, riscos e impostos</h3>
+            <h3 class="dash-title">2 · Margem, comissões, riscos e impostos</h3>
+
+            <h4 style="margin:0 0 8px; font-size:13px; color:var(--muted)">Margem e risco</h4>
             <div class="form3">
                 <label>Margem alvo — Project Margin (%)
                     <input class="cell num" @bind="R.Params.MargemAlvoPct" />
@@ -151,9 +163,43 @@
                 <label>Risco de variação (%)
                     <input class="cell num" @bind="R.Params.RiscoPct" />
                 </label>
-                <label>Comissões (%)
-                    <input class="cell num" @bind="R.Params.ComissoesPct" />
+                <label>Qtd. de técnicos
+                    <input class="cell num" @bind="R.Params.QtdTecnicos" />
                 </label>
+            </div>
+            <div class="side-note" style="margin:10px 0 14px">
+                A margem padrão vem do segmento (Service 50% · NB 32% · AFM 52% · Intercompany 28%)
+                e pode ser alterada aqui, só para esta proposta.
+            </div>
+
+            <h4 style="margin:0 0 8px; font-size:13px; color:var(--muted)">Comissões (% sobre a venda líquida) — total @Pricing.Porcento(Pricing.ComissoesFrac(R.Params))</h4>
+            <div class="form3">
+                <label>PPR (%)
+                    <input class="cell num" @bind="R.Params.PprPct" />
+                </label>
+                <label>Sales Director / ELG (%)
+                    <input class="cell num" @bind="R.Params.SalesDirPct" />
+                </label>
+                <label>Sales Industrial (%)
+                    <input class="cell num" @bind="R.Params.SalesIndPct" />
+                </label>
+                <label>DSR sobre comissões internas (%)
+                    <input class="cell num" @bind="R.Params.DsrFatorPct" />
+                </label>
+                <label>Representante 1 (%)
+                    <input class="cell num" @bind="R.Params.Rep1Pct" />
+                </label>
+                <label>Representante 2 (%)
+                    <input class="cell num" @bind="R.Params.Rep2Pct" />
+                </label>
+            </div>
+            <div class="side-note" style="margin:10px 0 14px">
+                Ao escolher o representante na seção 1, a comissão dele entra sozinha —
+                e continua editável aqui, sem mexer no cadastro.
+            </div>
+
+            <h4 style="margin:0 0 8px; font-size:13px; color:var(--muted)">Provisões</h4>
+            <div class="form3">
                 <label>Margem de negociação (%)
                     <input class="cell num" @bind="R.Params.MargemNegociacaoPct" />
                 </label>
@@ -166,9 +212,28 @@
                 <label>Portal (%)
                     <input class="cell num" @bind="R.Params.PortalPct" />
                 </label>
-                <label>Seguro garantia / fiança (R$)
-                    <input class="cell num" @bind="R.Params.Fianca" />
+            </div>
+
+            <h4 style="margin:14px 0 8px; font-size:13px; color:var(--muted)">Seguro garantia / carta de fiança</h4>
+            <div class="form3">
+                <label>Instrumento
+                    <select class="cell" @bind="R.Params.FiancaTipo">
+                        @foreach (var g in Pricing.GarantiaTipos)
+                        {
+                            <option value="@g.Nome">@g.Nome @(g.TaxaAnualPct > 0 ? $"({g.TaxaAnualPct}% a.a.)" : "")</option>
+                        }
+                    </select>
                 </label>
+                <label>% da venda coberta
+                    <input class="cell num" @bind="R.Params.FiancaPctVenda" />
+                </label>
+                <label>Dias de cobertura
+                    <input class="cell num" @bind="R.Params.FiancaDias" />
+                </label>
+            </div>
+
+            <h4 style="margin:14px 0 8px; font-size:13px; color:var(--muted)">Impostos do serviço</h4>
+            <div class="form3">
                 <label>PIS (%)
                     <input class="cell num" @bind="R.Params.PisPct" />
                 </label>
@@ -177,9 +242,6 @@
                 </label>
                 <label>ISS (%)
                     <input class="cell num" @bind="R.Params.IssPct" />
-                </label>
-                <label>Qtd. de técnicos
-                    <input class="cell num" @bind="R.Params.QtdTecnicos" />
                 </label>
             </div>
             <div class="side-note" style="margin-top:12px">
@@ -191,7 +253,18 @@
 
         @* ================== 3. CUSTOS: MÃO DE OBRA ================== *@
         <div class="panel" style="margin-top:16px">
-            <h3 class="dash-title">3 · Custo — mão de obra</h3>
+            <div class="toolbar" style="justify-content:space-between">
+                <h3 class="dash-title" style="margin:0">3 · Custo — mão de obra</h3>
+                <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted)">
+                    Hora-base 1º turno (R$)
+                    <input class="cell num" style="width:90px" @bind="R.Params.HoraBase" @bind:after="AplicarBase" />
+                </label>
+            </div>
+            <div class="side-note" style="margin-bottom:12px">
+                Os valores de hora vêm do custo padrão: 2º turno e HE = 1,5× a hora-base;
+                sábado/domingo/feriado = 2×. Mudou a hora-base, essas linhas acompanham —
+                e qualquer valor pode ser ajustado direto na linha, só nesta proposta.
+            </div>
             <table class="grid tbl-custo">
                 <thead>
                     <tr>
@@ -277,8 +350,9 @@
                 <tbody>
                     <tr><td>Custo total (MO + despesas)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.CustoTotal)</td></tr>
                     <tr><td>Risco de variação</td><td class="right">@R.Params.RiscoPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.Risco)</td></tr>
-                    <tr><td>Seguro garantia / fiança</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Fianca)</td></tr>
-                    <tr><td>Comissões + provisões</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Comissoes + Calc.MargemNegociacao + Calc.PmSach + Calc.GarantiaProjeto + Calc.Portal)</td></tr>
+                    <tr><td>Seguro garantia / fiança (@R.Params.FiancaTipo)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Fianca)</td></tr>
+                    <tr><td>Comissões (PPR @R.Params.PprPct% · Sales @R.Params.SalesDirPct% · DSR · Rep @R.Params.Rep1Pct%@(Pricing.Num(R.Params.Rep2Pct) > 0 ? $" + {R.Params.Rep2Pct}%" : ""))</td><td class="right">@Pricing.Porcento(Calc.ComissoesFracTotal)</td><td class="right nowrap">@Pricing.Moeda(Calc.Comissoes)</td></tr>
+                    <tr><td>Provisões (negociação + PM/SACH + garantia + portal)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.MargemNegociacao + Calc.PmSach + Calc.GarantiaProjeto + Calc.Portal)</td></tr>
                     <tr><td><strong>VENDA LÍQUIDA (sem impostos)</strong></td><td class="right">margem @Pricing.Porcento(Calc.ProjectMargin)</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.VendaLiquida)</strong></td></tr>
                     <tr><td>PIS + COFINS + ISS</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Pis + Calc.Cofins + Calc.Iss)</td></tr>
                     <tr><td><strong>PREÇO DE VENDA (com impostos)</strong></td><td class="right">fator @Calc.FatorComImpostos.ToString("0.0000")</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.ComImpostos)</strong></td></tr>
@@ -415,13 +489,14 @@
 
 </div>
 
-<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, Doc, _logo, Faturamento()))</div>
+<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, Doc, _logo, Faturamento(), RepInfo()))</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
 
     private string? _msg, _erro, _logo;
     private List<BillingInfo> _faturamentos = new();
+    private List<Representante> _reps = new();
 
     private Proposta P => R.Proposta;
     private Pricing.Documento Doc => R.Documento();
@@ -444,6 +519,7 @@
         await base.OnInitializedAsync();
         _logo = Branding.GetLogo();
         _faturamentos = Faturamentos.All();
+        _reps = Representantes.All();
 
         if (!string.IsNullOrWhiteSpace(PropostaId))
         {
@@ -469,6 +545,42 @@
     {
         P.Bu = e.Value?.ToString() ?? P.Bu;
         R.Params.IssPct = Servicos.IssPadrao(P.Bu);
+    }
+
+    private void MudarSegmento(ChangeEventArgs e)
+    {
+        P.Segmento = e.Value?.ToString() ?? P.Segmento;
+        R.Params.MargemAlvoPct = Servicos.MargemPadrao(P.Segmento);
+    }
+
+    // Escolheu o representante → a comissão do cadastro entra sozinha (e segue editável).
+    private void MudarRep(ChangeEventArgs e, int qual)
+    {
+        var nome = e.Value?.ToString() ?? "-";
+        var rep = _reps.FirstOrDefault(x => x.Nome == nome);
+        if (qual == 1)
+        {
+            P.Representante = nome;
+            R.Params.Rep1Pct = rep?.ComissaoPct ?? "0";
+        }
+        else
+        {
+            P.Representante2 = nome;
+            R.Params.Rep2Pct = rep?.ComissaoPct ?? "0";
+        }
+    }
+
+    private void AplicarBase() => R.AplicarHoraBase();
+
+    // Contato do representante impresso no documento (linha abaixo do cadastro do cliente).
+    private string? RepInfo()
+    {
+        var partes = new[] { P.Representante, P.Representante2 }
+            .Where(n => n is not ("" or "-"))
+            .Select(n => _reps.FirstOrDefault(x => x.Nome == n)?.Contato ?? "")
+            .Where(c => c != "");
+        var txt = string.Join(" · ", partes);
+        return txt == "" ? null : txt;
     }
 
     private void Cadastrar()

@@ -37,6 +37,7 @@ builder.Services.AddScoped<PropostaRepository>();
 builder.Services.AddScoped<ParametroRepository>();
 builder.Services.AddScoped<FaturamentoRepository>();
 builder.Services.AddScoped<BrandingRepository>();
+builder.Services.AddScoped<RepresentanteRepository>();
 
 // Rascunho da proposta: vive no circuito do usuário (Custo → Pricing → Proposta).
 builder.Services.AddScoped<Rascunho>();

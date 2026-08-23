@@ -32,6 +32,7 @@ public class Proposta
     public string PreparadaPor { get; set; } = "";
     public string RevisadaPor { get; set; } = "";
     public string Representante { get; set; } = "-";
+    public string Representante2 { get; set; } = "-";
     public string Estado { get; set; } = "SP";
     public string Segmento { get; set; } = "Service";
     public string MarketSegment { get; set; } = "Mining";
@@ -66,6 +67,11 @@ public class ItemMO
     public string QtdDiaria { get; set; } = "0";
     /// <summary>Quando verdadeiro, o custo é multiplicado pela quantidade de técnicos.</summary>
     public bool PorTecnico { get; set; } = true;
+    /// <summary>
+    /// Multiplicador sobre a hora-base (planilha: 2º turno = 1,5×; sáb/dom/fer = 2×).
+    /// Zero ou vazio = valor independente, não acompanha a hora-base.
+    /// </summary>
+    public string Mult { get; set; } = "0";
 }
 
 /// <summary>Item de despesa (guia CUSTO, linhas 22–31).</summary>
@@ -78,24 +84,38 @@ public class ItemDespesa
     public bool PorTecnico { get; set; } = true;
 }
 
-/// <summary>Parâmetros da guia PRICING (riscos, provisões, margem e impostos).</summary>
+/// <summary>Parâmetros da guia PRICING (riscos, provisões, comissões, margem e impostos).</summary>
 public class PricingParams
 {
     public string QtdTecnicos { get; set; } = "1";
 
+    /// <summary>Hora-base do 1º turno (CUSTO E8): os itens com multiplicador acompanham este valor.</summary>
+    public string HoraBase { get; set; } = "320";
+
     // riscos
-    public string RiscoPct { get; set; } = "5";          // PRICING D37 (risco adicional)
+    public string RiscoPct { get; set; } = "5";           // PRICING D37/E36 (risco de variação)
+
+    // comissões (PRICING L36:T59 + BD_pricing) — % sobre a venda líquida
+    public string PprPct { get; set; } = "1";             // PPR (código C01)
+    public string SalesDirPct { get; set; } = "0.4";      // Sales Director (ELG)
+    public string SalesIndPct { get; set; } = "0";        // Sales Industrial
+    public string DsrFatorPct { get; set; } = "64.11";    // encargos DSR sobre as comissões internas de Sales
+    public string Rep1Pct { get; set; } = "0";            // comissão do representante 1 (vem do cadastro)
+    public string Rep2Pct { get; set; } = "0";            // comissão do representante 2
 
     // provisões sobre a venda líquida
-    public string ComissoesPct { get; set; } = "1.65644"; // PRICING D46
     public string MargemNegociacaoPct { get; set; } = "3";// PRICING D47
     public string PmSachPct { get; set; } = "1";          // PRICING D48
     public string GarantiaProjetoPct { get; set; } = "2"; // PRICING D49
     public string PortalPct { get; set; } = "0";          // PRICING D50 (0,7% quando há portal)
-    public string Fianca { get; set; } = "0";             // PRICING E43 (seguro garantia / fiança)
+
+    // seguro garantia / carta de fiança (PRICING M46:T59 + listas Custo_Garantia)
+    public string FiancaTipo { get; set; } = "Não";       // instrumento (taxa anual da tabela)
+    public string FiancaPctVenda { get; set; } = "30";    // % da venda coberta (evento de pagamento)
+    public string FiancaDias { get; set; } = "30";        // dias de cobertura (≈ prazo de entrega)
 
     // margem alvo (Project Margin) — "montar preço a partir da margem"
-    public string MargemAlvoPct { get; set; } = "36";
+    public string MargemAlvoPct { get; set; } = "50";     // padrão do segmento Service (BD_pricing)
 
     // impostos (serviço: PIS, COFINS e ISS)
     public string PisPct { get; set; } = "1.65";

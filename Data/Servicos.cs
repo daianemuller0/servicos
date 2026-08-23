@@ -29,6 +29,12 @@ public static class Servicos
         "PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO","Chile","Peru","Exportação",
     };
 
+    /// <summary>Margem padrão (Project Margin) por segmento — BD_pricing A21:B25.</summary>
+    public static string MargemPadrao(string segmento) => segmento switch
+    {
+        "NB" => "32", "AFM" => "52", "Intercompany" => "28", _ => "50",   // Service
+    };
+
     /// <summary>Alíquota de ISS conforme a BU emissora (2% Itatiba / 5% Serra).</summary>
     public static string IssPadrao(string bu) => bu == "HSA-ES" ? "5" : "2";
 
@@ -172,17 +178,17 @@ public static class Servicos
     }
 
     /// <summary>Documento completo em HTML (usado no download em Word).</summary>
-    public static string DocHtml(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? fat) =>
+    public static string DocHtml(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? fat, string? repInfo = null) =>
         $@"<html><head><meta charset='utf-8'><title>Proposta {System.Net.WebUtility.HtmlEncode(p.Numero)}</title>
 <style>body {{ font-family: Arial, sans-serif; color: #3C465A; font-size: 9pt; margin: 32px; }}</style>
-</head><body>{DocBody(p, doc, logo, fat)}</body></html>";
+</head><body>{DocBody(p, doc, logo, fat, repInfo)}</body></html>";
 
     /// <summary>
     /// Miolo do documento — compartilhado entre a impressão/PDF e o Word.
     /// Mesmas cores do modelo oficial: Arial, títulos navy #141E32, texto
     /// #3C465A e caixas/tabelas em azul #004785. Estilos inline por causa do Word.
     /// </summary>
-    public static string DocBody(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? billing)
+    public static string DocBody(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? billing, string? repInfo = null)
     {
         const string azul = "#004785";
         const string navy = "#141E32";
@@ -255,6 +261,7 @@ public static class Servicos
   {(string.IsNullOrWhiteSpace(p.ContatoNome) ? "" : $"<p style='margin:2px 0 0;color:{corpo}'>{L.AosCuidados} {E(p.ContatoNome)}</p>")}
   {(string.IsNullOrWhiteSpace(p.ContatoEmail) ? "" : $"<p style='margin:2px 0 0;color:{corpo}'>{L.Email} {E(p.ContatoEmail)}</p>")}
   {(string.IsNullOrWhiteSpace(p.ContatoTelefone) ? "" : $"<p style='margin:2px 0 0;color:{corpo}'>{L.Telefone} {E(p.ContatoTelefone)}</p>")}
+  {(p.Representante is "" or "-" ? "" : $"<p style='margin:8px 0 0;color:{sec}'><b style='color:{navy}'>Representante:</b> {E(p.Representante)}{(string.IsNullOrWhiteSpace(repInfo) ? "" : $"<br/>{E(repInfo)}")}</p>")}
 </td>
 <td style='vertical-align:top;width:310px;padding:0'>
   <table style='width:100%;border-collapse:collapse'>

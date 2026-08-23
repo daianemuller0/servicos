@@ -57,6 +57,37 @@ public static class Pricing
     public static double CustoDespesa(ItemDespesa d, int tecnicos) =>
         Num(d.Qtd) * Num(d.CustoUnitario) * (d.PorTecnico ? Math.Max(tecnicos, 1) : 1);
 
+    // ---------- seguro garantia / carta de fiança (listas!Custo_Garantia) ----------
+    /// <summary>Instrumentos de garantia e taxa anual (% a.a.) da planilha.</summary>
+    public static readonly (string Nome, double TaxaAnualPct)[] GarantiaTipos =
+    {
+        ("Não", 0),
+        ("HSA C. Fiança (Banco)", 5.0),
+        ("HSA S. Garantia (Corretora)", 1.0),
+        ("HCHL/HPU C. Fiança (Banco)", 3.75),
+        ("HCHL/HPU S. Garantia (Corretora)", 1.75),
+    };
+
+    public static double TaxaGarantia(string tipo) =>
+        GarantiaTipos.FirstOrDefault(g => g.Nome == tipo).TaxaAnualPct / 100.0;
+
+    /// <summary>
+    /// Comissão total (fração), como a tabela de comissões da planilha:
+    /// PPR + Sales Director + Sales Industrial + DSR×(comissões de Sales) + Rep1 + Rep2.
+    /// </summary>
+    public static double ComissoesFrac(PricingParams p)
+    {
+        var sales = Pct(p.SalesDirPct) + Pct(p.SalesIndPct);
+        return Pct(p.PprPct) + sales + Pct(p.DsrFatorPct) * sales + Pct(p.Rep1Pct) + Pct(p.Rep2Pct);
+    }
+
+    /// <summary>Fração da venda consumida pela fiança: % coberto × dias × taxa anual ÷ 365.</summary>
+    public static double FiancaFrac(PricingParams p)
+    {
+        var taxa = TaxaGarantia(p.FiancaTipo);
+        return taxa <= 0 ? 0 : Pct(p.FiancaPctVenda) * Num(p.FiancaDias) * taxa / 365.0;
+    }
+
     // ---------- resultado ----------
     public sealed record Resultado(
         double TotalMO, double TotalDespesas, double CustoTotal,
@@ -65,7 +96,8 @@ public static class Pricing
         double VendaLiquida, double ComPisCofins, double ComImpostos,
         double Pis, double Cofins, double Iss,
         double FatorLiquido, double FatorPisCofins, double FatorComImpostos,
-        double Markup, double ProjectMargin, double ContributionMargin);
+        double Markup, double ProjectMargin, double ContributionMargin,
+        double ComissoesFracTotal, double Dsr);
 
     public static Resultado Calcular(IEnumerable<ItemMO> mo, IEnumerable<ItemDespesa> desp, PricingParams p)
     {
@@ -76,15 +108,19 @@ public static class Pricing
 
         var risco = custo * Pct(p.RiscoPct);
         var custoRisco = custo + risco;
-        var fianca = Num(p.Fianca);
 
-        var provisoes = Pct(p.ComissoesPct) + Pct(p.MargemNegociacaoPct) + Pct(p.PmSachPct)
+        var comissoesFrac = ComissoesFrac(p);
+        var provisoes = comissoesFrac + Pct(p.MargemNegociacaoPct) + Pct(p.PmSachPct)
                       + Pct(p.GarantiaProjetoPct) + Pct(p.PortalPct);
         var margem = Pct(p.MargemAlvoPct);
 
-        // Venda líquida a partir da margem alvo (equivale ao Goal Seek do markup na planilha).
-        var den = 1 - provisoes - margem;
-        var vendaLiquida = den > 0.0001 ? (custoRisco + fianca) / den : 0;
+        // Venda líquida a partir da margem alvo. A fiança é proporcional à própria
+        // venda (fração k), então entra no denominador — mesma conta que a planilha
+        // fecha por iteração: venda×(1−prov−margem) = custoRisco + venda×k.
+        var k = FiancaFrac(p);
+        var den = 1 - provisoes - margem - k;
+        var vendaLiquida = den > 0.0001 ? custoRisco / den : 0;
+        var fianca = vendaLiquida * k;
 
         var pis = Pct(p.PisPct);
         var cofins = Pct(p.CofinsPct);
@@ -93,7 +129,8 @@ public static class Pricing
         var comImpostos = denImp > 0.0001 ? vendaLiquida / denImp : 0;
         var comPisCofins = comImpostos * (1 - iss);
 
-        var comissoes = vendaLiquida * Pct(p.ComissoesPct);
+        var salesFrac = Pct(p.SalesDirPct) + Pct(p.SalesIndPct);
+        var comissoes = vendaLiquida * comissoesFrac;
         var mn = vendaLiquida * Pct(p.MargemNegociacaoPct);
         var pmSach = vendaLiquida * Pct(p.PmSachPct);
         var garantia = vendaLiquida * Pct(p.GarantiaProjetoPct);
@@ -116,7 +153,8 @@ public static class Pricing
             custo > 0 ? vendaLiquida / custo : 0,
             custo > 0 ? comPisCofins / custo : 0,
             custo > 0 ? comImpostos / custo : 0,
-            markup, pm, cm);
+            markup, pm, cm,
+            comissoesFrac, vendaLiquida * Pct(p.DsrFatorPct) * salesFrac);
     }
 
     // ---------- itens já precificados (o que sai impresso na proposta) ----------

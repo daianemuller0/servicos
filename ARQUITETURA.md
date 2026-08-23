@@ -66,7 +66,7 @@ servicos/
 │   ├── Pricing.cs                 # ★ motor de cálculo (guias CUSTO + PRICING)
 │   ├── Servicos.cs                # listas, rótulos PT/EN/ES e o documento HTML
 │   ├── Rascunho.cs                # a proposta em edição (scoped no circuito)
-│   ├── Repositorios.cs            # Proposta / Parametro / Faturamento / Branding
+│   ├── Repositorios.cs            # Proposta / Parametro / Representante / Faturamento / Branding
 │   └── Seed.cs                    # valores padrão + DbInitializer
 ├── Models/                        # Proposta, ItemMO, ItemDespesa, PricingParams, …
 └── wwwroot/
@@ -92,8 +92,24 @@ custo (MO + despesas)
 - **Custo de um serviço** = `qtd. diárias × custo/hora × horas × (técnicos, se marcado)`
   — as linhas 8–17 da guia CUSTO, incluindo o `×$H$6` de quantidade de técnicos.
 - **Custo de uma despesa** = `qtd × custo unitário × (técnicos, se marcado)` (linhas 22–31).
-- **Provisões** (percentuais sobre a venda líquida): comissões, margem de negociação,
+- **Comissões** (tabela de comissões da planilha): PPR + Sales Director/ELG +
+  Sales Industrial + DSR (64,11% sobre as comissões internas de Sales) + a comissão
+  dos representantes 1 e 2 — que entra sozinha ao escolher o representante no
+  cadastro e continua editável por proposta. Total padrão sem representante:
+  1,65644%, igual ao D46 da planilha.
+- **Provisões** (percentuais sobre a venda líquida): margem de negociação,
   PM + SACH, garantia do projeto e portal.
+- **Seguro garantia / fiança**: calculado como na planilha — % da venda coberta ×
+  dias de cobertura × taxa anual do instrumento ÷ 365 (taxas da tabela
+  Custo_Garantia: fiança bancária HSA 5% a.a., seguro garantia 1% a.a. etc.).
+  Como a fiança é proporcional à própria venda, ela entra no denominador da
+  fórmula fechada — o mesmo resultado que o Excel obtém por iteração
+  (conferido: R$ 19,03 no cenário do arquivo).
+- **Margem padrão por segmento** (BD_pricing): Service 50%, NB 32%, AFM 52%,
+  Intercompany 28% — preenchida ao trocar o segmento, editável por proposta.
+- **Hora-base**: os serviços com multiplicador (2º turno/HE = 1,5×; sáb/dom/fer = 2×)
+  acompanham a hora do 1º turno, como as fórmulas E9=E8×1,5 e E10=E8×2 da guia
+  CUSTO; qualquer valor segue editável linha a linha, só na proposta.
 - **Margem alvo**: a planilha usava Goal Seek para achar o markup; aqui o preço sai
   direto da fórmula fechada — e o markup resultante é exibido para conferência
   (bate com o `E41` da planilha).
@@ -151,8 +167,9 @@ Igual ao projeto Licenças (`Data/ParquetStore.cs`, copiado sem alterações de 
 - **Concorrência**: ninguém trava arquivo compartilhado — vários usuários gravam ao
   mesmo tempo na pasta de rede.
 
-Entidades: `propostas`, `parametros` (tabela de custos, semeada), `faturamento`
-(semeada com os dados da HSA-SP) e `branding` (logo).
+Entidades: `propostas`, `parametros` (tabela de custos, semeada), `representantes`
+(semeada com a tabela da planilha: 31 representantes com comissão e contato),
+`faturamento` (semeada com os dados da HSA-SP) e `branding` (logo).
 
 A pasta vem de `Data:Folder` no `appsettings.json`; sem configuração, usa `data/`.
 
@@ -190,7 +207,8 @@ O botão **Nova proposta** limpa e recarrega os itens padrão da Tabela de Custo
 | `/login` | Login | Formulário que posta em `/auth/login` |
 | `/servicos/proposta` | Nova Proposta | A tela única: cadastro, margem, custos, composição do preço, itens precificados, PDF/Word e gravação (`/servicos/custo` e `/servicos/pricing` são apelidos da mesma página) |
 | `/servicos/propostas` | Propostas Enviadas | Lista, busca, reabre e exporta CSV |
-| `/servicos/parametros` | Tabela de Custos | Custo/hora e despesas padrão |
+| `/servicos/representantes` | Representantes | Cadastro dos representantes com % de comissão e contato |
+| `/servicos/parametros` | Tabela de Custos | Custo/hora e despesas padrão (com o multiplicador da hora-base) |
 | `/servicos/marca` | Identidade Visual | Logo usado no documento |
 | `/servicos/faturamento` | Dados de Faturamento | Razão social, endereço e banco por BU |
 | `/servicos/propostas/export` | — | CSV das propostas (UTF-8 com BOM, separador `;`) |

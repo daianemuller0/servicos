@@ -24,6 +24,22 @@ public class Rascunho
     public Pricing.Documento Documento() => Pricing.Montar(ItensMO, ItensDespesa, Params);
     public Pricing.Resultado Calculo() => Pricing.Calcular(ItensMO, ItensDespesa, Params);
 
+    /// <summary>
+    /// Aplica a hora-base aos serviços com multiplicador (planilha: E9=E8×1,5;
+    /// E10=E8×2…). Itens com multiplicador zero não são tocados, e qualquer
+    /// valor pode ser editado depois, item a item, só nesta proposta.
+    /// </summary>
+    public void AplicarHoraBase()
+    {
+        var baseHora = Pricing.Num(Params.HoraBase);
+        if (baseHora <= 0) return;
+        foreach (var i in ItensMO)
+        {
+            var m = Pricing.Num(i.Mult);
+            if (m > 0) i.CustoHora = (baseHora * m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
+
     /// <summary>Começa uma proposta nova, já com os itens padrão da tabela de custos.</summary>
     public void Novo(List<Parametro> parametros, string usuario)
     {
@@ -38,6 +54,7 @@ public class Rascunho
         {
             Servico = p.Descricao, Obs = p.Obs, Horas = p.Horas,
             CustoHora = p.Valor, QtdDiaria = "0", PorTecnico = p.PorTecnico == "Sim",
+            Mult = string.IsNullOrWhiteSpace(p.Mult) ? "0" : p.Mult,
         }).ToList();
         ItensDespesa = parametros.Where(p => p.Tipo == "DESPESA").Select(p => new ItemDespesa
         {
