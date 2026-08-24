@@ -222,25 +222,6 @@
         <tr class="total-row"><td>VALOR C/ PIS, COFINS E ISS</td><td class="right">@Cifrao @Pricing.Moeda(Doc.Calculo.ComImpostos)</td></tr>
     </table>
 
-    @* ---------- complementares ---------- *@
-    <h2>INFORMAÇÕES COMPLEMENTARES — NÃO INCLUSO</h2>
-    <table class="doc-tbl">
-        <thead>
-            <tr><th>DESCRIÇÃO</th><th>OBS</th><th style="text-align:center">QTD</th><th style="text-align:right">VALOR C/ PIS, COFINS E ISS</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var c in DocA.Complementares)
-            {
-                <tr>
-                    <td class="doc-navy">@c.Descricao</td>
-                    <td>@c.Obs</td>
-                    <td class="center">@Pricing.Moeda0(c.Qtd)</td>
-                    <td class="right">@Cifrao @Pricing.Moeda(c.Valor)</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-
     @* ---------- faturamento ---------- *@
     <h2>DADOS PARA FATURAMENTO</h2>
     <div>

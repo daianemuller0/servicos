@@ -438,23 +438,6 @@
                     </table>
                 }
 
-                <h3 class="dash-title" style="margin-top:16px">Informações complementares — não incluso</h3>
-                <table class="grid">
-                    <thead>
-                        <tr><th>Descrição</th><th>Obs</th><th class="right">Qtd</th><th class="right">Valor c/ PIS, COFINS e ISS</th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var c in DocA.Complementares)
-                        {
-                            <tr>
-                                <td>@c.Descricao</td>
-                                <td>@c.Obs</td>
-                                <td class="right">@Pricing.Moeda0(c.Qtd)</td>
-                                <td class="right nowrap"><strong>@Cifrao @Pricing.Moeda(c.Valor)</strong></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
             }
         </div>
     </div>

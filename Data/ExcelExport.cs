@@ -149,18 +149,6 @@ public static class ExcelExport
         Rotulo(ws, r++, "VALOR C/ PIS, COFINS E ISS", doc.Calculo.ComImpostos, Fmt);
         r++;
 
-        Titulo(ws, r++, "INFORMAÇÕES COMPLEMENTARES — NÃO INCLUSO");
-        Cabecalho(ws, r++, 1, "DESCRIÇÃO", "OBS", "QTD", "VALOR C/ PIS, COFINS E ISS");
-        foreach (var c in doc.Complementares)
-        {
-            ws.Cell(r, 1).Value = c.Descricao;
-            ws.Cell(r, 2).Value = c.Obs;
-            ws.Cell(r, 3).Value = c.Qtd;
-            Num(ws, r, 4, c.Valor);
-            r++;
-        }
-        r++;
-
         Titulo(ws, r++, "DADOS PARA FATURAMENTO");
         ws.Cell(r++, 1).Value = fat.Razao;
         ws.Cell(r++, 1).Value = fat.Endereco;

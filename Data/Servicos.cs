@@ -308,12 +308,6 @@ public static class Servicos
 <tr><td style='{bd};color:{navy};font-weight:bold'>{L.ComPisCofinsIss}</td><td style='{bd};text-align:right;color:{navy};font-weight:bold'>{M(doc.Calculo.ComImpostos)}</td></tr>
 </table>
 
-<p style='margin:24px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Complementares}</p>
-<table style='width:100%;border-collapse:collapse;font-size:8.5pt'>
-<tr>{Th(L.Descricao)}{Th(L.Obs)}{Th(L.Qtd, "center")}{Th(L.ComPisCofinsIss, "right")}</tr>
-{linhasComp}
-</table>
-
 <p style='margin:26px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Faturamento}</p>
 <p style='margin:0;color:{corpo}'><b style='color:{navy}'>{E(fat.Razao)}</b><br/>{E(fat.Endereco)}{(string.IsNullOrWhiteSpace(fat.Registro) ? "" : $"<br/><span style='color:{sec}'>{E(fat.Registro)}</span>")}</p>
 {(bancoLinha == "" ? "" : $"<p style='margin:12px 0 0'><span style='border:1px solid #d5dae4;border-radius:3px;padding:5px 12px;display:inline-block;color:#23253F'><b>{bancoLinha}</b></span></p>")}
