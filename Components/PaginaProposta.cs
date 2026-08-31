@@ -120,15 +120,8 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     /// são múltiplos fixos da diária normal (sáb/dom = 2×; HE = 1,5×/2×), todas
     /// acompanham. Retorna a mensagem para exibir ao usuário.
     /// </summary>
-    protected string InjetarEmOutros()
+    private Models.ItemDespesa GarantirOutros()
     {
-        var inv = System.Globalization.CultureInfo.InvariantCulture;
-        var alvo = Math.Round(MetaAnterior, 2);
-        if (alvo <= 0) return "Informe a diária normal da proposta anterior.";
-
-        R.Params.DiariaTravada = "";              // solta o pino durante a busca
-        if (DiariaAtual <= 0) return "Lance as diárias normais (1º turno) antes de ajustar.";
-
         var outros = R.ItensDespesa.FirstOrDefault(d => Data.Pricing.EhOutros(d.Despesa));
         if (outros is null)
         {
@@ -136,15 +129,21 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
             R.ItensDespesa.Add(outros);
         }
         if (Data.Pricing.Num(outros.Qtd) < 1) outros.Qtd = "1";
+        return outros;
+    }
 
+    /// <summary>
+    /// Ajusta o custo de OUTROS (centavos, para cima ou para baixo) até a diária
+    /// normal apresentada cravar no alvo; aplica o pino cosmético. Retorna a
+    /// diária final.
+    /// </summary>
+    private double BuscarDiariaExata(double alvo, Models.ItemDespesa outros)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
         double Unit() => Data.Pricing.Num(outros.CustoUnitario);
-        void SetUnit(double v) =>
-            outros.CustoUnitario = Math.Max(v, 0).ToString("0.##", inv);
+        void SetUnit(double v) => outros.CustoUnitario = Math.Max(v, 0).ToString("0.##", inv);
 
-        var unitInicial = Unit();
-
-        // Busca de precisão: ajusta OUTROS para CIMA ou PARA BAIXO até a diária
-        // apresentada cravar na meta (derivada numérica; centavos no custo).
+        R.Params.DiariaTravada = "";              // solta o pino durante a busca
         for (var i = 0; i < 40; i++)
         {
             var dia = DiariaAtual;
@@ -162,23 +161,94 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
             SetUnit(u + erro / sensibilidade);
         }
 
-        var diaFinal = DiariaAtual;
-        // Pino cosmético: apara o resíduo de arredondamento (≤ R$ 1) para o exato.
-        if (Math.Abs(diaFinal - alvo) <= 1.0)
-        {
+        if (Math.Abs(DiariaAtual - alvo) <= 1.0)
             R.Params.DiariaTravada = alvo.ToString("0.00", inv);
-            diaFinal = DiariaAtual;
+        return DiariaAtual;
+    }
+
+    /// <summary>Grava a margem que fecha o total na meta e a trava do total.</summary>
+    private void AplicarMargemParaTotal(double meta)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var m = Data.Pricing.MargemParaMeta(R.Calculo(), R.Params, meta,
+            Data.Pricing.Num(R.Proposta.PrazoEntregaDias));
+        R.Params.MargemAlvoPct = (m * 100).ToString("0.######", inv);
+        R.Params.TotalTravado = meta.ToString("0.00", inv);
+    }
+
+    /// <summary>
+    /// Quando as duas metas não fecham juntas (ex.: só diárias normais
+    /// lançadas), explica a relação e sugere os números possíveis.
+    /// </summary>
+    private string AvisoConflito(double diaAlvo, double totalAlvo)
+    {
+        var doc = Apresentado();
+        var normal = doc.MO.FirstOrDefault(l => l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0);
+        if (normal is null) return "";
+        var outras = doc.MO.Where(l => l != normal).Sum(l => l.ValorTotal) + doc.TotalDespesas + doc.Deslocamento;
+        var totalNecessario = diaAlvo * normal.QtdDiaria + outras;
+        var diariaPossivel = normal.QtdDiaria > 0 ? (totalAlvo - outras) / normal.QtdDiaria : 0;
+        return $" ⚠ As duas metas não fecham juntas com as linhas lançadas: para diária R$ {Data.Pricing.Moeda(diaAlvo)} o total seria R$ {Data.Pricing.Moeda(totalNecessario)}; para total R$ {Data.Pricing.Moeda(totalAlvo)} a diária seria R$ {Data.Pricing.Moeda(diariaPossivel)}. Ajuste uma das metas ou lance 2º turno / sáb-dom / horas extras.";
+    }
+
+    /// <summary>
+    /// Fecha as DUAS metas ao mesmo tempo: a margem (GM) é resolvida para o
+    /// total e OUTROS para a diária — alternando até os dois cravarem.
+    /// </summary>
+    private (double Dia, double Total) ReconciliarTravas(double diaAlvo, double totalAlvo, Models.ItemDespesa outros)
+    {
+        double dia = 0, total = 0;
+        for (var i = 0; i < 15; i++)
+        {
+            AplicarMargemParaTotal(totalAlvo);            // GM fecha o total (custo atual)
+            dia = BuscarDiariaExata(diaAlvo, outros);     // OUTROS fecha a diária (muda o custo)
+            AplicarMargemParaTotal(totalAlvo);            // GM refeita para o custo novo
+            total = Apresentado().Total;
+            if (Math.Abs(dia - diaAlvo) <= 0.05 && Math.Abs(total - totalAlvo) <= 0.05) break;
+        }
+        return (DiariaAtual, Apresentado().Total);
+    }
+
+    protected string InjetarEmOutros()
+    {
+        var alvo = Math.Round(MetaAnterior, 2);
+        if (alvo <= 0) return "Informe a diária normal da proposta anterior.";
+
+        R.Params.DiariaTravada = "";
+        if (DiariaAtual <= 0) return "Lance as diárias normais (1º turno) antes de ajustar.";
+
+        var outros = GarantirOutros();
+        var unitInicial = Data.Pricing.Num(outros.CustoUnitario);
+
+        double diaFinal, totalFinal;
+        var totalAlvo = Data.Pricing.Num(R.Params.TotalTravado);
+        if (totalAlvo > 0)
+        {
+            (diaFinal, totalFinal) = ReconciliarTravas(alvo, totalAlvo, outros);
+        }
+        else
+        {
+            diaFinal = BuscarDiariaExata(alvo, outros);
+            totalFinal = Apresentado().Total;
         }
 
-        var variacao = (Unit() - unitInicial) * Math.Max(Data.Pricing.Num(outros.Qtd), 1)
+        var variacao = (Data.Pricing.Num(outros.CustoUnitario) - unitInicial)
+                     * Math.Max(Data.Pricing.Num(outros.Qtd), 1)
                      * (outros.PorTecnico ? Math.Max(Data.Pricing.Inteiro(R.Params.QtdTecnicos), 1) : 1);
-        var total = Apresentado().Total;
 
         if (Math.Abs(diaFinal - alvo) > 0.05)
-            return $"Não foi possível cravar a meta: OUTROS chegou ao mínimo e a diária ficou em R$ {Data.Pricing.Moeda(diaFinal)} (os custos reais já superam a meta de R$ {Data.Pricing.Moeda(alvo)}).";
+        {
+            var explicacao = totalAlvo > 0
+                ? AvisoConflito(alvo, totalAlvo)
+                : " Os custos reais já superam a meta (OUTROS chegou ao mínimo).";
+            return $"Diária ficou em R$ {Data.Pricing.Moeda(diaFinal)} (meta R$ {Data.Pricing.Moeda(alvo)}).{explicacao}";
+        }
 
         var verbo = variacao >= 0 ? $"+R$ {Data.Pricing.Moeda(variacao)}" : $"−R$ {Data.Pricing.Moeda(-variacao)}";
-        return $"OUTROS {verbo} → diária normal CRAVADA em R$ {Data.Pricing.Moeda(diaFinal)} (meta R$ {Data.Pricing.Moeda(alvo)}) · total R$ {Data.Pricing.Moeda(total)} ✓";
+        var aviso = totalAlvo > 0 && Math.Abs(totalFinal - totalAlvo) > 0.05
+            ? AvisoConflito(alvo, totalAlvo)
+            : "";
+        return $"OUTROS {verbo} → diária normal CRAVADA em R$ {Data.Pricing.Moeda(diaFinal)} · total R$ {Data.Pricing.Moeda(totalFinal)} ✓{aviso}";
     }
 
     /// <summary>Margem que resulta da meta de valor informada (função "chegar no valor").</summary>
@@ -189,15 +259,30 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     /// <summary>Aplica a margem calculada pela meta. Retorna a mensagem para o usuário.</summary>
     protected string AplicarMargemDaMeta()
     {
-        var inv = System.Globalization.CultureInfo.InvariantCulture;
         var meta = Math.Round(Data.Pricing.Num(R.Params.MetaValor), 2);
         if (meta <= 0) return "Informe a meta de valor final.";
         if (R.Calculo().CustoComRisco <= 0) return "Lance algum custo antes de usar a meta.";
-        var m = MargemDaMeta;
-        R.Params.MargemAlvoPct = (m * 100).ToString("0.######", inv);
-        R.Params.TotalTravado = meta.ToString("0.00", inv);   // apara o resíduo dos arredondamentos
-        var total = Apresentado().Total;
-        return $"Margem ajustada para {Data.Pricing.Porcento(m)} — total CRAVADO em R$ {Data.Pricing.Moeda(total)} ✓";
+
+        var diaAlvo = Math.Round(MetaAnterior, 2);
+
+        double totalFinal;
+        string aviso = "";
+        if (diaAlvo > 0)
+        {
+            // As duas metas ativas: GM fecha o total e OUTROS refecha a diária.
+            var (dia, tot) = ReconciliarTravas(diaAlvo, meta, GarantirOutros());
+            totalFinal = tot;
+            if (Math.Abs(dia - diaAlvo) > 0.05 || Math.Abs(tot - meta) > 0.05)
+                aviso = AvisoConflito(diaAlvo, meta);
+        }
+        else
+        {
+            AplicarMargemParaTotal(meta);
+            totalFinal = Apresentado().Total;
+        }
+
+        var margem = Data.Pricing.Porcento(R.Calculo().ProjectMargin);
+        return $"Margem ajustada para {margem} — total CRAVADO em R$ {Data.Pricing.Moeda(totalFinal)} ✓{aviso}";
     }
 
     /// <summary>

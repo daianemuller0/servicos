@@ -396,11 +396,15 @@ public static class Pricing
         if (totalTravado > 0 && Math.Abs(totalGeral - totalTravado) <= 10 && mo.Count > 0)
         {
             var candidatas = mo.Where(l => l.ValorTotal > 0).ToList();
-            if (diariaTravada > 0)
+            // A diária normal só fica protegida se o pino dela estiver DE FATO
+            // aplicado (a linha mostra exatamente o valor travado).
+            var pinoAtivo = diariaTravada > 0 && mo.Any(l =>
+                l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0 &&
+                Math.Abs(l.ValorDiaria - diariaTravada) < 0.005);
+            if (pinoAtivo)
             {
                 var semNormal = candidatas.Where(l => !(l.Mult is > 0.99 and < 1.01)).ToList();
-                if (semNormal.Count > 0) candidatas = semNormal;
-                else candidatas = new List<LinhaMO>();   // só a normal cravada: não dá p/ cravar os dois
+                candidatas = semNormal.Count > 0 ? semNormal : new List<LinhaMO>();
             }
             var alvoLinha = candidatas.OrderByDescending(l => l.ValorTotal).FirstOrDefault();
             if (alvoLinha is not null)
