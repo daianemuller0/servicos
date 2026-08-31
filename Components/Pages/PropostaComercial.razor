@@ -39,6 +39,48 @@
     </div>
 </div>
 
+<div class="panel" style="max-width:1080px; margin-bottom:14px">
+    <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end">
+        <div>
+            <h3 class="dash-title" style="margin-bottom:8px">Proposta anterior</h3>
+            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap">
+                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
+                    Valor anterior (R$)
+                    <input class="cell num" style="width:120px" @bind="R.Params.PropAnteriorValor" />
+                </label>
+                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
+                    % a mais
+                    <input class="cell num" style="width:64px" @bind="R.Params.PropAnteriorPct" />
+                </label>
+                <button class="btn-ghost" @onclick="Injetar">Ajustar em OUTROS</button>
+            </div>
+            @if (MetaAnterior > 0)
+            {
+                <div style="margin-top:6px; font-size:12.5px" class="@(FaltaParaAnterior > 0 ? "dias-vencida" : "saved-flag")">
+                    Meta: R$ @Pricing.Moeda(MetaAnterior) —
+                    @(FaltaParaAnterior > 0 ? $"faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "total atual já supera ✓")
+                </div>
+            }
+        </div>
+        <div>
+            <h3 class="dash-title" style="margin-bottom:8px">Chegar no valor (meta)</h3>
+            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap">
+                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
+                    Valor final desejado (R$)
+                    <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
+                </label>
+                <button class="btn-ghost" @onclick="AplicarMeta">Aplicar margem</button>
+            </div>
+            @if (Pricing.Num(R.Params.MetaValor) > 0)
+            {
+                <div style="margin-top:6px; font-size:12.5px" class="@(MargemDaMeta < 0 ? "dias-vencida" : "")" >
+                    Com essa meta a margem fica <strong>@Pricing.Porcento(MargemDaMeta)</strong>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
 <div class="paper">
     @* ---------- cabeçalho ---------- *@
     <table style="width:100%; border-collapse:collapse">
@@ -257,7 +299,8 @@
     <div class="side-note" style="flex:1; margin-right:14px">
         ✦ Campos <span class="de qtd" style="padding:1px 8px">amarelos</span> = quantidades.
         Colunas <strong>ᵢ (internas)</strong> = custo, já preenchido pelo padrão e ajustável aqui
-        — elas não saem no PDF/Word. Margem e comissões: <a href="/servicos/proposta">Pricing e Custos</a>.
+        — elas não saem no PDF/Word. A linha <strong>OUTROS nunca aparece na proposta</strong>:
+        o valor dela é diluído nas diárias. Margem e comissões: <a href="/servicos/proposta">Pricing e Custos</a>.
     </div>
     <div style="display:flex; gap:8px">
         <a class="btn-ghost" href="@Servicos.MailtoEnvio(P, DocA)">✉ E-mail de envio</a>
@@ -308,9 +351,14 @@
         var im = 0;
         foreach (var i in R.ItensMO)
             if (Pricing.CustoMO(i, tec) > 0 && im < doc.MO.Count) _mapa[i] = doc.MO[im++];
+        var usandoApresentado = doc.Despesas.Count > 0;
         var id = 0;
         foreach (var d in R.ItensDespesa)
-            if (Pricing.CustoDespesa(d, tec) > 0 && id < docDespesas.Despesas.Count) _mapa[d] = docDespesas.Despesas[id++];
+        {
+            if (Pricing.CustoDespesa(d, tec) <= 0) continue;
+            if (usandoApresentado && Pricing.EhOutros(d.Despesa)) continue;   // OUTROS não sai na proposta
+            if (id < docDespesas.Despesas.Count) _mapa[d] = docDespesas.Despesas[id++];
+        }
     }
 
     protected override bool ShouldRender() { _mapa = null; return true; }
@@ -333,6 +381,9 @@
             }
         }
     }
+
+    private void Injetar() { _erro = null; _msg = InjetarEmOutros(); }
+    private void AplicarMeta() { _erro = null; _msg = AplicarMargemDaMeta(); }
 
     private async Task Zerar()
     {

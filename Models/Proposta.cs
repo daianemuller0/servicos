@@ -131,4 +131,12 @@ public class PricingParams
 
     /// <summary>Taxa administrativa mostrada sobre as despesas na apresentação ao cliente.</summary>
     public string TaxaAdmPct { get; set; } = "30";
+
+    // ---- ferramentas de preço ----
+    /// <summary>Valor total da proposta anterior (renovação/recotação).</summary>
+    public string PropAnteriorValor { get; set; } = "";
+    /// <summary>% a mais desejado sobre a proposta anterior.</summary>
+    public string PropAnteriorPct { get; set; } = "5";
+    /// <summary>Meta de valor final: o sistema mostra a margem resultante.</summary>
+    public string MetaValor { get; set; } = "";
 }

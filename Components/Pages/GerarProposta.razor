@@ -255,6 +255,54 @@
             </div>
         </div>
 
+        @* ================== FERRAMENTAS DE PREÇO ================== *@
+        <div class="panel" style="margin-top:16px">
+            <h3 class="dash-title">Ferramentas de preço</h3>
+            <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end">
+                <div>
+                    <h4 style="margin:0 0 8px; font-size:13px; color:var(--muted)">Proposta anterior</h4>
+                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap">
+                        <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
+                            Valor anterior (R$)
+                            <input class="cell num" style="width:120px" @bind="R.Params.PropAnteriorValor" />
+                        </label>
+                        <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
+                            % a mais
+                            <input class="cell num" style="width:64px" @bind="R.Params.PropAnteriorPct" />
+                        </label>
+                        <button class="btn-ghost" @onclick="Injetar">Ajustar em OUTROS</button>
+                    </div>
+                    @if (MetaAnterior > 0)
+                    {
+                        <div style="margin-top:6px; font-size:12.5px" class="@(FaltaParaAnterior > 0 ? "dias-vencida" : "saved-flag")">
+                            Meta: R$ @Pricing.Moeda(MetaAnterior) —
+                            @(FaltaParaAnterior > 0 ? $"faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "total atual já supera ✓")
+                        </div>
+                    }
+                </div>
+                <div>
+                    <h4 style="margin:0 0 8px; font-size:13px; color:var(--muted)">Chegar no valor (meta)</h4>
+                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap">
+                        <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
+                            Valor final desejado (R$)
+                            <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
+                        </label>
+                        <button class="btn-ghost" @onclick="AplicarMeta">Aplicar margem</button>
+                    </div>
+                    @if (Pricing.Num(R.Params.MetaValor) > 0)
+                    {
+                        <div style="margin-top:6px; font-size:12.5px" class="@(MargemDaMeta < 0 ? "dias-vencida" : "")">
+                            Com essa meta a margem fica <strong>@Pricing.Porcento(MargemDaMeta)</strong>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="side-note" style="margin-top:12px">
+                "Ajustar em OUTROS" injeta o custo necessário para o total superar a proposta anterior
+                + % a mais. A linha OUTROS nunca sai na proposta — é diluída nas diárias.
+            </div>
+        </div>
+
         @* ================== 3. CUSTOS: MÃO DE OBRA ================== *@
         <div class="panel" style="margin-top:16px">
             <div class="toolbar" style="justify-content:space-between">
@@ -528,6 +576,9 @@
             }
         }
     }
+
+    private void Injetar() { _erro = null; _msg = InjetarEmOutros(); }
+    private void AplicarMeta() { _erro = null; _msg = AplicarMargemDaMeta(); }
 
     private async Task Zerar()
     {

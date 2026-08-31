@@ -68,6 +68,25 @@ public static class Pricing
         ("HCHL/HPU S. Garantia (Corretora)", 1.75),
     };
 
+    /// <summary>"OUTROS" é a linha de acerto de valores: nunca sai na proposta ao cliente.</summary>
+    public static bool EhOutros(string? nome) =>
+        (nome ?? "").Trim().Equals("OUTROS", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Margem (Project Margin) que resulta se o valor final com impostos for
+    /// exatamente a meta informada — a função "chegar no valor".
+    /// </summary>
+    public static double MargemParaMeta(Resultado c, PricingParams p, double meta)
+    {
+        if (meta <= 0 || c.CustoComRisco <= 0) return 0;
+        var denImp = 1 - Pct(p.PisPct) - Pct(p.CofinsPct) - Pct(p.IssPct);
+        var vendaLiquida = meta * denImp;
+        if (vendaLiquida <= 0) return 0;
+        var provisoes = ComissoesFrac(p) + Pct(p.MargemNegociacaoPct) + Pct(p.PmSachPct)
+                      + Pct(p.GarantiaProjetoPct) + Pct(p.PortalPct);
+        return 1 - provisoes - FiancaFrac(p) - c.CustoComRisco / vendaLiquida;
+    }
+
     public static double TaxaGarantia(string tipo) =>
         GarantiaTipos.FirstOrDefault(g => g.Nome == tipo).TaxaAnualPct / 100.0;
 
@@ -237,7 +256,8 @@ public static class Pricing
         else
         {
             var adm = 1 + taxaAdmPct / 100.0;
-            desp = doc.Despesas.Select(d =>
+            // "OUTROS" nunca sai na proposta — o valor dele é diluído nas diárias.
+            desp = doc.Despesas.Where(d => !EhOutros(d.Despesa)).Select(d =>
             {
                 var custoUnit = d.Qtd > 0 ? d.Custo / d.Qtd : d.Custo;
                 var unit = ParaCima(custoUnit * adm);
