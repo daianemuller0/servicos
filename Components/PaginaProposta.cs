@@ -91,7 +91,8 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
 
     /// <summary>O documento como apresentado ao cliente (para ler a diária normal).</summary>
     private Data.Pricing.Documento Apresentado() =>
-        Data.Pricing.Apresentar(R.Documento(), R.Proposta.ModoApresentacao, Data.Pricing.Num(R.Params.TaxaAdmPct));
+        Data.Pricing.Apresentar(R.Documento(), R.Proposta.ModoApresentacao,
+            Data.Pricing.Num(R.Params.TaxaAdmPct), Data.Pricing.Num(R.Params.DiariaTravada));
 
     /// <summary>Diária normal (com impostos) da proposta atual, como sai para o cliente.</summary>
     protected double DiariaAtual => Data.Pricing.DiariaNormalApresentada(Apresentado());
@@ -120,12 +121,12 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     /// </summary>
     protected string InjetarEmOutros()
     {
-        var alvo = MetaAnterior;
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var alvo = Math.Round(MetaAnterior, 2);
         if (alvo <= 0) return "Informe a diária normal da proposta anterior.";
-        var dia = DiariaAtual;
-        if (dia <= 0) return "Lance as diárias normais (1º turno) antes de ajustar.";
-        if (dia >= alvo)
-            return $"A diária atual (R$ {Data.Pricing.Moeda(dia)}) já supera a meta (R$ {Data.Pricing.Moeda(alvo)}) — nada a fazer.";
+
+        R.Params.DiariaTravada = "";              // solta o pino durante a busca
+        if (DiariaAtual <= 0) return "Lance as diárias normais (1º turno) antes de ajustar.";
 
         var outros = R.ItensDespesa.FirstOrDefault(d => Data.Pricing.EhOutros(d.Despesa));
         if (outros is null)
@@ -133,26 +134,50 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
             outros = new Models.ItemDespesa { Despesa = "OUTROS", Obs = "ADMINISTRATIVA", PorTecnico = false };
             R.ItensDespesa.Add(outros);
         }
-        var tec = Math.Max(Data.Pricing.Inteiro(R.Params.QtdTecnicos), 1);
-        var qtd = Math.Max(Data.Pricing.Num(outros.Qtd), 1);
-        outros.Qtd = qtd.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-        var mult = qtd * (outros.PorTecnico ? tec : 1);
+        if (Data.Pricing.Num(outros.Qtd) < 1) outros.Qtd = "1";
 
-        // A diária cresce quase linearmente com o custo total: aproxima e refina.
-        double injetado = 0;
-        for (var i = 0; i < 12 && dia < alvo; i++)
+        double Unit() => Data.Pricing.Num(outros.CustoUnitario);
+        void SetUnit(double v) =>
+            outros.CustoUnitario = Math.Max(v, 0).ToString("0.##", inv);
+
+        var unitInicial = Unit();
+
+        // Busca de precisão: ajusta OUTROS para CIMA ou PARA BAIXO até a diária
+        // apresentada cravar na meta (derivada numérica; centavos no custo).
+        for (var i = 0; i < 40; i++)
         {
-            var c = R.Calculo();
-            if (c.CustoTotal <= 0 || c.FatorComImpostos <= 0) break;
-            var delta = Data.Pricing.ParaCima(Math.Max((alvo - dia) / dia * c.CustoTotal, 1));
-            var novoUnit = Data.Pricing.Num(outros.CustoUnitario) + Math.Ceiling(delta / mult * 100) / 100;
-            outros.CustoUnitario = novoUnit.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-            injetado += delta;
-            dia = DiariaAtual;
+            var dia = DiariaAtual;
+            var erro = alvo - dia;
+            if (Math.Abs(erro) <= 0.05) break;
+
+            var u = Unit();
+            if (u <= 0 && erro < 0) break;        // não dá para reduzir além de zero
+
+            SetUnit(u + 10);
+            var sensibilidade = (DiariaAtual - dia) / 10.0;
+            SetUnit(u);
+            if (sensibilidade <= 1e-9) break;
+
+            SetUnit(u + erro / sensibilidade);
         }
 
+        var diaFinal = DiariaAtual;
+        // Pino cosmético: apara o resíduo de arredondamento (≤ R$ 1) para o exato.
+        if (Math.Abs(diaFinal - alvo) <= 1.0)
+        {
+            R.Params.DiariaTravada = alvo.ToString("0.00", inv);
+            diaFinal = DiariaAtual;
+        }
+
+        var variacao = (Unit() - unitInicial) * Math.Max(Data.Pricing.Num(outros.Qtd), 1)
+                     * (outros.PorTecnico ? Math.Max(Data.Pricing.Inteiro(R.Params.QtdTecnicos), 1) : 1);
         var total = Apresentado().Total;
-        return $"OUTROS +R$ {Data.Pricing.Moeda(injetado)} → diária normal R$ {Data.Pricing.Moeda(dia)} (meta R$ {Data.Pricing.Moeda(alvo)}) · total R$ {Data.Pricing.Moeda(total)} ✓";
+
+        if (Math.Abs(diaFinal - alvo) > 0.05)
+            return $"Não foi possível cravar a meta: OUTROS chegou ao mínimo e a diária ficou em R$ {Data.Pricing.Moeda(diaFinal)} (os custos reais já superam a meta de R$ {Data.Pricing.Moeda(alvo)}).";
+
+        var verbo = variacao >= 0 ? $"+R$ {Data.Pricing.Moeda(variacao)}" : $"−R$ {Data.Pricing.Moeda(-variacao)}";
+        return $"OUTROS {verbo} → diária normal CRAVADA em R$ {Data.Pricing.Moeda(diaFinal)} (meta R$ {Data.Pricing.Moeda(alvo)}) · total R$ {Data.Pricing.Moeda(total)} ✓";
     }
 
     /// <summary>Margem que resulta da meta de valor informada (função "chegar no valor").</summary>

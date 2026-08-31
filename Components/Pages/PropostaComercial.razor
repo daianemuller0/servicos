@@ -337,7 +337,8 @@
     private Proposta P => R.Proposta;
     private Pricing.Documento Doc => R.Documento();
     private Pricing.Documento DocA =>
-        Pricing.Apresentar(Doc, P.ModoApresentacao, Pricing.Num(R.Params.TaxaAdmPct));
+        Pricing.Apresentar(Doc, P.ModoApresentacao, Pricing.Num(R.Params.TaxaAdmPct),
+            Pricing.Num(R.Params.DiariaTravada));
     private string Cifrao => Servicos.Simbolo(P.Moeda);
 
     private DateTime DataProposta

@@ -139,4 +139,6 @@ public class PricingParams
     public string PropAnteriorPct { get; set; } = "5";
     /// <summary>Meta de valor final: o sistema mostra a margem resultante.</summary>
     public string MetaValor { get; set; } = "";
+    /// <summary>Diária normal cravada pela ferramenta de proposta anterior (ajuste cosmético de centavos).</summary>
+    public string DiariaTravada { get; set; } = "";
 }

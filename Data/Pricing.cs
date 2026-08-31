@@ -272,7 +272,7 @@ public static class Pricing
     ///
     /// O TOTAL C/ IMPOSTOS é exatamente o mesmo nas duas formas.
     /// </summary>
-    public static Documento Apresentar(Documento doc, string modo, double taxaAdmPct)
+    public static Documento Apresentar(Documento doc, string modo, double taxaAdmPct, double diariaTravada = 0)
     {
         // Sem linhas de assessoria não há onde embutir — mantém como está.
         if (doc.MO.Count == 0) return doc;
@@ -346,6 +346,11 @@ public static class Pricing
                     var diaria = Math.Round(hora * Math.Max(l.Horas, 1), 2);
                     if (extra != 0 && qtdNormais > 0 && l.Mult is > 0.99 and < 1.01)
                         diaria = Math.Round(diaria + extra / qtdNormais, 2);
+                    // Diária cravada pela ferramenta de proposta anterior: aparar o
+                    // resíduo de arredondamento (no máx. R$ 1) para o valor exato.
+                    if (diariaTravada > 0 && l.Mult is > 0.99 and < 1.01 &&
+                        Math.Abs(diaria - diariaTravada) <= 1.0)
+                        diaria = diariaTravada;
                     var total = Math.Round(diaria * l.QtdDiaria, 2);
                     var horaLinha = Math.Round(diaria / Math.Max(l.Horas, 1), 2);
                     mo.Add(new LinhaMO(l.Servico, l.Obs, l.Horas, l.QtdDiaria, l.Custo, l.Participacao, total, diaria, horaLinha, l.Mult));
