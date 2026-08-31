@@ -15,7 +15,7 @@ public static class Seed
         P("mo-diaria-2turno",  "MO", "DIARIAS NORMAIS:", "2o. TURNO NOITE", "8", "480", "Sim", 2, "1.5"),
         P("mo-diaria-extra",   "MO", "DIARIAS EXTRAS SAB, DOM E FER", "", "8", "640", "Sim", 3, "2"),
         P("mo-he-8h",          "MO", "HORAS EXTRAS SUP. 8h/DIA", "", "1", "480", "Sim", 4, "1.5"),
-        P("mo-he-sab",         "MO", "HORAS EXTRAS SAB, DOM E FER", "", "1", "640", "Não", 5, "2"),
+        P("mo-he-sab",         "MO", "HORAS EXTRAS SAB, DOM E FER", "", "1", "480", "Não", 5, "1.5"),
         P("mo-equipamentos",   "MO", "EQUIPAMENTOS P/ MONTAGEM", "", "1", "0", "Não", 6, "0"),
         P("mo-ferramentas",    "MO", "FERRAMENTAS", "", "1", "0", "Não", 7, "0"),
         P("mo-terceiros",      "MO", "TERCEIROS", "", "1", "0", "Não", 8, "0"),

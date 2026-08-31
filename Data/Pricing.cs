@@ -296,6 +296,16 @@ public static class Pricing
         var alvoMO = doc.Total - desp.Sum(d => d.ValorTotal) - deslocamento;
         if (alvoMO <= 0 || doc.TotalMO <= 0) return doc;
 
+        // Excedente do DESLOCAMENTO (valor real do táxi + passagem além do que é
+        // mostrado a custo + taxa adm): sobe SÓ para as diárias normais — as
+        // linhas derivadas (2º turno, sáb/dom, HE) não carregam deslocamento,
+        // porque o técnico já está no local.
+        var deslocInterno = doc.Despesas.Where(d => EhDeslocamento(d.Despesa)).Sum(d => d.ValorTotal);
+        var deslocMostrado = modo == "SemDespesas"
+            ? deslocamento
+            : desp.Where(d => EhDeslocamento(d.Despesa)).Sum(d => d.ValorTotal);
+        var excedenteDesloc = deslocInterno - deslocMostrado;
+
         // As linhas com multiplicador obedecem às regras fixas sobre a hora normal
         // (2º turno/HE semana = 1,5×; sáb/dom/feriado = 2×), todas com impostos.
         // As linhas sem multiplicador (equipamentos, terceiros…) mantêm o valor
@@ -308,16 +318,27 @@ public static class Pricing
         var mo = new List<LinhaMO>();
         if (pesoW > 0 && pool > 0)
         {
-            // hora normal com impostos: o pool dividido pelos pesos, arredondado p/ cima
-            var horaNormal = Math.Ceiling(pool / pesoW * 100) / 100;
+            // As diárias normais (mult = 1) absorvem o excedente do deslocamento;
+            // a base limpa é distribuída pelos pesos entre todas as linhas.
+            var normais = doc.MO.Where(l => l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0).ToList();
+            var qtdNormais = normais.Sum(l => l.QtdDiaria);
+            var extra = normais.Count > 0 ? excedenteDesloc : 0;   // sem diária normal, fica no pool
+            var poolBase = pool - extra;
+            if (poolBase <= 0) { poolBase = pool; extra = 0; }
+
+            // hora normal (base, sem deslocamento): pool ÷ pesos, arredondado p/ cima
+            var horaNormal = Math.Ceiling(poolBase / pesoW * 100) / 100;
             foreach (var l in doc.MO)
             {
                 if (l.Mult > 0 && l.QtdDiaria > 0)
                 {
                     var hora = Math.Round(l.Mult * horaNormal, 2);
                     var diaria = Math.Round(hora * Math.Max(l.Horas, 1), 2);
+                    if (extra != 0 && qtdNormais > 0 && l.Mult is > 0.99 and < 1.01)
+                        diaria = Math.Round(diaria + extra / qtdNormais, 2);
                     var total = Math.Round(diaria * l.QtdDiaria, 2);
-                    mo.Add(new LinhaMO(l.Servico, l.Obs, l.Horas, l.QtdDiaria, l.Custo, l.Participacao, total, diaria, hora, l.Mult));
+                    var horaLinha = Math.Round(diaria / Math.Max(l.Horas, 1), 2);
+                    mo.Add(new LinhaMO(l.Servico, l.Obs, l.Horas, l.QtdDiaria, l.Custo, l.Participacao, total, diaria, horaLinha, l.Mult));
                 }
                 else
                 {

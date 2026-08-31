@@ -95,7 +95,7 @@ public class Rascunho
             else if (servico.Contains("DIARIAS EXTRAS") && fimDeSemana)
                 i.Mult = "2";
             else if (servico.Contains("HORAS EXTRAS"))
-                i.Mult = fimDeSemana ? "2" : "1.5";
+                i.Mult = "1.5";   // HE semana e sáb/dom/fer = 1,5× (ajustável na Tabela de Custos)
         }
     }
 
