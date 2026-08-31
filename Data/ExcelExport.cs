@@ -142,7 +142,15 @@ public static class ExcelExport
         var tot = ws.Range(r, 1, r, 7);
         tot.Style.Fill.SetBackgroundColor(XLColor.FromHtml(Azul));
         tot.Style.Font.SetBold().Font.SetFontColor(XLColor.White);
-        r += 2;
+        r++;
+        if (doc.Deslocamento > 0)
+        {
+            ws.Cell(r, 1).Value = "DESPESAS DE DESLOCAMENTO (táxi + passagem aérea, taxa adm. inclusa)";
+            Num(ws, r, 7, doc.Deslocamento);
+            LinhaTotal(ws, r, 1, 7);
+            r++;
+        }
+        r++;
 
         Rotulo(ws, r++, "VALOR SEM IMPOSTOS", doc.Calculo.VendaLiquida, Fmt);
         Rotulo(ws, r++, "VALOR C/ PIS E COFINS", doc.Calculo.ComPisCofins, Fmt);

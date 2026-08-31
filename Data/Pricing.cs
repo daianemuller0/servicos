@@ -73,6 +73,16 @@ public static class Pricing
         (nome ?? "").Trim().Equals("OUTROS", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Despesas de deslocamento (táxi + passagem aérea): no modo sem despesas,
+    /// saem numa linha própria abaixo do total, a custo + taxa administrativa.
+    /// </summary>
+    public static bool EhDeslocamento(string? nome)
+    {
+        var n = (nome ?? "").ToUpperInvariant();
+        return n.Contains("TAXI") || n.Contains("TÁXI") || n.Contains("PASSAGEM");
+    }
+
+    /// <summary>
     /// Margem (Project Margin) que resulta se o valor final com impostos for
     /// exatamente a meta informada — a função "chegar no valor".
     /// </summary>
@@ -195,7 +205,8 @@ public static class Pricing
 
     public sealed record Documento(
         List<LinhaMO> MO, List<LinhaDespesa> Despesas, List<Complementar> Complementares,
-        double TotalMO, double TotalDespesas, double Total, Resultado Calculo);
+        double TotalMO, double TotalDespesas, double Total, Resultado Calculo,
+        double Deslocamento = 0);
 
     /// <summary>
     /// Distribui o preço de venda entre os itens (proporcional ao custo) e monta
@@ -257,9 +268,16 @@ public static class Pricing
         if (doc.MO.Count == 0) return doc;
 
         List<LinhaDespesa> desp;
+        double deslocamento = 0;
+        var admFrac = 1 + taxaAdmPct / 100.0;
         if (modo == "SemDespesas")
         {
             desp = new List<LinhaDespesa>();
+            // Táxi + passagem aérea saem numa linha própria, a custo + taxa adm;
+            // o restante do valor (e as demais despesas) sobe para as diárias.
+            deslocamento = doc.Despesas
+                .Where(d => EhDeslocamento(d.Despesa))
+                .Sum(d => ParaCima(d.Custo * admFrac));
         }
         else
         {
@@ -275,7 +293,7 @@ public static class Pricing
         }
 
         // O que as despesas deixam de mostrar vai para a assessoria.
-        var alvoMO = doc.Total - desp.Sum(d => d.ValorTotal);
+        var alvoMO = doc.Total - desp.Sum(d => d.ValorTotal) - deslocamento;
         if (alvoMO <= 0 || doc.TotalMO <= 0) return doc;
 
         // As linhas com multiplicador obedecem às regras fixas sobre a hora normal
@@ -326,7 +344,8 @@ public static class Pricing
 
         var totalMO = mo.Sum(l => l.ValorTotal);
         var totalDesp = desp.Sum(d => d.ValorTotal);
-        return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp, totalMO + totalDesp, doc.Calculo);
+        return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp,
+            totalMO + totalDesp + deslocamento, doc.Calculo, deslocamento);
     }
 
     /// <summary>Diária normal (1×, com impostos) como sai na proposta apresentada.</summary>

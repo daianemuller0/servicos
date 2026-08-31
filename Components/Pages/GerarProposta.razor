@@ -460,6 +460,13 @@
                     </table>
                 }
 
+                @if (DocA.Deslocamento > 0)
+                {
+                    <div class="summary-bar" style="margin-top:12px">
+                        <strong>DESPESAS DE DESLOCAMENTO</strong> (táxi + passagem aérea, taxa adm. inclusa):
+                        <strong>@Cifrao @Pricing.Moeda(DocA.Deslocamento)</strong> — linha própria abaixo do total no documento.
+                    </div>
+                }
                 @if (DocA.Despesas.Count > 0)
                 {
                     <table class="grid" style="margin-top:12px">

@@ -130,7 +130,7 @@ public class PricingParams
     public string IssPct { get; set; } = "7";             // 2% Itatiba + 5% outro município
 
     /// <summary>Taxa administrativa mostrada sobre as despesas na apresentação ao cliente.</summary>
-    public string TaxaAdmPct { get; set; } = "30";
+    public string TaxaAdmPct { get; set; } = "40";
 
     // ---- ferramentas de preço ----
     /// <summary>Valor total da proposta anterior (renovação/recotação).</summary>

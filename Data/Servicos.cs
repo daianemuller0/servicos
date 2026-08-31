@@ -69,7 +69,7 @@ public static class Servicos
         string Despesas, string Qtd, string ValorUnit, string TotalAssessoria, string TotalDespesas,
         string TotalComImpostos, string SemImpostos, string ComPisCofins, string ComPisCofinsIss,
         string Complementares, string Descricao, string Faturamento, string Banco, string Agencia,
-        string Conta, string PreparadaPor, string RevisadaPor);
+        string Conta, string PreparadaPor, string RevisadaPor, string Deslocamento, string DeslocamentoObs);
 
     public static DocLabels Labels(string idioma) => idioma switch
     {
@@ -82,7 +82,8 @@ public static class Servicos
             "TOTAL EXPENSES (WITH TAXES)", "TOTAL WITH TAXES", "AMOUNT WITHOUT TAXES",
             "AMOUNT WITH PIS AND COFINS", "AMOUNT WITH PIS, COFINS AND ISS",
             "ADDITIONAL INFORMATION — NOT INCLUDED", "DESCRIPTION", "INVOICING INFORMATION",
-            "Bank", "Branch", "Account", "Prepared by:", "Reviewed by:"),
+            "Bank", "Branch", "Account", "Prepared by:", "Reviewed by:",
+            "TRAVEL EXPENSES", "Taxi + airfare, administrative fee included"),
         "Español" => new DocLabels(
             "DATOS DEL CLIENTE", "Cliente:", "Al cuidado de:", "E-mail:", "Fono:",
             "OFERTA COMERCIAL", "FECHA", "VALIDEZ", "PROYECTO", "CIUDAD", "ESTADO / PROVINCIA",
@@ -92,7 +93,8 @@ public static class Servicos
             "TOTAL GASTOS (CON IMPUESTOS)", "TOTAL CON IMPUESTOS", "VALOR SIN IMPUESTOS",
             "VALOR CON PIS Y COFINS", "VALOR CON PIS, COFINS E ISS",
             "INFORMACIONES COMPLEMENTARIAS — NO INCLUIDO", "DESCRIPCIÓN", "DATOS PARA FACTURACIÓN",
-            "Banco", "Sucursal", "Cuenta", "Preparado por:", "Revisado por:"),
+            "Banco", "Sucursal", "Cuenta", "Preparado por:", "Revisado por:",
+            "GASTOS DE DESPLAZAMIENTO", "Taxi + pasaje aéreo, tasa administrativa incluida"),
         _ => new DocLabels(
             "DADOS DO CLIENTE", "Cliente:", "Aos cuidados de:", "E-mail:", "Telefone:",
             "Proposta", "DATA", "VALIDADE", "PROJETO", "CIDADE", "ESTADO",
@@ -102,7 +104,8 @@ public static class Servicos
             "TOTAL DESPESAS C/ IMPOSTOS", "TOTAL C/ IMPOSTOS", "VALOR SEM IMPOSTOS",
             "VALOR C/ PIS E COFINS", "VALOR C/ PIS, COFINS E ISS",
             "INFORMAÇÕES COMPLEMENTARES — NÃO INCLUSO", "DESCRIÇÃO", "DADOS PARA FATURAMENTO",
-            "Banco", "Agência", "Conta", "Preparada por:", "Revisada por:"),
+            "Banco", "Agência", "Conta", "Preparada por:", "Revisada por:",
+            "DESPESAS DE DESLOCAMENTO", "Táxi + passagem aérea, taxa administrativa inclusa"),
     };
 
     // ---- e-mails prontos (substituem as macros de Outlook da planilha) ----
@@ -241,7 +244,12 @@ public static class Servicos
 <td style='padding:0'></td>
 <td style='width:210px;background:{azul};color:#fff;padding:9px 14px;font-weight:bold'>{L.TotalComImpostos}</td>
 <td style='width:150px;background:{azul};color:#fff;padding:9px 14px;font-weight:bold;text-align:right'>{M(doc.Total)}</td>
-</tr></table>";
+</tr></table>" + (doc.Deslocamento <= 0 ? "" : $@"
+<table style='width:100%;border-collapse:collapse;margin-top:6px'><tr>
+<td style='padding:0'></td>
+<td style='width:250px;{bd};font-weight:bold;color:{navy}'>{L.Deslocamento}<br/><span style='font-weight:normal;color:{rod};font-size:8pt'>{L.DeslocamentoObs}</span></td>
+<td style='width:150px;{bd};text-align:right;font-weight:bold;color:{navy};vertical-align:middle'>{M(doc.Deslocamento)}</td>
+</tr></table>");
 
         return $@"
 <div style='{ft};color:{corpo};font-size:9pt'>
