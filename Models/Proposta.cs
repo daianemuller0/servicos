@@ -117,9 +117,9 @@ public class PricingParams
     public string PortalPct { get; set; } = "0";          // PRICING D50 (0,7% quando há portal)
 
     // seguro garantia / carta de fiança (PRICING M46:T59 + listas Custo_Garantia)
-    public string FiancaTipo { get; set; } = "Não";       // instrumento (taxa anual da tabela)
-    public string FiancaPctVenda { get; set; } = "30";    // % da venda coberta (evento de pagamento)
-    public string FiancaDias { get; set; } = "30";        // dias de cobertura (≈ prazo de entrega)
+    public string FiancaTipo { get; set; } = "HSA C. Fiança (Banco)"; // padrão da planilha (P3 = Sim, 5% a.a.)
+    public string FiancaPctVenda { get; set; } = "30";    // % da venda coberta (evento de pagamento N49)
+    public string FiancaDias { get; set; } = "";          // vazio = acompanha o prazo de entrega (R49)
 
     // margem alvo (Project Margin) — "montar preço a partir da margem"
     public string MargemAlvoPct { get; set; } = "50";     // padrão do segmento Service (BD_pricing)

@@ -257,7 +257,8 @@ public static class ExcelExport
         Etapa("Risco de variação", $"{par.RiscoPct}%", c.Risco);
         Etapa("Custo total com riscos", "—", c.CustoComRisco);
         Etapa($"Seguro garantia / fiança ({par.FiancaTipo})",
-            par.FiancaTipo == "Não" ? "—" : $"{par.FiancaPctVenda}% × {par.FiancaDias}d", c.Fianca);
+            par.FiancaTipo == "Não" ? "—"
+                : $"{par.FiancaPctVenda}% × {(string.IsNullOrWhiteSpace(par.FiancaDias) ? p.PrazoEntregaDias + "d (prazo)" : par.FiancaDias + "d")}", c.Fianca);
         Etapa($"Comissões (PPR {par.PprPct}% + Sales {par.SalesDirPct}%/{par.SalesIndPct}% + DSR {par.DsrFatorPct}% + Rep {par.Rep1Pct}%/{par.Rep2Pct}%)",
             Pricing.Porcento(c.ComissoesFracTotal), c.Comissoes);
         Etapa("Margem de negociação", $"{par.MargemNegociacaoPct}%", c.MargemNegociacao);

@@ -21,8 +21,10 @@ public class Rascunho
     /// <summary>Rascunho ainda não iniciado (nenhum item carregado).</summary>
     public bool Vazio => ItensMO.Count == 0 && ItensDespesa.Count == 0;
 
-    public Pricing.Documento Documento() => Pricing.Montar(ItensMO, ItensDespesa, Params);
-    public Pricing.Resultado Calculo() => Pricing.Calcular(ItensMO, ItensDespesa, Params);
+    private double Prazo => Pricing.Num(Proposta.PrazoEntregaDias);
+
+    public Pricing.Documento Documento() => Pricing.Montar(ItensMO, ItensDespesa, Params, Prazo);
+    public Pricing.Resultado Calculo() => Pricing.Calcular(ItensMO, ItensDespesa, Params, Prazo);
 
     /// <summary>
     /// Aplica a hora-base aos serviços com multiplicador (planilha: E9=E8×1,5;

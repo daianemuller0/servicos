@@ -142,7 +142,8 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
 
     /// <summary>Margem que resulta da meta de valor informada (função "chegar no valor").</summary>
     protected double MargemDaMeta =>
-        Data.Pricing.MargemParaMeta(R.Calculo(), R.Params, Data.Pricing.Num(R.Params.MetaValor));
+        Data.Pricing.MargemParaMeta(R.Calculo(), R.Params, Data.Pricing.Num(R.Params.MetaValor),
+            Data.Pricing.Num(R.Proposta.PrazoEntregaDias));
 
     /// <summary>Aplica a margem calculada pela meta. Retorna a mensagem para o usuário.</summary>
     protected string AplicarMargemDaMeta()

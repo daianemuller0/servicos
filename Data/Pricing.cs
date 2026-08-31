@@ -76,7 +76,7 @@ public static class Pricing
     /// Margem (Project Margin) que resulta se o valor final com impostos for
     /// exatamente a meta informada — a função "chegar no valor".
     /// </summary>
-    public static double MargemParaMeta(Resultado c, PricingParams p, double meta)
+    public static double MargemParaMeta(Resultado c, PricingParams p, double meta, double prazoDias = 0)
     {
         if (meta <= 0 || c.CustoComRisco <= 0) return 0;
         var denImp = 1 - Pct(p.PisPct) - Pct(p.CofinsPct) - Pct(p.IssPct);
@@ -84,7 +84,7 @@ public static class Pricing
         if (vendaLiquida <= 0) return 0;
         var provisoes = ComissoesFrac(p) + Pct(p.MargemNegociacaoPct) + Pct(p.PmSachPct)
                       + Pct(p.GarantiaProjetoPct) + Pct(p.PortalPct);
-        return 1 - provisoes - FiancaFrac(p) - c.CustoComRisco / vendaLiquida;
+        return 1 - provisoes - FiancaFrac(p, prazoDias) - c.CustoComRisco / vendaLiquida;
     }
 
     public static double TaxaGarantia(string tipo) =>
@@ -100,11 +100,18 @@ public static class Pricing
         return Pct(p.PprPct) + sales + Pct(p.DsrFatorPct) * sales + Pct(p.Rep1Pct) + Pct(p.Rep2Pct);
     }
 
-    /// <summary>Fração da venda consumida pela fiança: % coberto × dias × taxa anual ÷ 365.</summary>
-    public static double FiancaFrac(PricingParams p)
+    /// <summary>
+    /// Fração da venda consumida pela fiança: % coberto × dias × taxa anual ÷ 365.
+    /// Dias em branco (ou zero) = acompanha o PRAZO DE ENTREGA, como na planilha
+    /// (cobertura R49 = prazo − evento de pagamento).
+    /// </summary>
+    public static double FiancaFrac(PricingParams p, double prazoDias = 0)
     {
         var taxa = TaxaGarantia(p.FiancaTipo);
-        return taxa <= 0 ? 0 : Pct(p.FiancaPctVenda) * Num(p.FiancaDias) * taxa / 365.0;
+        if (taxa <= 0) return 0;
+        var dias = Num(p.FiancaDias);
+        if (dias <= 0) dias = prazoDias;
+        return Pct(p.FiancaPctVenda) * dias * taxa / 365.0;
     }
 
     // ---------- resultado ----------
@@ -118,7 +125,7 @@ public static class Pricing
         double Markup, double ProjectMargin, double ContributionMargin,
         double ComissoesFracTotal, double Dsr);
 
-    public static Resultado Calcular(IEnumerable<ItemMO> mo, IEnumerable<ItemDespesa> desp, PricingParams p)
+    public static Resultado Calcular(IEnumerable<ItemMO> mo, IEnumerable<ItemDespesa> desp, PricingParams p, double prazoDias = 0)
     {
         var tec = Math.Max(Inteiro(p.QtdTecnicos), 1);
         var totalMO = mo.Sum(i => CustoMO(i, tec));
@@ -136,7 +143,7 @@ public static class Pricing
         // Venda líquida a partir da margem alvo. A fiança é proporcional à própria
         // venda (fração k), então entra no denominador — mesma conta que a planilha
         // fecha por iteração: venda×(1−prov−margem) = custoRisco + venda×k.
-        var k = FiancaFrac(p);
+        var k = FiancaFrac(p, prazoDias);
         var den = 1 - provisoes - margem - k;
         var vendaLiquida = den > 0.0001 ? custoRisco / den : 0;
         var fianca = vendaLiquida * k;
@@ -195,9 +202,9 @@ public static class Pricing
     /// as linhas da proposta, com os mesmos arredondamentos das classes VBA:
     /// valor total do item para cima em reais inteiros; diária = total ÷ qtd.
     /// </summary>
-    public static Documento Montar(List<ItemMO> mo, List<ItemDespesa> desp, PricingParams p)
+    public static Documento Montar(List<ItemMO> mo, List<ItemDespesa> desp, PricingParams p, double prazoDias = 0)
     {
-        var calc = Calcular(mo, desp, p);
+        var calc = Calcular(mo, desp, p, prazoDias);
         var tec = Math.Max(Inteiro(p.QtdTecnicos), 1);
         var custoTotal = calc.CustoTotal;
 
