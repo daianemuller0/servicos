@@ -200,7 +200,7 @@
                     <td class="right doc-interno"><input class="de num" style="width:64px" @bind="i.CustoHora" /></td>
                     <td class="right">@(linha is null ? "—" : Pricing.Moeda(linha.ValorHora))</td>
                     <td class="right">@(linha is null ? "—" : Pricing.Moeda(linha.ValorDiaria))</td>
-                    <td class="center"><input class="de qtd" @bind="i.QtdDiaria" /></td>
+                    <td class="center"><input class="de qtd" @bind="i.QtdDiaria" @bind:after="SincronizarDiarias" /></td>
                     <td class="right">@(linha is null ? "—" : $"{Cifrao} {Pricing.Moeda(linha.ValorTotal)}")</td>
                 </tr>
             }
@@ -251,28 +251,27 @@
     </table>
 
     @* ---------- total ---------- *@
-    <table style="width:100%; border-collapse:collapse; margin-top:14px">
+    @if (DocA.Deslocamento > 0)
+    {
+        <table class="doc-tbl" style="margin-top:10px">
+            <tr>
+                <td>
+                    <span class="doc-navy">DESPESAS DE DESLOCAMENTO</span>
+                    <span class="doc-muted" style="font-size:11px"> — táxi + passagem aérea, taxa adm. inclusa</span>
+                </td>
+                <td class="right doc-navy" style="width:170px; font-weight:700">
+                    @Cifrao @Pricing.Moeda(DocA.Deslocamento)
+                </td>
+            </tr>
+        </table>
+    }
+    <table style="width:100%; border-collapse:collapse; margin-top:10px">
         <tr>
             <td></td>
             <td class="doc-total" style="width:220px">TOTAL C/ IMPOSTOS</td>
             <td class="doc-total" style="width:170px; text-align:right">@Cifrao @Pricing.Moeda(DocA.Total)</td>
         </tr>
     </table>
-    @if (DocA.Deslocamento > 0)
-    {
-        <table style="width:100%; border-collapse:collapse; margin-top:6px">
-            <tr>
-                <td></td>
-                <td style="width:260px; border:1px solid #d5dae4; padding:7px 12px">
-                    <span class="doc-navy">DESPESAS DE DESLOCAMENTO</span><br />
-                    <span class="doc-muted" style="font-size:11px">Táxi + passagem aérea, taxa adm. inclusa</span>
-                </td>
-                <td style="width:170px; border:1px solid #d5dae4; padding:7px 12px; text-align:right" class="doc-navy">
-                    @Cifrao @Pricing.Moeda(DocA.Deslocamento)
-                </td>
-            </tr>
-        </table>
-    }
 
     <table class="doc-tbl" style="margin-top:14px; max-width:520px">
         <tr><td>VALOR SEM IMPOSTOS</td><td class="right">@Cifrao @Pricing.Moeda(Doc.Calculo.VendaLiquida)</td></tr>

@@ -137,12 +137,6 @@ public static class ExcelExport
             LinhaTotal(ws, r, 1, 5); r += 2;
         }
 
-        ws.Cell(r, 1).Value = "TOTAL C/ IMPOSTOS";
-        Num(ws, r, 7, doc.Total);
-        var tot = ws.Range(r, 1, r, 7);
-        tot.Style.Fill.SetBackgroundColor(XLColor.FromHtml(Azul));
-        tot.Style.Font.SetBold().Font.SetFontColor(XLColor.White);
-        r++;
         if (doc.Deslocamento > 0)
         {
             ws.Cell(r, 1).Value = "DESPESAS DE DESLOCAMENTO (táxi + passagem aérea, taxa adm. inclusa)";
@@ -150,7 +144,12 @@ public static class ExcelExport
             LinhaTotal(ws, r, 1, 7);
             r++;
         }
-        r++;
+        ws.Cell(r, 1).Value = "TOTAL C/ IMPOSTOS";
+        Num(ws, r, 7, doc.Total);
+        var tot = ws.Range(r, 1, r, 7);
+        tot.Style.Fill.SetBackgroundColor(XLColor.FromHtml(Azul));
+        tot.Style.Font.SetBold().Font.SetFontColor(XLColor.White);
+        r += 2;
 
         Rotulo(ws, r++, "VALOR SEM IMPOSTOS", doc.Calculo.VendaLiquida, Fmt);
         Rotulo(ws, r++, "VALOR C/ PIS E COFINS", doc.Calculo.ComPisCofins, Fmt);

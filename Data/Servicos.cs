@@ -239,17 +239,16 @@ public static class Servicos
         var bancoLinha = string.IsNullOrWhiteSpace(fat.BancoNome) ? "" :
             $"{L.Banco}: {E(fat.BancoNome)} – {L.Agencia}: {E(fat.Agencia)} {L.Conta}: {E(fat.Conta)}";
 
-        var totalTabela = $@"
+        var totalTabela = (doc.Deslocamento <= 0 ? "" : $@"
+<table style='width:100%;border-collapse:collapse;margin-top:10px;font-size:8.5pt'><tr>
+<td style='{bd}'><b style='color:{navy}'>{L.Deslocamento}</b> <span style='color:{rod};font-size:8pt'>— {L.DeslocamentoObs}</span></td>
+<td style='width:150px;{bd};text-align:right;font-weight:bold;color:{navy}'>{M(doc.Deslocamento)}</td>
+</tr></table>") + $@"
 <table style='width:100%;border-collapse:collapse;margin-top:10px'><tr>
 <td style='padding:0'></td>
 <td style='width:210px;background:{azul};color:#fff;padding:9px 14px;font-weight:bold'>{L.TotalComImpostos}</td>
 <td style='width:150px;background:{azul};color:#fff;padding:9px 14px;font-weight:bold;text-align:right'>{M(doc.Total)}</td>
-</tr></table>" + (doc.Deslocamento <= 0 ? "" : $@"
-<table style='width:100%;border-collapse:collapse;margin-top:6px'><tr>
-<td style='padding:0'></td>
-<td style='width:250px;{bd};font-weight:bold;color:{navy}'>{L.Deslocamento}<br/><span style='font-weight:normal;color:{rod};font-size:8pt'>{L.DeslocamentoObs}</span></td>
-<td style='width:150px;{bd};text-align:right;font-weight:bold;color:{navy};vertical-align:middle'>{M(doc.Deslocamento)}</td>
-</tr></table>");
+</tr></table>";
 
         return $@"
 <div style='{ft};color:{corpo};font-size:9pt'>

@@ -340,7 +340,7 @@
                             <td><input class="cell" @bind="i.Obs" /></td>
                             <td><input class="cell num" @bind="i.Horas" /></td>
                             <td><input class="cell num" @bind="i.CustoHora" /></td>
-                            <td><input class="cell num" @bind="i.QtdDiaria" /></td>
+                            <td><input class="cell num" @bind="i.QtdDiaria" @bind:after="SincronizarDiarias" /></td>
                             <td class="center"><input type="checkbox" @bind="i.PorTecnico" /></td>
                             <td class="right nowrap"><strong>R$ @Pricing.Moeda(Pricing.CustoMO(i, Tec))</strong></td>
                             <td class="center"><button class="btn-link" title="Remover" @onclick="() => R.ItensMO.Remove(i)">✕</button></td>

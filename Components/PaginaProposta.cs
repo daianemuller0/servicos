@@ -72,6 +72,21 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         await JS.InvokeVoidAsync("appSaveDraft", _ultimoSalvo);
     }
 
+    /// <summary>
+    /// Soma das diárias lançadas (DIARIAS NORMAIS 1º/2º turno + DIARIAS EXTRAS)
+    /// preenche sozinha a quantidade das despesas por dia: hospedagem, locação
+    /// de carro, combustível e refeições. Continua editável depois.
+    /// </summary>
+    protected void SincronizarDiarias()
+    {
+        var dias = R.ItensMO
+            .Where(i => (i.Servico ?? "").TrimStart().ToUpperInvariant().StartsWith("DIARIAS"))
+            .Sum(i => Data.Pricing.Num(i.QtdDiaria));
+        var texto = dias.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        foreach (var d in R.ItensDespesa)
+            if (Data.Pricing.EhDespesaDiaria(d.Despesa)) d.Qtd = texto;
+    }
+
     // ================= ferramentas de preço =================
 
     /// <summary>O documento como apresentado ao cliente (para ler a diária normal).</summary>

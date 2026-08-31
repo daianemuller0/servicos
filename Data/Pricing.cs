@@ -73,6 +73,16 @@ public static class Pricing
         (nome ?? "").Trim().Equals("OUTROS", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Despesas "por dia de trabalho": a quantidade acompanha a soma das
+    /// diárias lançadas (hospedagem, carro, combustível e refeições).
+    /// </summary>
+    public static bool EhDespesaDiaria(string? nome)
+    {
+        var n = (nome ?? "").ToUpperInvariant();
+        return n.Contains("HOSPEDAGEM") || n.Contains("LOCA") || n.Contains("COMBUST") || n.Contains("REFEI");
+    }
+
+    /// <summary>
     /// Despesas de deslocamento (táxi + passagem aérea): no modo sem despesas,
     /// saem numa linha própria abaixo do total, a custo + taxa administrativa.
     /// </summary>
