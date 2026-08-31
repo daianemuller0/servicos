@@ -172,6 +172,13 @@ public static class Pricing
         var cofins = Pct(p.CofinsPct);
         var iss = Pct(p.IssPct);
         var denImp = 1 - pis - cofins - iss;
+
+        // Total cravado pela ferramenta de meta: apara resíduo de arredondamento
+        // da margem (≤ 5 centavos) para o valor com impostos bater em ponto.
+        var travado = Num(p.TotalTravado);
+        if (travado > 0 && denImp > 0.0001 && Math.Abs(vendaLiquida / denImp - travado) <= 0.05)
+            vendaLiquida = travado * denImp;
+
         var comImpostos = denImp > 0.0001 ? vendaLiquida / denImp : 0;
         var comPisCofins = comImpostos * (1 - iss);
 
@@ -272,7 +279,8 @@ public static class Pricing
     ///
     /// O TOTAL C/ IMPOSTOS é exatamente o mesmo nas duas formas.
     /// </summary>
-    public static Documento Apresentar(Documento doc, string modo, double taxaAdmPct, double diariaTravada = 0)
+    public static Documento Apresentar(Documento doc, string modo, double taxaAdmPct,
+        double diariaTravada = 0, double totalTravado = 0)
     {
         // Sem linhas de assessoria não há onde embutir — mantém como está.
         if (doc.MO.Count == 0) return doc;
@@ -380,8 +388,36 @@ public static class Pricing
 
         var totalMO = mo.Sum(l => l.ValorTotal);
         var totalDesp = desp.Sum(d => d.ValorTotal);
+        var totalGeral = totalMO + totalDesp + deslocamento;
+
+        // Total cravado pela meta de valor: o resíduo dos arredondamentos por
+        // linha (até R$ 10) é aparado na maior linha da assessoria — evitando a
+        // diária normal quando ela também estiver cravada.
+        if (totalTravado > 0 && Math.Abs(totalGeral - totalTravado) <= 10 && mo.Count > 0)
+        {
+            var candidatas = mo.Where(l => l.ValorTotal > 0).ToList();
+            if (diariaTravada > 0)
+            {
+                var semNormal = candidatas.Where(l => !(l.Mult is > 0.99 and < 1.01)).ToList();
+                if (semNormal.Count > 0) candidatas = semNormal;
+                else candidatas = new List<LinhaMO>();   // só a normal cravada: não dá p/ cravar os dois
+            }
+            var alvoLinha = candidatas.OrderByDescending(l => l.ValorTotal).FirstOrDefault();
+            if (alvoLinha is not null)
+            {
+                var idx = mo.IndexOf(alvoLinha);
+                var diff = Math.Round(totalTravado - totalGeral, 2);
+                var novoTotal = Math.Round(alvoLinha.ValorTotal + diff, 2);
+                var diaria = alvoLinha.QtdDiaria > 0 ? Math.Round(novoTotal / alvoLinha.QtdDiaria, 2) : 0;
+                var hora = alvoLinha.Horas > 0 ? Math.Round(diaria / alvoLinha.Horas, 2) : 0;
+                mo[idx] = alvoLinha with { ValorTotal = novoTotal, ValorDiaria = diaria, ValorHora = hora };
+                totalMO = Math.Round(totalMO + diff, 2);
+                totalGeral = totalTravado;
+            }
+        }
+
         return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp,
-            totalMO + totalDesp + deslocamento, doc.Calculo, deslocamento);
+            totalGeral, doc.Calculo, deslocamento);
     }
 
     /// <summary>Diária normal (1×, com impostos) como sai na proposta apresentada.</summary>

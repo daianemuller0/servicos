@@ -92,7 +92,8 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     /// <summary>O documento como apresentado ao cliente (para ler a diária normal).</summary>
     private Data.Pricing.Documento Apresentado() =>
         Data.Pricing.Apresentar(R.Documento(), R.Proposta.ModoApresentacao,
-            Data.Pricing.Num(R.Params.TaxaAdmPct), Data.Pricing.Num(R.Params.DiariaTravada));
+            Data.Pricing.Num(R.Params.TaxaAdmPct), Data.Pricing.Num(R.Params.DiariaTravada),
+            Data.Pricing.Num(R.Params.TotalTravado));
 
     /// <summary>Diária normal (com impostos) da proposta atual, como sai para o cliente.</summary>
     protected double DiariaAtual => Data.Pricing.DiariaNormalApresentada(Apresentado());
@@ -188,12 +189,15 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     /// <summary>Aplica a margem calculada pela meta. Retorna a mensagem para o usuário.</summary>
     protected string AplicarMargemDaMeta()
     {
-        var meta = Data.Pricing.Num(R.Params.MetaValor);
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var meta = Math.Round(Data.Pricing.Num(R.Params.MetaValor), 2);
         if (meta <= 0) return "Informe a meta de valor final.";
         if (R.Calculo().CustoComRisco <= 0) return "Lance algum custo antes de usar a meta.";
         var m = MargemDaMeta;
-        R.Params.MargemAlvoPct = (m * 100).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
-        return $"Margem ajustada para {Data.Pricing.Porcento(m)} — total fecha na meta de R$ {Data.Pricing.Moeda(meta)} ✓";
+        R.Params.MargemAlvoPct = (m * 100).ToString("0.######", inv);
+        R.Params.TotalTravado = meta.ToString("0.00", inv);   // apara o resíduo dos arredondamentos
+        var total = Apresentado().Total;
+        return $"Margem ajustada para {Data.Pricing.Porcento(m)} — total CRAVADO em R$ {Data.Pricing.Moeda(total)} ✓";
     }
 
     /// <summary>

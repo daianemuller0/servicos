@@ -141,4 +141,6 @@ public class PricingParams
     public string MetaValor { get; set; } = "";
     /// <summary>Diária normal cravada pela ferramenta de proposta anterior (ajuste cosmético de centavos).</summary>
     public string DiariaTravada { get; set; } = "";
+    /// <summary>Total cravado pela ferramenta de meta de valor (apara o resíduo de arredondamento).</summary>
+    public string TotalTravado { get; set; } = "";
 }
