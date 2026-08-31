@@ -70,6 +70,31 @@ public class Rascunho
         ItensMO = Des<List<ItemMO>>(p.ItensMoJson) ?? new();
         ItensDespesa = Des<List<ItemDespesa>>(p.ItensDespesaJson) ?? new();
         Params = Des<PricingParams>(p.PricingJson) ?? new PricingParams();
+        MigrarMultiplicadores();
+    }
+
+    /// <summary>
+    /// Rascunhos e propostas gravados antes do multiplicador da hora-base não
+    /// carregam essa marcação — sem ela, as regras de diária (sáb/dom = 2×,
+    /// HE = 1,5×/2×) e a ferramenta de proposta anterior não reconhecem as
+    /// linhas. Re-identifica pelo nome do serviço.
+    /// </summary>
+    private void MigrarMultiplicadores()
+    {
+        foreach (var i in ItensMO)
+        {
+            if (Pricing.Num(i.Mult) > 0) continue;
+            var servico = (i.Servico ?? "").ToUpperInvariant();
+            var obs = (i.Obs ?? "").ToUpperInvariant();
+            var fimDeSemana = servico.Contains("SAB") || servico.Contains("DOM") || servico.Contains("FER");
+
+            if (servico.StartsWith("DIARIAS NORMAIS"))
+                i.Mult = obs.Contains("2O") || obs.Contains("2°") ? "1.5" : "1";
+            else if (servico.Contains("DIARIAS EXTRAS") && fimDeSemana)
+                i.Mult = "2";
+            else if (servico.Contains("HORAS EXTRAS"))
+                i.Mult = fimDeSemana ? "2" : "1.5";
+        }
     }
 
     /// <summary>Copia o estado atual para o objeto que vai ser gravado.</summary>
@@ -98,6 +123,7 @@ public class Rascunho
         ItensMO = e.MO ?? new();
         ItensDespesa = e.Despesas ?? new();
         Params = e.Params ?? new PricingParams();
+        MigrarMultiplicadores();
         return true;
     }
 
