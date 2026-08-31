@@ -46,7 +46,7 @@
             <h3 class="dash-title" style="margin-bottom:8px">Proposta anterior</h3>
             <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap">
                 <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
-                    Valor anterior (R$)
+                    Diária normal anterior (R$, c/ impostos)
                     <input class="cell num" style="width:120px" @bind="R.Params.PropAnteriorValor" />
                 </label>
                 <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
@@ -58,8 +58,8 @@
             @if (MetaAnterior > 0)
             {
                 <div style="margin-top:6px; font-size:12.5px" class="@(FaltaParaAnterior > 0 ? "dias-vencida" : "saved-flag")">
-                    Meta: R$ @Pricing.Moeda(MetaAnterior) —
-                    @(FaltaParaAnterior > 0 ? $"faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "total atual já supera ✓")
+                    Diária meta: R$ @Pricing.Moeda(MetaAnterior) · atual: R$ @Pricing.Moeda(DiariaAtual)
+                    @(FaltaParaAnterior > 0 ? $"— faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "— já supera ✓")
                 </div>
             }
         </div>

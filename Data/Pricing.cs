@@ -178,7 +178,8 @@ public static class Pricing
 
     // ---------- itens já precificados (o que sai impresso na proposta) ----------
     public sealed record LinhaMO(string Servico, string Obs, double Horas, double QtdDiaria,
-        double Custo, double Participacao, double ValorTotal, double ValorDiaria, double ValorHora);
+        double Custo, double Participacao, double ValorTotal, double ValorDiaria, double ValorHora,
+        double Mult = 0);
 
     public sealed record LinhaDespesa(string Despesa, string Obs, double Qtd,
         double Custo, double Participacao, double ValorUnitario, double ValorTotal);
@@ -211,7 +212,7 @@ public static class Pricing
             var horas = Num(i.Horas);
             var diaria = qtdDiaria > 0 ? Math.Round(total / qtdDiaria, 2) : 0;
             var hora = horas > 0 ? Math.Round(diaria / horas, 2) : 0;
-            linhasMO.Add(new LinhaMO(i.Servico, i.Obs, horas, qtdDiaria, custo, part, total, diaria, hora));
+            linhasMO.Add(new LinhaMO(i.Servico, i.Obs, horas, qtdDiaria, custo, part, total, diaria, hora, Num(i.Mult)));
         }
 
         var linhasDesp = new List<LinhaDespesa>();
@@ -246,7 +247,7 @@ public static class Pricing
     public static Documento Apresentar(Documento doc, string modo, double taxaAdmPct)
     {
         // Sem linhas de assessoria não há onde embutir — mantém como está.
-        if (doc.MO.Count == 0 || doc.Despesas.Count == 0) return doc;
+        if (doc.MO.Count == 0) return doc;
 
         List<LinhaDespesa> desp;
         if (modo == "SemDespesas")
@@ -266,28 +267,68 @@ public static class Pricing
             }).ToList();
         }
 
-        // O que as despesas deixaram de mostrar vai para a assessoria,
-        // proporcional ao valor de cada linha; a última fecha a conta no centavo.
+        // O que as despesas deixam de mostrar vai para a assessoria.
         var alvoMO = doc.Total - desp.Sum(d => d.ValorTotal);
         if (alvoMO <= 0 || doc.TotalMO <= 0) return doc;
 
+        // As linhas com multiplicador obedecem às regras fixas sobre a hora normal
+        // (2º turno/HE semana = 1,5×; sáb/dom/feriado = 2×), todas com impostos.
+        // As linhas sem multiplicador (equipamentos, terceiros…) mantêm o valor
+        // distribuído por participação no custo.
+        var comMult = doc.MO.Where(l => l.Mult > 0 && l.QtdDiaria > 0).ToList();
+        var pesoW = comMult.Sum(l => l.Mult * Math.Max(l.Horas, 1) * l.QtdDiaria);
+        var livres = doc.MO.Where(l => !(l.Mult > 0 && l.QtdDiaria > 0)).Sum(l => l.ValorTotal);
+        var pool = alvoMO - livres;
+
         var mo = new List<LinhaMO>();
-        double acumulado = 0;
-        for (var i = 0; i < doc.MO.Count; i++)
+        if (pesoW > 0 && pool > 0)
         {
-            var l = doc.MO[i];
-            double total = i == doc.MO.Count - 1
-                ? alvoMO - acumulado
-                : ParaCima(alvoMO * (l.ValorTotal / doc.TotalMO));
-            acumulado += total;
-            var diaria = l.QtdDiaria > 0 ? Math.Round(total / l.QtdDiaria, 2) : 0;
-            var hora = l.Horas > 0 ? Math.Round(diaria / l.Horas, 2) : 0;
-            mo.Add(new LinhaMO(l.Servico, l.Obs, l.Horas, l.QtdDiaria, l.Custo, l.Participacao, total, diaria, hora));
+            // hora normal com impostos: o pool dividido pelos pesos, arredondado p/ cima
+            var horaNormal = Math.Ceiling(pool / pesoW * 100) / 100;
+            foreach (var l in doc.MO)
+            {
+                if (l.Mult > 0 && l.QtdDiaria > 0)
+                {
+                    var hora = Math.Round(l.Mult * horaNormal, 2);
+                    var diaria = Math.Round(hora * Math.Max(l.Horas, 1), 2);
+                    var total = Math.Round(diaria * l.QtdDiaria, 2);
+                    mo.Add(new LinhaMO(l.Servico, l.Obs, l.Horas, l.QtdDiaria, l.Custo, l.Participacao, total, diaria, hora, l.Mult));
+                }
+                else
+                {
+                    mo.Add(l);
+                }
+            }
+        }
+        else
+        {
+            // fallback: distribuição proporcional ao custo (nenhuma linha com multiplicador)
+            double acumulado = 0;
+            for (var i = 0; i < doc.MO.Count; i++)
+            {
+                var l = doc.MO[i];
+                double total = i == doc.MO.Count - 1
+                    ? alvoMO - acumulado
+                    : ParaCima(alvoMO * (l.ValorTotal / doc.TotalMO));
+                acumulado += total;
+                var diaria = l.QtdDiaria > 0 ? Math.Round(total / l.QtdDiaria, 2) : 0;
+                var hora = l.Horas > 0 ? Math.Round(diaria / l.Horas, 2) : 0;
+                mo.Add(new LinhaMO(l.Servico, l.Obs, l.Horas, l.QtdDiaria, l.Custo, l.Participacao, total, diaria, hora, l.Mult));
+            }
         }
 
         var totalMO = mo.Sum(l => l.ValorTotal);
         var totalDesp = desp.Sum(d => d.ValorTotal);
         return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp, totalMO + totalDesp, doc.Calculo);
+    }
+
+    /// <summary>Diária normal (1×, com impostos) como sai na proposta apresentada.</summary>
+    public static double DiariaNormalApresentada(Documento apresentado)
+    {
+        var normal = apresentado.MO.FirstOrDefault(l => l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0);
+        if (normal is not null) return normal.ValorDiaria;
+        var outra = apresentado.MO.FirstOrDefault(l => l.Mult > 0 && l.QtdDiaria > 0);
+        return outra is null ? 0 : Math.Round(outra.ValorDiaria / outra.Mult, 2);
     }
 
     /// <summary>

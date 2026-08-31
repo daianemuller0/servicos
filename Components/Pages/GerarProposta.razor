@@ -275,8 +275,8 @@
                     @if (MetaAnterior > 0)
                     {
                         <div style="margin-top:6px; font-size:12.5px" class="@(FaltaParaAnterior > 0 ? "dias-vencida" : "saved-flag")">
-                            Meta: R$ @Pricing.Moeda(MetaAnterior) —
-                            @(FaltaParaAnterior > 0 ? $"faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "total atual já supera ✓")
+                            Diária meta: R$ @Pricing.Moeda(MetaAnterior) · atual: R$ @Pricing.Moeda(DiariaAtual)
+                            @(FaltaParaAnterior > 0 ? $"— faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "— já supera ✓")
                         </div>
                     }
                 </div>
@@ -298,8 +298,10 @@
                 </div>
             </div>
             <div class="side-note" style="margin-top:12px">
-                "Ajustar em OUTROS" injeta o custo necessário para o total superar a proposta anterior
-                + % a mais. A linha OUTROS nunca sai na proposta — é diluída nas diárias.
+                Informa-se a DIÁRIA NORMAL (com impostos) da proposta anterior; "Ajustar em OUTROS"
+                injeta o custo necessário para a diária atual superá-la + % a mais. As demais linhas
+                acompanham (sáb/dom/feriado = 2× a diária; HE semana = 1,5× a hora; HE sáb/dom = 2× a hora).
+                A linha OUTROS nunca sai na proposta — é diluída nas diárias.
             </div>
         </div>
 

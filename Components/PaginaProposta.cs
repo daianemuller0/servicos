@@ -74,37 +74,43 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
 
     // ================= ferramentas de preço =================
 
-    /// <summary>Meta derivada da proposta anterior: valor anterior × (1 + % a mais).</summary>
+    /// <summary>O documento como apresentado ao cliente (para ler a diária normal).</summary>
+    private Data.Pricing.Documento Apresentado() =>
+        Data.Pricing.Apresentar(R.Documento(), R.Proposta.ModoApresentacao, Data.Pricing.Num(R.Params.TaxaAdmPct));
+
+    /// <summary>Diária normal (com impostos) da proposta atual, como sai para o cliente.</summary>
+    protected double DiariaAtual => Data.Pricing.DiariaNormalApresentada(Apresentado());
+
+    /// <summary>Meta de DIÁRIA: diária normal da proposta anterior × (1 + % a mais).</summary>
     protected double MetaAnterior =>
         Data.Pricing.Num(R.Params.PropAnteriorValor) * (1 + Data.Pricing.Pct(R.Params.PropAnteriorPct));
 
-    /// <summary>Quanto falta (em R$ de total final) para superar a proposta anterior.</summary>
+    /// <summary>Quanto falta na diária normal para superar a da proposta anterior.</summary>
     protected double FaltaParaAnterior
     {
         get
         {
             var alvo = MetaAnterior;
             if (alvo <= 0) return 0;
-            var falta = alvo - R.Calculo().ComImpostos;
+            var falta = alvo - DiariaAtual;
             return falta > 0 ? falta : 0;
         }
     }
 
     /// <summary>
-    /// Injeta em OUTROS o custo necessário para o total final superar a meta da
-    /// proposta anterior. Retorna a mensagem para exibir ao usuário.
+    /// Injeta em OUTROS o custo necessário para a DIÁRIA NORMAL (com impostos)
+    /// superar a diária da proposta anterior + % a mais. Como as demais linhas
+    /// são múltiplos fixos da diária normal (sáb/dom = 2×; HE = 1,5×/2×), todas
+    /// acompanham. Retorna a mensagem para exibir ao usuário.
     /// </summary>
     protected string InjetarEmOutros()
     {
-        var c = R.Calculo();
         var alvo = MetaAnterior;
-        if (alvo <= 0) return "Informe o valor da proposta anterior.";
-        if (c.FatorComImpostos <= 0) return "Lance algum custo antes de ajustar pela proposta anterior.";
-        if (c.ComImpostos >= alvo)
-            return $"O total atual (R$ {Data.Pricing.Moeda(c.ComImpostos)}) já supera a meta (R$ {Data.Pricing.Moeda(alvo)}) — nada a fazer.";
-
-        // custo extra necessário: a diferença dividida pelo fator custo→preço
-        var delta = Data.Pricing.ParaCima((alvo - c.ComImpostos) / c.FatorComImpostos);
+        if (alvo <= 0) return "Informe a diária normal da proposta anterior.";
+        var dia = DiariaAtual;
+        if (dia <= 0) return "Lance as diárias normais (1º turno) antes de ajustar.";
+        if (dia >= alvo)
+            return $"A diária atual (R$ {Data.Pricing.Moeda(dia)}) já supera a meta (R$ {Data.Pricing.Moeda(alvo)}) — nada a fazer.";
 
         var outros = R.ItensDespesa.FirstOrDefault(d => Data.Pricing.EhOutros(d.Despesa));
         if (outros is null)
@@ -112,16 +118,26 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
             outros = new Models.ItemDespesa { Despesa = "OUTROS", Obs = "ADMINISTRATIVA", PorTecnico = false };
             R.ItensDespesa.Add(outros);
         }
-
         var tec = Math.Max(Data.Pricing.Inteiro(R.Params.QtdTecnicos), 1);
         var qtd = Math.Max(Data.Pricing.Num(outros.Qtd), 1);
         outros.Qtd = qtd.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         var mult = qtd * (outros.PorTecnico ? tec : 1);
-        var novoUnit = Data.Pricing.Num(outros.CustoUnitario) + Math.Ceiling(delta / mult * 100) / 100;
-        outros.CustoUnitario = novoUnit.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
-        var novoTotal = R.Calculo().ComImpostos;
-        return $"OUTROS +R$ {Data.Pricing.Moeda(delta)} → total R$ {Data.Pricing.Moeda(novoTotal)} (meta R$ {Data.Pricing.Moeda(alvo)}) ✓";
+        // A diária cresce quase linearmente com o custo total: aproxima e refina.
+        double injetado = 0;
+        for (var i = 0; i < 12 && dia < alvo; i++)
+        {
+            var c = R.Calculo();
+            if (c.CustoTotal <= 0 || c.FatorComImpostos <= 0) break;
+            var delta = Data.Pricing.ParaCima(Math.Max((alvo - dia) / dia * c.CustoTotal, 1));
+            var novoUnit = Data.Pricing.Num(outros.CustoUnitario) + Math.Ceiling(delta / mult * 100) / 100;
+            outros.CustoUnitario = novoUnit.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            injetado += delta;
+            dia = DiariaAtual;
+        }
+
+        var total = Apresentado().Total;
+        return $"OUTROS +R$ {Data.Pricing.Moeda(injetado)} → diária normal R$ {Data.Pricing.Moeda(dia)} (meta R$ {Data.Pricing.Moeda(alvo)}) · total R$ {Data.Pricing.Moeda(total)} ✓";
     }
 
     /// <summary>Margem que resulta da meta de valor informada (função "chegar no valor").</summary>

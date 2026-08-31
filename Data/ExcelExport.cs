@@ -286,7 +286,7 @@ public static class ExcelExport
         Rotulo(ws, r++, "Representante 1:", $"{p.Representante} ({par.Rep1Pct}%)");
         Rotulo(ws, r++, "Representante 2:", $"{p.Representante2} ({par.Rep2Pct}%)");
         if (Pricing.Num(par.PropAnteriorValor) > 0)
-            Rotulo(ws, r++, "Proposta anterior:", $"R$ {Pricing.Moeda(Pricing.Num(par.PropAnteriorValor))} + {par.PropAnteriorPct}%");
+            Rotulo(ws, r++, "Prop. anterior (diária normal):", $"R$ {Pricing.Moeda(Pricing.Num(par.PropAnteriorValor))} + {par.PropAnteriorPct}%");
         if (Pricing.Num(par.MetaValor) > 0)
             Rotulo(ws, r++, "Meta de valor:", Pricing.Num(par.MetaValor), Fmt);
 
