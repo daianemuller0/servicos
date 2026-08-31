@@ -270,7 +270,7 @@
                             % a mais
                             <input class="cell num" style="width:64px" @bind="R.Params.PropAnteriorPct" />
                         </label>
-                        <button class="btn-ghost" @onclick="Injetar">Ajustar em OUTROS</button>
+                        <button class="btn-ghost" @onclick="AcaoFecharDiaria">🔒 Fechar a diária</button>
                     </div>
                     @if (MetaAnterior > 0)
                     {
@@ -287,7 +287,7 @@
                             Valor final desejado (R$)
                             <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
                         </label>
-                        <button class="btn-ghost" @onclick="AplicarMeta">Aplicar margem</button>
+                        <button class="btn-ghost" @onclick="AcaoFecharTotal">🔒 Fechar o valor final</button>
                     </div>
                     @if (Pricing.Num(R.Params.MetaValor) > 0)
                     {
@@ -296,11 +296,19 @@
                         </div>
                     }
                 </div>
+                <div>
+                    <h4 style="margin:0 0 8px; font-size:13px; color:var(--muted)">Os dois ao mesmo tempo</h4>
+                    <button class="btn-primary" @onclick="AcaoFecharAmbos">🔒🔒 Fechar diária + valor</button>
+                    <div style="margin-top:6px; font-size:12px; color:var(--muted); max-width:220px">
+                        Usa a margem (GM) para o total e OUTROS para a diária.
+                    </div>
+                </div>
             </div>
             <div class="side-note" style="margin-top:12px">
-                Informa-se a DIÁRIA NORMAL (com impostos) da proposta anterior; "Ajustar em OUTROS"
-                injeta o custo necessário para a diária atual superá-la + % a mais. As demais linhas
-                acompanham (sáb/dom/feriado = 2× a diária; HE semana = 1,5× a hora; HE sáb/dom = 2× a hora).
+                "Fechar a diária" crava só a diária normal (via OUTROS) — o total fica livre.
+                "Fechar o valor final" crava só o total (via margem/GM) — a diária fica livre.
+                "Fechar diária + valor" crava os dois ao mesmo tempo (GM + OUTROS).
+                As demais linhas acompanham a diária normal pelos multiplicadores da Tabela de Custos.
                 A linha OUTROS nunca sai na proposta — é diluída nas diárias.
             </div>
         </div>
@@ -587,8 +595,9 @@
         }
     }
 
-    private void Injetar() { _erro = null; _msg = InjetarEmOutros(); }
-    private void AplicarMeta() { _erro = null; _msg = AplicarMargemDaMeta(); }
+    private void AcaoFecharDiaria() { _erro = null; _msg = FecharDiaria(); }
+    private void AcaoFecharTotal() { _erro = null; _msg = FecharTotal(); }
+    private void AcaoFecharAmbos() { _erro = null; _msg = FecharAmbos(); }
 
     private async Task Zerar()
     {

@@ -192,63 +192,48 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     }
 
     /// <summary>
-    /// Fecha as DUAS metas ao mesmo tempo: a margem (GM) é resolvida para o
-    /// total e OUTROS para a diária — alternando até os dois cravarem.
+    /// Fecha as DUAS metas ao mesmo tempo. Com o total fixo, a diária normal é
+    /// consequência direta — então OUTROS aproxima a diária do alvo, o GM crava
+    /// o total, e a trava da diária faz as linhas derivadas (2º turno, sáb/dom,
+    /// HE) absorverem a diferença que sobrar na apresentação.
     /// </summary>
     private (double Dia, double Total) ReconciliarTravas(double diaAlvo, double totalAlvo, Models.ItemDespesa outros)
     {
-        double dia = 0, total = 0;
-        for (var i = 0; i < 15; i++)
-        {
-            AplicarMargemParaTotal(totalAlvo);            // GM fecha o total (custo atual)
-            dia = BuscarDiariaExata(diaAlvo, outros);     // OUTROS fecha a diária (muda o custo)
-            AplicarMargemParaTotal(totalAlvo);            // GM refeita para o custo novo
-            total = Apresentado().Total;
-            if (Math.Abs(dia - diaAlvo) <= 0.05 && Math.Abs(total - totalAlvo) <= 0.05) break;
-        }
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        R.Params.TotalTravado = "";
+        BuscarDiariaExata(diaAlvo, outros);   // OUTROS: derivadas ficam perto dos multiplicadores padrão
+        AplicarMargemParaTotal(totalAlvo);    // GM: total exato
+        R.Params.DiariaTravada = diaAlvo.ToString("0.00", inv);
         return (DiariaAtual, Apresentado().Total);
     }
 
-    protected string InjetarEmOutros()
+    /// <summary>
+    /// Botão "fechar a diária": crava SÓ a diária normal na meta da proposta
+    /// anterior, ajustando OUTROS. Solta a trava do total — o valor final passa
+    /// a ser consequência.
+    /// </summary>
+    protected string FecharDiaria()
     {
         var alvo = Math.Round(MetaAnterior, 2);
         if (alvo <= 0) return "Informe a diária normal da proposta anterior.";
 
         R.Params.DiariaTravada = "";
+        R.Params.TotalTravado = "";
         if (DiariaAtual <= 0) return "Lance as diárias normais (1º turno) antes de ajustar.";
 
         var outros = GarantirOutros();
         var unitInicial = Data.Pricing.Num(outros.CustoUnitario);
+        var diaFinal = BuscarDiariaExata(alvo, outros);
 
-        double diaFinal, totalFinal;
-        var totalAlvo = Data.Pricing.Num(R.Params.TotalTravado);
-        if (totalAlvo > 0)
-        {
-            (diaFinal, totalFinal) = ReconciliarTravas(alvo, totalAlvo, outros);
-        }
-        else
-        {
-            diaFinal = BuscarDiariaExata(alvo, outros);
-            totalFinal = Apresentado().Total;
-        }
+        if (Math.Abs(diaFinal - alvo) > 0.05)
+            return $"Diária ficou em R$ {Data.Pricing.Moeda(diaFinal)} (meta R$ {Data.Pricing.Moeda(alvo)})." +
+                   " Os custos reais já superam a meta (OUTROS chegou ao mínimo).";
 
         var variacao = (Data.Pricing.Num(outros.CustoUnitario) - unitInicial)
                      * Math.Max(Data.Pricing.Num(outros.Qtd), 1)
                      * (outros.PorTecnico ? Math.Max(Data.Pricing.Inteiro(R.Params.QtdTecnicos), 1) : 1);
-
-        if (Math.Abs(diaFinal - alvo) > 0.05)
-        {
-            var explicacao = totalAlvo > 0
-                ? AvisoConflito(alvo, totalAlvo)
-                : " Os custos reais já superam a meta (OUTROS chegou ao mínimo).";
-            return $"Diária ficou em R$ {Data.Pricing.Moeda(diaFinal)} (meta R$ {Data.Pricing.Moeda(alvo)}).{explicacao}";
-        }
-
         var verbo = variacao >= 0 ? $"+R$ {Data.Pricing.Moeda(variacao)}" : $"−R$ {Data.Pricing.Moeda(-variacao)}";
-        var aviso = totalAlvo > 0 && Math.Abs(totalFinal - totalAlvo) > 0.05
-            ? AvisoConflito(alvo, totalAlvo)
-            : "";
-        return $"OUTROS {verbo} → diária normal CRAVADA em R$ {Data.Pricing.Moeda(diaFinal)} · total R$ {Data.Pricing.Moeda(totalFinal)} ✓{aviso}";
+        return $"OUTROS {verbo} → diária normal CRAVADA em R$ {Data.Pricing.Moeda(diaFinal)} ✓ · total resultante R$ {Data.Pricing.Moeda(Apresentado().Total)}";
     }
 
     /// <summary>Margem que resulta da meta de valor informada (função "chegar no valor").</summary>
@@ -256,33 +241,45 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         Data.Pricing.MargemParaMeta(R.Calculo(), R.Params, Data.Pricing.Num(R.Params.MetaValor),
             Data.Pricing.Num(R.Proposta.PrazoEntregaDias));
 
-    /// <summary>Aplica a margem calculada pela meta. Retorna a mensagem para o usuário.</summary>
-    protected string AplicarMargemDaMeta()
+    /// <summary>
+    /// Botão "fechar o valor final": crava SÓ o total na meta de valor, via
+    /// margem (GM). Solta a trava da diária — ela passa a ser consequência.
+    /// </summary>
+    protected string FecharTotal()
     {
         var meta = Math.Round(Data.Pricing.Num(R.Params.MetaValor), 2);
         if (meta <= 0) return "Informe a meta de valor final.";
         if (R.Calculo().CustoComRisco <= 0) return "Lance algum custo antes de usar a meta.";
 
-        var diaAlvo = Math.Round(MetaAnterior, 2);
-
-        double totalFinal;
-        string aviso = "";
-        if (diaAlvo > 0)
-        {
-            // As duas metas ativas: GM fecha o total e OUTROS refecha a diária.
-            var (dia, tot) = ReconciliarTravas(diaAlvo, meta, GarantirOutros());
-            totalFinal = tot;
-            if (Math.Abs(dia - diaAlvo) > 0.05 || Math.Abs(tot - meta) > 0.05)
-                aviso = AvisoConflito(diaAlvo, meta);
-        }
-        else
-        {
-            AplicarMargemParaTotal(meta);
-            totalFinal = Apresentado().Total;
-        }
+        R.Params.DiariaTravada = "";
+        AplicarMargemParaTotal(meta);
 
         var margem = Data.Pricing.Porcento(R.Calculo().ProjectMargin);
-        return $"Margem ajustada para {margem} — total CRAVADO em R$ {Data.Pricing.Moeda(totalFinal)} ✓{aviso}";
+        return $"Margem ajustada para {margem} — total CRAVADO em R$ {Data.Pricing.Moeda(Apresentado().Total)} ✓" +
+               $" · diária resultante R$ {Data.Pricing.Moeda(DiariaAtual)}";
+    }
+
+    /// <summary>
+    /// Botão "fechar os dois": crava a diária (via OUTROS) E o total (via GM)
+    /// ao mesmo tempo, alternando os dois ajustes até fecharem juntos.
+    /// </summary>
+    protected string FecharAmbos()
+    {
+        var diaAlvo = Math.Round(MetaAnterior, 2);
+        var meta = Math.Round(Data.Pricing.Num(R.Params.MetaValor), 2);
+        if (diaAlvo <= 0 && meta <= 0) return "Preencha a diária anterior (+ % a mais) e o valor final desejado.";
+        if (diaAlvo <= 0) return "Para fechar os dois, informe também a diária normal da proposta anterior.";
+        if (meta <= 0) return "Para fechar os dois, informe também o valor final desejado.";
+        if (R.Calculo().CustoComRisco <= 0) return "Lance algum custo antes de usar as metas.";
+        if (DiariaAtual <= 0) return "Lance as diárias normais (1º turno) antes de ajustar.";
+
+        var (dia, tot) = ReconciliarTravas(diaAlvo, meta, GarantirOutros());
+        if (Math.Abs(dia - diaAlvo) > 0.05 || Math.Abs(tot - meta) > 0.05)
+            return $"Diária ficou em R$ {Data.Pricing.Moeda(dia)} e total em R$ {Data.Pricing.Moeda(tot)}." +
+                   AvisoConflito(diaAlvo, meta);
+
+        var margem = Data.Pricing.Porcento(R.Calculo().ProjectMargin);
+        return $"Diária CRAVADA em R$ {Data.Pricing.Moeda(dia)} e total CRAVADO em R$ {Data.Pricing.Moeda(tot)} ✓ (GM {margem} + OUTROS)";
     }
 
     /// <summary>

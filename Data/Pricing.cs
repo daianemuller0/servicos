@@ -390,10 +390,61 @@ public static class Pricing
         var totalDesp = desp.Sum(d => d.ValorTotal);
         var totalGeral = totalMO + totalDesp + deslocamento;
 
+        // As DUAS travas ativas ("fechar diária + valor"): as diárias normais
+        // cravam no valor travado e as linhas derivadas (2º turno, sáb/dom, HE)
+        // absorvem a diferença até o total fechar exato. Os multiplicadores
+        // padrão deixam de ser exatos nessas linhas — é a "jogada de número"
+        // que permite fechar as duas pontas ao mesmo tempo.
+        var duploFechado = false;
+        if (totalTravado > 0 && diariaTravada > 0 && mo.Count > 0)
+        {
+            bool Normal(LinhaMO l) => l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0;
+            bool Derivada(LinhaMO l) => l.Mult > 0 && l.QtdDiaria > 0 && !Normal(l);
+            var idxDeriv = Enumerable.Range(0, mo.Count).Where(i => Derivada(mo[i])).ToList();
+            var fixoNormais = mo.Where(Normal).Sum(l => Math.Round(diariaTravada * l.QtdDiaria, 2));
+            var fixoLivres = mo.Where(l => !Normal(l) && !Derivada(l)).Sum(l => l.ValorTotal);
+            var alvoDeriv = Math.Round(totalTravado - deslocamento - totalDesp - fixoNormais - fixoLivres, 2);
+            var pesoDeriv = idxDeriv.Sum(i => mo[i].Mult * Math.Max(mo[i].Horas, 1) * mo[i].QtdDiaria);
+
+            if (mo.Any(Normal) && idxDeriv.Count > 0 && pesoDeriv > 0 && alvoDeriv > idxDeriv.Count * 0.01)
+            {
+                for (var i = 0; i < mo.Count; i++)
+                {
+                    if (!Normal(mo[i])) continue;
+                    var l = mo[i];
+                    mo[i] = l with
+                    {
+                        ValorDiaria = diariaTravada,
+                        ValorTotal = Math.Round(diariaTravada * l.QtdDiaria, 2),
+                        ValorHora = Math.Round(diariaTravada / Math.Max(l.Horas, 1), 2),
+                    };
+                }
+                double acum = 0;
+                for (var k = 0; k < idxDeriv.Count; k++)
+                {
+                    var l = mo[idxDeriv[k]];
+                    var tot = k == idxDeriv.Count - 1
+                        ? Math.Round(alvoDeriv - acum, 2)
+                        : Math.Round(alvoDeriv * (l.Mult * Math.Max(l.Horas, 1) * l.QtdDiaria) / pesoDeriv, 2);
+                    acum += tot;
+                    var diaria = Math.Round(tot / l.QtdDiaria, 2);
+                    mo[idxDeriv[k]] = l with
+                    {
+                        ValorTotal = tot,
+                        ValorDiaria = diaria,
+                        ValorHora = Math.Round(diaria / Math.Max(l.Horas, 1), 2),
+                    };
+                }
+                totalMO = mo.Sum(l => l.ValorTotal);
+                totalGeral = totalTravado;
+                duploFechado = true;
+            }
+        }
+
         // Total cravado pela meta de valor: o resíduo dos arredondamentos por
         // linha (até R$ 10) é aparado na maior linha da assessoria — evitando a
         // diária normal quando ela também estiver cravada.
-        if (totalTravado > 0 && Math.Abs(totalGeral - totalTravado) <= 10 && mo.Count > 0)
+        if (!duploFechado && totalTravado > 0 && Math.Abs(totalGeral - totalTravado) <= 10 && mo.Count > 0)
         {
             var candidatas = mo.Where(l => l.ValorTotal > 0).ToList();
             // A diária normal só fica protegida se o pino dela estiver DE FATO

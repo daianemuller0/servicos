@@ -53,7 +53,7 @@
                     % a mais
                     <input class="cell num" style="width:64px" @bind="R.Params.PropAnteriorPct" />
                 </label>
-                <button class="btn-ghost" @onclick="Injetar">Ajustar em OUTROS</button>
+                <button class="btn-ghost" @onclick="AcaoFecharDiaria">🔒 Fechar a diária</button>
             </div>
             @if (MetaAnterior > 0)
             {
@@ -70,7 +70,7 @@
                     Valor final desejado (R$)
                     <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
                 </label>
-                <button class="btn-ghost" @onclick="AplicarMeta">Aplicar margem</button>
+                <button class="btn-ghost" @onclick="AcaoFecharTotal">🔒 Fechar o valor final</button>
             </div>
             @if (Pricing.Num(R.Params.MetaValor) > 0)
             {
@@ -78,6 +78,13 @@
                     Com essa meta a margem fica <strong>@Pricing.Porcento(MargemDaMeta)</strong>
                 </div>
             }
+        </div>
+        <div>
+            <h3 class="dash-title" style="margin-bottom:8px">Os dois ao mesmo tempo</h3>
+            <button class="btn-primary" @onclick="AcaoFecharAmbos">🔒🔒 Fechar diária + valor</button>
+            <div style="margin-top:6px; font-size:12px; color:var(--muted); max-width:220px">
+                Usa a margem (GM) para o total e OUTROS para a diária.
+            </div>
         </div>
     </div>
 </div>
@@ -398,8 +405,9 @@
         }
     }
 
-    private void Injetar() { _erro = null; _msg = InjetarEmOutros(); }
-    private void AplicarMeta() { _erro = null; _msg = AplicarMargemDaMeta(); }
+    private void AcaoFecharDiaria() { _erro = null; _msg = FecharDiaria(); }
+    private void AcaoFecharTotal() { _erro = null; _msg = FecharTotal(); }
+    private void AcaoFecharAmbos() { _erro = null; _msg = FecharAmbos(); }
 
     private async Task Zerar()
     {
