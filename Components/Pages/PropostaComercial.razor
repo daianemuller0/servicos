@@ -19,14 +19,6 @@
         </p>
     </div>
     <div class="page-actions">
-        @if (_erro is not null)
-        {
-            <span class="alert-error" style="margin:0">@_erro</span>
-        }
-        @if (_msg is not null)
-        {
-            <span class="saved-flag">@_msg</span>
-        }
         <select class="cell" style="width:auto" @bind="P.ModoApresentacao" title="Como o documento sai para o cliente">
             <option value="ComDespesas">Mostrar despesas (custo + taxa adm.)</option>
             <option value="SemDespesas">Sem despesas (embutidas nas diárias)</option>
@@ -38,6 +30,15 @@
         <button class="btn-ghost" @onclick="GerarExcel">📊 Excel</button>
     </div>
 </div>
+
+@if (_erro is not null)
+{
+    <div class="alert-error" style="max-width:1080px; margin-bottom:12px; text-align:left">@_erro</div>
+}
+@if (_msg is not null)
+{
+    <div class="side-ok" style="max-width:1080px; margin-bottom:12px">@_msg</div>
+}
 
 <div class="panel" style="max-width:1080px; margin-bottom:14px">
     <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end">

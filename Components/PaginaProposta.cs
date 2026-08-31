@@ -121,7 +121,7 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         outros.CustoUnitario = novoUnit.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
         var novoTotal = R.Calculo().ComImpostos;
-        return $"R$ {Data.Pricing.Moeda(delta)} de custo injetado em OUTROS — total foi a R$ {Data.Pricing.Moeda(novoTotal)} (meta R$ {Data.Pricing.Moeda(alvo)}). OUTROS não aparece na proposta: é diluído nas diárias.";
+        return $"OUTROS +R$ {Data.Pricing.Moeda(delta)} → total R$ {Data.Pricing.Moeda(novoTotal)} (meta R$ {Data.Pricing.Moeda(alvo)}) ✓";
     }
 
     /// <summary>Margem que resulta da meta de valor informada (função "chegar no valor").</summary>
@@ -136,7 +136,7 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         if (R.Calculo().CustoComRisco <= 0) return "Lance algum custo antes de usar a meta.";
         var m = MargemDaMeta;
         R.Params.MargemAlvoPct = (m * 100).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
-        return $"Margem ajustada para {Data.Pricing.Porcento(m)} — o total agora fecha na meta de R$ {Data.Pricing.Moeda(meta)}.";
+        return $"Margem ajustada para {Data.Pricing.Porcento(m)} — total fecha na meta de R$ {Data.Pricing.Moeda(meta)} ✓";
     }
 
     /// <summary>
