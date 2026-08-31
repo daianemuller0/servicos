@@ -1,14 +1,24 @@
 @implements IDisposable
 @inject NavigationManager Nav
+@inject BrandingRepository Branding
 
 <aside class="sidebar no-print">
-    <div class="brand">
-        <div class="brand-mark">H</div>
-        <div>
-            <div class="brand-name">Howden</div>
-            <div class="brand-sub">Serviços · Propostas</div>
+    @if (_logo is not null)
+    {
+        <div class="brand">
+            <span class="brand-img"><img src="@_logo" alt="Logo" /></span>
         </div>
-    </div>
+    }
+    else
+    {
+        <div class="brand">
+            <div class="brand-mark">H</div>
+            <div>
+                <div class="brand-name">Howden</div>
+                <div class="brand-sub">Serviços · Propostas</div>
+            </div>
+        </div>
+    }
 
     <nav class="nav">
         <div class="nav-section">Proposta</div>
@@ -50,7 +60,13 @@
 </aside>
 
 @code {
-    protected override void OnInitialized() => Nav.LocationChanged += OnChanged;
+    private string? _logo;
+
+    protected override void OnInitialized()
+    {
+        _logo = Branding.GetLogoSistema();
+        Nav.LocationChanged += OnChanged;
+    }
     private void OnChanged(object? s, LocationChangedEventArgs e) => StateHasChanged();
     public void Dispose() => Nav.LocationChanged -= OnChanged;
 }

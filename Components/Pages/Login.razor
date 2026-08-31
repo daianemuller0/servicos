@@ -1,39 +1,72 @@
 @page "/login"
 @layout EmptyLayout
 @attribute [AllowAnonymous]
+@inject BrandingRepository Branding
 
-<div class="login-wrap">
-    <div class="login-card">
-        <div class="brand center">
-            <div class="brand-mark big">H</div>
-            <div>
-                <div class="brand-name">Howden</div>
-                <div class="brand-sub">Serviços · Propostas</div>
+<div class="login2">
+    <div class="login2-left">
+        <div class="login2-top">
+            <div class="login2-logo">
+                @if (_logo is not null)
+                {
+                    <img src="@_logo" alt="Logo" />
+                }
+                else
+                {
+                    <div class="login2-logo-fallback">Howden<small>A Chart Industries Company</small></div>
+                }
             </div>
+            <div class="login2-tag">Enterprise Platform · Serviços &amp; Propostas</div>
         </div>
 
-        <h1 class="login-title">Entrar</h1>
+        <div class="login2-body">
+            <div class="login2-overline">Propostas de Serviço</div>
+            <h1 class="login2-title">Do custo à proposta em <em>uma única plataforma</em></h1>
+            <p class="login2-desc">
+                Uma plataforma integrada para montar o custo, calcular margem e impostos e
+                emitir propostas comerciais de serviço padronizadas para toda a organização.
+            </p>
+            <ul class="login2-list">
+                <li>Custos padrão de mão de obra e despesas, ajustáveis por proposta</li>
+                <li>Pricing com margem alvo, comissões, riscos e impostos</li>
+                <li>Proposta comercial pronta em PDF, Word e Excel de registro</li>
+                <li>Banco de propostas enviadas com busca e reabertura</li>
+                <li>Ferramentas de meta: proposta anterior e valor final desejado</li>
+            </ul>
+            <div class="login2-chips">
+                <span class="login2-chip">Custo &amp; Pricing</span>
+                <span class="login2-chip">Proposta Comercial</span>
+                <span class="login2-chip">Banco de Propostas</span>
+            </div>
+        </div>
+    </div>
 
-        @if (Error)
-        {
-            <div class="alert-error">Usuário ou senha inválidos.</div>
-        }
+    <div class="login2-right">
+        <div class="login2-card">
+            <div class="login2-overline">Serviços &amp; Propostas</div>
+            <h2>Acesso ao ambiente corporativo</h2>
+            <p class="login2-sub">
+                Entre para montar custos, calcular o pricing e emitir as propostas
+                comerciais de serviço da equipe.
+            </p>
 
-        <form method="post" action="/auth/login" class="login-form">
-            <label>
-                Usuário
-                <input type="text" name="usuario" autocomplete="username" required />
-            </label>
-            <label>
-                Senha
-                <input type="password" name="senha" autocomplete="current-password" required />
-            </label>
-            <button type="submit" class="btn-primary">Entrar</button>
-        </form>
+            @if (Error)
+            {
+                <div class="login2-err">Usuário ou senha inválidos.</div>
+            }
 
-        <div class="login-hint">
-            Login geral da equipe — padrão: howden / howden2026<br />
-            (altere em appsettings.json, chaves Auth:Usuario e Auth:Senha)
+            <form method="post" action="/auth/login">
+                <label for="usuario">Usuário</label>
+                <input type="text" id="usuario" name="usuario" placeholder="usuario@howden.com" autocomplete="username" required />
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" name="senha" placeholder="••••••••" autocomplete="current-password" required />
+                <button type="submit" class="login2-btn">Acessar plataforma →</button>
+            </form>
+
+            <div class="login2-note">
+                <span>🔒</span>
+                <span>Ambiente corporativo seguro · Acesso exclusivo para usuários autorizados</span>
+            </div>
         </div>
     </div>
 </div>
@@ -43,4 +76,7 @@
     public string? ErrorFlag { get; set; }
 
     private bool Error => ErrorFlag == "1";
+    private string? _logo;
+
+    protected override void OnInitialized() => _logo = Branding.GetLogoSistema();
 }

@@ -136,23 +136,32 @@ public class RepresentanteRepository
     private static string S(System.Data.IDataReader r, int i) => r.IsDBNull(i) ? "" : r.GetString(i);
 }
 
-/// <summary>Identidade visual (logo do cabeçalho da proposta), como data URI.</summary>
+/// <summary>
+/// Identidade visual, como data URIs: o logo do documento (cabeçalho da
+/// proposta) e o logo do sistema (tela de login e barra lateral).
+/// </summary>
 public class BrandingRepository
 {
     private const string LogoId = "logo";
+    private const string LogoSistemaId = "logoSistema";
     private readonly ParquetStore _store;
     public BrandingRepository(ParquetStore store) => _store = store;
 
-    public string? GetLogo() =>
+    private string? Get(string id) =>
         _store.ReadLatest("branding", "id, valor",
                 r => new { Id = r.IsDBNull(0) ? "" : r.GetString(0), Valor = r.IsDBNull(1) ? "" : r.GetString(1) })
-            .Where(x => x.Id == LogoId)
+            .Where(x => x.Id == id)
             .Select(x => string.IsNullOrWhiteSpace(x.Valor) ? null : x.Valor)
             .FirstOrDefault();
 
-    public void SaveLogo(string dataUri) => _store.WriteRow("branding",
-        new KeyValuePair<string, object?>[] { new("id", LogoId), new("valor", dataUri) });
+    private void Set(string id, string valor, bool apagar = false) => _store.WriteRow("branding",
+        new KeyValuePair<string, object?>[] { new("id", id), new("valor", valor) }, deleted: apagar);
 
-    public void ClearLogo() => _store.WriteRow("branding",
-        new KeyValuePair<string, object?>[] { new("id", LogoId), new("valor", "") }, deleted: true);
+    public string? GetLogo() => Get(LogoId);
+    public void SaveLogo(string dataUri) => Set(LogoId, dataUri);
+    public void ClearLogo() => Set(LogoId, "", apagar: true);
+
+    public string? GetLogoSistema() => Get(LogoSistemaId);
+    public void SaveLogoSistema(string dataUri) => Set(LogoSistemaId, dataUri);
+    public void ClearLogoSistema() => Set(LogoSistemaId, "", apagar: true);
 }
