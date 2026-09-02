@@ -151,9 +151,10 @@ public static class ExcelExport
         tot.Style.Font.SetBold().Font.SetFontColor(XLColor.White);
         r += 2;
 
-        Rotulo(ws, r++, "VALOR SEM IMPOSTOS", doc.Calculo.VendaLiquida, Fmt);
-        Rotulo(ws, r++, "VALOR C/ PIS E COFINS", doc.Calculo.ComPisCofins, Fmt);
-        Rotulo(ws, r++, "VALOR C/ PIS, COFINS E ISS", doc.Calculo.ComImpostos, Fmt);
+        var resumo = Pricing.ResumoDoTotal(doc);
+        Rotulo(ws, r++, "VALOR SEM IMPOSTOS", resumo.SemImpostos, Fmt);
+        Rotulo(ws, r++, "VALOR C/ PIS E COFINS", resumo.ComPisCofins, Fmt);
+        Rotulo(ws, r++, "VALOR C/ PIS, COFINS E ISS", doc.Total, Fmt);
         r++;
 
         Titulo(ws, r++, "DADOS PARA FATURAMENTO");

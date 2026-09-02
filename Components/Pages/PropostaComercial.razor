@@ -43,6 +43,16 @@
 <div class="panel" style="max-width:1080px; margin-bottom:14px">
     <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end">
         <div>
+            <h3 class="dash-title" style="margin-bottom:8px">Margem (GM)</h3>
+            <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
+                % do projeto
+                <input class="cell num" style="width:80px" @bind="R.Params.MargemAlvoPct" @bind:after="MargemEditada" />
+            </label>
+            <div style="margin-top:6px; font-size:12px; color:var(--muted)">
+                atual: <strong>@Pricing.Porcento(R.Calculo().ProjectMargin)</strong>
+            </div>
+        </div>
+        <div>
             <h3 class="dash-title" style="margin-bottom:8px">Proposta anterior</h3>
             <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap">
                 <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
@@ -82,8 +92,8 @@
         <div>
             <h3 class="dash-title" style="margin-bottom:8px">Os dois ao mesmo tempo</h3>
             <button class="btn-primary" @onclick="AcaoFecharAmbos">🔒🔒 Fechar diária + valor</button>
-            <div style="margin-top:6px; font-size:12px; color:var(--muted); max-width:220px">
-                Usa a margem (GM) para o total e OUTROS para a diária.
+            <div style="margin-top:6px; font-size:12px; color:var(--muted); max-width:230px">
+                Com os multiplicadores fixos o total acompanha a diária — se as metas não casarem, mostro o par exato.
             </div>
         </div>
     </div>
@@ -281,9 +291,10 @@
     </table>
 
     <table class="doc-tbl" style="margin-top:14px; max-width:520px">
-        <tr><td>VALOR SEM IMPOSTOS</td><td class="right">@Cifrao @Pricing.Moeda(Doc.Calculo.VendaLiquida)</td></tr>
-        <tr><td>VALOR C/ PIS E COFINS</td><td class="right">@Cifrao @Pricing.Moeda(Doc.Calculo.ComPisCofins)</td></tr>
-        <tr class="total-row"><td>VALOR C/ PIS, COFINS E ISS</td><td class="right">@Cifrao @Pricing.Moeda(Doc.Calculo.ComImpostos)</td></tr>
+        @{ var resumo = Pricing.ResumoDoTotal(DocA); }
+        <tr><td>VALOR SEM IMPOSTOS</td><td class="right">@Cifrao @Pricing.Moeda(resumo.SemImpostos)</td></tr>
+        <tr><td>VALOR C/ PIS E COFINS</td><td class="right">@Cifrao @Pricing.Moeda(resumo.ComPisCofins)</td></tr>
+        <tr class="total-row"><td>VALOR C/ PIS, COFINS E ISS</td><td class="right">@Cifrao @Pricing.Moeda(DocA.Total)</td></tr>
     </table>
 
     @* ---------- faturamento ---------- *@

@@ -205,6 +205,7 @@ public static class Servicos
 
         var L = Labels(p.Idioma);
         var cif = Simbolo(p.Moeda);
+        var resumo = Pricing.ResumoDoTotal(doc);
         string M(double v) => $"{cif} {Pricing.Moeda(v)}";
 
         string Th(string t, string align = "left") =>
@@ -310,9 +311,9 @@ public static class Servicos
 {totalTabela}
 
 <table style='width:100%;border-collapse:collapse;margin-top:16px;font-size:8.5pt'>
-<tr><td style='{bd};color:{corpo}'>{L.SemImpostos}</td><td style='{bd};text-align:right;color:{corpo}'>{M(doc.Calculo.VendaLiquida)}</td></tr>
-<tr><td style='{bd};color:{corpo}'>{L.ComPisCofins}</td><td style='{bd};text-align:right;color:{corpo}'>{M(doc.Calculo.ComPisCofins)}</td></tr>
-<tr><td style='{bd};color:{navy};font-weight:bold'>{L.ComPisCofinsIss}</td><td style='{bd};text-align:right;color:{navy};font-weight:bold'>{M(doc.Calculo.ComImpostos)}</td></tr>
+<tr><td style='{bd};color:{corpo}'>{L.SemImpostos}</td><td style='{bd};text-align:right;color:{corpo}'>{M(resumo.SemImpostos)}</td></tr>
+<tr><td style='{bd};color:{corpo}'>{L.ComPisCofins}</td><td style='{bd};text-align:right;color:{corpo}'>{M(resumo.ComPisCofins)}</td></tr>
+<tr><td style='{bd};color:{navy};font-weight:bold'>{L.ComPisCofinsIss}</td><td style='{bd};text-align:right;color:{navy};font-weight:bold'>{M(doc.Total)}</td></tr>
 </table>
 
 <p style='margin:26px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Faturamento}</p>

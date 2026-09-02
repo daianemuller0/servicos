@@ -314,18 +314,11 @@ public static class Pricing
         var alvoMO = doc.Total - desp.Sum(d => d.ValorTotal) - deslocamento;
         if (alvoMO <= 0 || doc.TotalMO <= 0) return doc;
 
-        // Excedente do DESLOCAMENTO (valor real do táxi + passagem além do que é
-        // mostrado a custo + taxa adm): sobe SÓ para as diárias normais — as
-        // linhas derivadas (2º turno, sáb/dom, HE) não carregam deslocamento,
-        // porque o técnico já está no local.
-        var deslocInterno = doc.Despesas.Where(d => EhDeslocamento(d.Despesa)).Sum(d => d.ValorTotal);
-        var deslocMostrado = modo == "SemDespesas"
-            ? deslocamento
-            : desp.Where(d => EhDeslocamento(d.Despesa)).Sum(d => d.ValorTotal);
-        var excedenteDesloc = deslocInterno - deslocMostrado;
-
-        // As linhas com multiplicador obedecem às regras fixas sobre a hora normal
-        // (2º turno/HE semana = 1,5×; sáb/dom/feriado = 2×), todas com impostos.
+        // Os multiplicadores são LEI sobre a diária normal apresentada:
+        // 2º turno = 1,5× a diária do 1º turno, sáb/dom/feriado = 2×, e o mesmo
+        // vale para as horas extras sobre a hora normal. Todo o valor que sobe
+        // das despesas (inclusive o excedente do deslocamento) entra na diária
+        // normal — e as derivadas acompanham exatamente pelo multiplicador.
         // As linhas sem multiplicador (equipamentos, terceiros…) mantêm o valor
         // distribuído por participação no custo.
         var comMult = doc.MO.Where(l => l.Mult > 0 && l.QtdDiaria > 0).ToList();
@@ -336,28 +329,29 @@ public static class Pricing
         var mo = new List<LinhaMO>();
         if (pesoW > 0 && pool > 0)
         {
-            // As diárias normais (mult = 1) absorvem o excedente do deslocamento;
-            // a base limpa é distribuída pelos pesos entre todas as linhas.
-            var normais = doc.MO.Where(l => l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0).ToList();
-            var qtdNormais = normais.Sum(l => l.QtdDiaria);
-            var extra = normais.Count > 0 ? excedenteDesloc : 0;   // sem diária normal, fica no pool
-            var poolBase = pool - extra;
-            if (poolBase <= 0) { poolBase = pool; extra = 0; }
+            // hora normal: pool ÷ pesos, arredondada para cima no centavo
+            var horaNormal = Math.Ceiling(pool / pesoW * 100) / 100;
 
-            // hora normal (base, sem deslocamento): pool ÷ pesos, arredondado p/ cima
-            var horaNormal = Math.Ceiling(poolBase / pesoW * 100) / 100;
+            // Diária cravada pelas ferramentas de preço: a hora normal é derivada
+            // do valor travado (tolerância de R$ 1 contra travas antigas) — e como
+            // TODAS as linhas saem da hora normal, os multiplicadores continuam
+            // exatos sobre a diária cravada.
+            var normalRef = doc.MO.FirstOrDefault(l => l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0);
+            if (diariaTravada > 0 && normalRef is not null)
+            {
+                var horasNormal = Math.Max(normalRef.Horas, 1);
+                var naturalDia = Math.Round(horaNormal * horasNormal, 2);
+                if (Math.Abs(naturalDia - diariaTravada) <= 1.0)
+                    horaNormal = diariaTravada / horasNormal;
+            }
+
             foreach (var l in doc.MO)
             {
                 if (l.Mult > 0 && l.QtdDiaria > 0)
                 {
-                    var hora = Math.Round(l.Mult * horaNormal, 2);
-                    var diaria = Math.Round(hora * Math.Max(l.Horas, 1), 2);
-                    if (extra != 0 && qtdNormais > 0 && l.Mult is > 0.99 and < 1.01)
-                        diaria = Math.Round(diaria + extra / qtdNormais, 2);
-                    // Diária cravada pela ferramenta de proposta anterior: aparar o
-                    // resíduo de arredondamento (no máx. R$ 1) para o valor exato.
+                    var diaria = Math.Round(l.Mult * horaNormal * Math.Max(l.Horas, 1), 2);
                     if (diariaTravada > 0 && l.Mult is > 0.99 and < 1.01 &&
-                        Math.Abs(diaria - diariaTravada) <= 1.0)
+                        Math.Abs(diaria - diariaTravada) <= 0.02)
                         diaria = diariaTravada;
                     var total = Math.Round(diaria * l.QtdDiaria, 2);
                     var horaLinha = Math.Round(diaria / Math.Max(l.Horas, 1), 2);
@@ -390,89 +384,55 @@ public static class Pricing
         var totalDesp = desp.Sum(d => d.ValorTotal);
         var totalGeral = totalMO + totalDesp + deslocamento;
 
-        // As DUAS travas ativas ("fechar diária + valor"): as diárias normais
-        // cravam no valor travado e as linhas derivadas (2º turno, sáb/dom, HE)
-        // absorvem a diferença até o total fechar exato. Os multiplicadores
-        // padrão deixam de ser exatos nessas linhas — é a "jogada de número"
-        // que permite fechar as duas pontas ao mesmo tempo.
-        var duploFechado = false;
-        if (totalTravado > 0 && diariaTravada > 0 && mo.Count > 0)
-        {
-            bool Normal(LinhaMO l) => l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0;
-            bool Derivada(LinhaMO l) => l.Mult > 0 && l.QtdDiaria > 0 && !Normal(l);
-            var idxDeriv = Enumerable.Range(0, mo.Count).Where(i => Derivada(mo[i])).ToList();
-            var fixoNormais = mo.Where(Normal).Sum(l => Math.Round(diariaTravada * l.QtdDiaria, 2));
-            var fixoLivres = mo.Where(l => !Normal(l) && !Derivada(l)).Sum(l => l.ValorTotal);
-            var alvoDeriv = Math.Round(totalTravado - deslocamento - totalDesp - fixoNormais - fixoLivres, 2);
-            var pesoDeriv = idxDeriv.Sum(i => mo[i].Mult * Math.Max(mo[i].Horas, 1) * mo[i].QtdDiaria);
-
-            if (mo.Any(Normal) && idxDeriv.Count > 0 && pesoDeriv > 0 && alvoDeriv > idxDeriv.Count * 0.01)
-            {
-                for (var i = 0; i < mo.Count; i++)
-                {
-                    if (!Normal(mo[i])) continue;
-                    var l = mo[i];
-                    mo[i] = l with
-                    {
-                        ValorDiaria = diariaTravada,
-                        ValorTotal = Math.Round(diariaTravada * l.QtdDiaria, 2),
-                        ValorHora = Math.Round(diariaTravada / Math.Max(l.Horas, 1), 2),
-                    };
-                }
-                double acum = 0;
-                for (var k = 0; k < idxDeriv.Count; k++)
-                {
-                    var l = mo[idxDeriv[k]];
-                    var tot = k == idxDeriv.Count - 1
-                        ? Math.Round(alvoDeriv - acum, 2)
-                        : Math.Round(alvoDeriv * (l.Mult * Math.Max(l.Horas, 1) * l.QtdDiaria) / pesoDeriv, 2);
-                    acum += tot;
-                    var diaria = Math.Round(tot / l.QtdDiaria, 2);
-                    mo[idxDeriv[k]] = l with
-                    {
-                        ValorTotal = tot,
-                        ValorDiaria = diaria,
-                        ValorHora = Math.Round(diaria / Math.Max(l.Horas, 1), 2),
-                    };
-                }
-                totalMO = mo.Sum(l => l.ValorTotal);
-                totalGeral = totalTravado;
-                duploFechado = true;
-            }
-        }
-
         // Total cravado pela meta de valor: o resíduo dos arredondamentos por
-        // linha (até R$ 10) é aparado na maior linha da assessoria — evitando a
-        // diária normal quando ela também estiver cravada.
-        if (!duploFechado && totalTravado > 0 && Math.Abs(totalGeral - totalTravado) <= 10 && mo.Count > 0)
+        // linha (até R$ 10) NUNCA mexe nas linhas da assessoria — os
+        // multiplicadores são lei. Ele é aparado no deslocamento (quando houver)
+        // ou na maior despesa mostrada.
+        if (totalTravado > 0 && Math.Abs(totalGeral - totalTravado) <= 10)
         {
-            var candidatas = mo.Where(l => l.ValorTotal > 0).ToList();
-            // A diária normal só fica protegida se o pino dela estiver DE FATO
-            // aplicado (a linha mostra exatamente o valor travado).
-            var pinoAtivo = diariaTravada > 0 && mo.Any(l =>
-                l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0 &&
-                Math.Abs(l.ValorDiaria - diariaTravada) < 0.005);
-            if (pinoAtivo)
+            var diff = Math.Round(totalTravado - totalGeral, 2);
+            if (diff == 0)
             {
-                var semNormal = candidatas.Where(l => !(l.Mult is > 0.99 and < 1.01)).ToList();
-                candidatas = semNormal.Count > 0 ? semNormal : new List<LinhaMO>();
-            }
-            var alvoLinha = candidatas.OrderByDescending(l => l.ValorTotal).FirstOrDefault();
-            if (alvoLinha is not null)
-            {
-                var idx = mo.IndexOf(alvoLinha);
-                var diff = Math.Round(totalTravado - totalGeral, 2);
-                var novoTotal = Math.Round(alvoLinha.ValorTotal + diff, 2);
-                var diaria = alvoLinha.QtdDiaria > 0 ? Math.Round(novoTotal / alvoLinha.QtdDiaria, 2) : 0;
-                var hora = alvoLinha.Horas > 0 ? Math.Round(diaria / alvoLinha.Horas, 2) : 0;
-                mo[idx] = alvoLinha with { ValorTotal = novoTotal, ValorDiaria = diaria, ValorHora = hora };
-                totalMO = Math.Round(totalMO + diff, 2);
                 totalGeral = totalTravado;
+            }
+            else if (deslocamento > 0 && deslocamento + diff > 0)
+            {
+                deslocamento = Math.Round(deslocamento + diff, 2);
+                totalGeral = totalTravado;
+            }
+            else if (desp.Count > 0)
+            {
+                var alvoDesp = desp.Where(d => d.ValorTotal > 0)
+                    .OrderByDescending(d => Math.Abs(d.Qtd - 1) < 0.001 ? 1 : 0)
+                    .ThenByDescending(d => d.ValorTotal)
+                    .FirstOrDefault();
+                if (alvoDesp is not null && alvoDesp.ValorTotal + diff > 0)
+                {
+                    var idx = desp.IndexOf(alvoDesp);
+                    var novoTotal = Math.Round(alvoDesp.ValorTotal + diff, 2);
+                    var unit = alvoDesp.Qtd > 0 ? Math.Round(novoTotal / alvoDesp.Qtd, 2) : novoTotal;
+                    desp[idx] = alvoDesp with { ValorTotal = novoTotal, ValorUnitario = unit };
+                    totalDesp = Math.Round(totalDesp + diff, 2);
+                    totalGeral = totalTravado;
+                }
             }
         }
 
         return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp,
             totalGeral, doc.Calculo, deslocamento);
+    }
+
+    /// <summary>
+    /// Resumo de impostos derivado do TOTAL APRESENTADO — para o rodapé bater
+    /// zerado com o "TOTAL C/ IMPOSTOS" do documento, usando as mesmas frações
+    /// de PIS/COFINS/ISS do cálculo interno.
+    /// </summary>
+    public static (double SemImpostos, double ComPisCofins) ResumoDoTotal(Documento doc)
+    {
+        var c = doc.Calculo;
+        if (c.ComImpostos <= 0 || doc.Total <= 0) return (doc.Total, doc.Total);
+        return (Math.Round(doc.Total * c.VendaLiquida / c.ComImpostos, 2),
+                Math.Round(doc.Total * c.ComPisCofins / c.ComImpostos, 2));
     }
 
     /// <summary>Diária normal (1×, com impostos) como sai na proposta apresentada.</summary>
