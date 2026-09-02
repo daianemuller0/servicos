@@ -14,4 +14,9 @@
     <PackageReference Include="ClosedXML" Version="0.102.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- A planilha original (subir.xlsm) que o botão Excel devolve preenchida. -->
+    <Content Include="Recursos\planilha-modelo.xlsm" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

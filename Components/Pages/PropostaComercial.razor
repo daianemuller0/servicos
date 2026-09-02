@@ -533,13 +533,21 @@
         await JS.InvokeVoidAsync("appDownload", nome, "application/msword", b64);
     }
 
-    // Excel de registro (guias PROPOSTA/CUSTO/PRICING preenchidas) p/ guardar na pasta.
+    // A PLANILHA ORIGINAL (subir.xlsm) preenchida com a proposta, p/ guardar na pasta.
     private async Task GerarExcel()
     {
-        var bytes = ExcelExport.Gerar(P, R.ItensMO, R.ItensDespesa, R.Params, Doc, DocA, RepInfo(), Fat);
-        var nome = $"Proposta-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.xlsx";
-        await JS.InvokeVoidAsync("appDownload", nome,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            Convert.ToBase64String(bytes));
+        try
+        {
+            var bytes = PlanilhaExport.Gerar(P, R.ItensMO, R.ItensDespesa, R.Params, DocA);
+            var nome = $"{(string.IsNullOrWhiteSpace(P.Numero) ? "Proposta-rascunho" : Servicos.NumeroCompleto(P))} - {P.Cliente}.xlsm".Trim(' ', '-');
+            await JS.InvokeVoidAsync("appDownload", nome,
+                "application/vnd.ms-excel.sheet.macroEnabled.12",
+                Convert.ToBase64String(bytes));
+            _erro = null;
+        }
+        catch (Exception ex)
+        {
+            _erro = "Não consegui gerar a planilha: " + ex.Message;
+        }
     }
 }

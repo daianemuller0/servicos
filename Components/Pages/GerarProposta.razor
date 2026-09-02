@@ -680,10 +680,18 @@
 
     private async Task GerarExcel()
     {
-        var bytes = ExcelExport.Gerar(P, R.ItensMO, R.ItensDespesa, R.Params, Doc, DocA, RepInfo(), Faturamento());
-        var nome = $"Proposta-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.xlsx";
-        await JS.InvokeVoidAsync("appDownload", nome,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            Convert.ToBase64String(bytes));
+        try
+        {
+            var bytes = PlanilhaExport.Gerar(P, R.ItensMO, R.ItensDespesa, R.Params, DocA);
+            var nome = $"{(string.IsNullOrWhiteSpace(P.Numero) ? "Proposta-rascunho" : Servicos.NumeroCompleto(P))} - {P.Cliente}.xlsm".Trim(' ', '-');
+            await JS.InvokeVoidAsync("appDownload", nome,
+                "application/vnd.ms-excel.sheet.macroEnabled.12",
+                Convert.ToBase64String(bytes));
+            _erro = null;
+        }
+        catch (Exception ex)
+        {
+            _erro = "Não consegui gerar a planilha: " + ex.Message;
+        }
     }
 }
