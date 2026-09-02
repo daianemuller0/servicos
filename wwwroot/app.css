@@ -601,3 +601,15 @@ h1 { font-size: 24px; margin: 0 0 4px; color: var(--primary); letter-spacing: -.
 .ferr-linha .btn-ghost, .ferr-linha .btn-primary { white-space: nowrap; }
 .ferr-status { font-size: 12.5px; }
 .ferr-nota { font-size: 12px; color: var(--muted); max-width: 250px; }
+
+/* ---- aba Proposta: documento + barra lateral fixa de ferramentas ---- */
+.doc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; align-items: start; max-width: 1440px; }
+.doc-grid .paper { max-width: none; }
+.ferr-side { position: sticky; top: 84px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 100px); overflow: auto; }
+.ferr-side .ferramentas { flex-direction: column; align-items: stretch; gap: 16px; }
+.ferr-side .ferr-nota { max-width: none; }
+.ferr-side .alert-error, .ferr-side .side-ok { margin: 0; text-align: left; }
+@media (max-width: 1100px) {
+    .doc-grid { grid-template-columns: 1fr; }
+    .ferr-side { position: static; max-height: none; overflow: visible; }
+}

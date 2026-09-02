@@ -32,71 +32,8 @@
     </div>
 </div>
 
-@if (_erro is not null)
-{
-    <div class="alert-error" style="max-width:1080px; margin-bottom:12px; text-align:left">@_erro</div>
-}
-@if (_msg is not null)
-{
-    <div class="side-ok" style="max-width:1080px; margin-bottom:12px">@_msg</div>
-}
-
-<div class="panel ferramentas" style="max-width:1080px; margin-bottom:14px">
-    <div class="ferr-bloco">
-        <h3 class="dash-title">Margem (GM)</h3>
-        <div class="ferr-linha">
-            <label>% do projeto
-                <input class="cell num" style="width:80px" @bind="R.Params.MargemAlvoPct" @bind:after="MargemEditada" />
-            </label>
-        </div>
-        <div class="ferr-status" style="color:var(--muted)">
-            atual: <strong>@Pricing.Porcento(R.Calculo().ProjectMargin)</strong>
-        </div>
-    </div>
-    <div class="ferr-bloco">
-        <h3 class="dash-title">Proposta anterior</h3>
-        <div class="ferr-linha">
-            <label>Diária anterior (R$, c/ imp.)
-                <input class="cell num" style="width:120px" @bind="R.Params.PropAnteriorValor" />
-            </label>
-            <label>% a mais
-                <input class="cell num" style="width:64px" @bind="R.Params.PropAnteriorPct" />
-            </label>
-            <button class="btn-ghost" @onclick="AcaoFecharDiaria">🔒 Fechar a diária</button>
-        </div>
-        @if (MetaAnterior > 0)
-        {
-            <div class="ferr-status @(FaltaParaAnterior > 0 ? "dias-vencida" : "saved-flag")">
-                Diária meta: R$ @Pricing.Moeda(MetaAnterior) · atual: R$ @Pricing.Moeda(DiariaAtual)
-                @(FaltaParaAnterior > 0 ? $"— faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "— já supera ✓")
-            </div>
-        }
-    </div>
-    <div class="ferr-bloco">
-        <h3 class="dash-title">Chegar no valor (meta)</h3>
-        <div class="ferr-linha">
-            <label>Valor final desejado (R$)
-                <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
-            </label>
-            <button class="btn-ghost" @onclick="AcaoFecharTotal">🔒 Fechar o valor final</button>
-        </div>
-        @if (Pricing.Num(R.Params.MetaValor) > 0)
-        {
-            <div class="ferr-status @(MargemDaMeta < 0 ? "dias-vencida" : "")">
-                Com essa meta a margem fica <strong>@Pricing.Porcento(MargemDaMeta)</strong>
-            </div>
-        }
-    </div>
-    <div class="ferr-bloco">
-        <h3 class="dash-title">Os dois ao mesmo tempo</h3>
-        <div class="ferr-linha">
-            <button class="btn-primary" @onclick="AcaoFecharAmbos">🔒🔒 Fechar diária + valor</button>
-        </div>
-        <div class="ferr-nota">
-            Com os multiplicadores fixos o total acompanha a diária — se as metas não casarem, mostro o par exato.
-        </div>
-    </div>
-</div>
+<div class="doc-grid">
+<div class="doc-main">
 
 <div class="paper">
     @* ---------- cabeçalho ---------- *@
@@ -365,7 +302,86 @@
     </div>
 </div>
 
-</div>
+</div> @* /doc-main *@
+
+<aside class="ferr-side">
+    @if (_erro is not null)
+    {
+        <div class="alert-error">@_erro</div>
+    }
+    @if (_msg is not null)
+    {
+        <div class="side-ok">@_msg</div>
+    }
+    <div class="panel ferramentas">
+        <div class="ferr-bloco">
+            <h3 class="dash-title">Margem (GM)</h3>
+            <div class="ferr-linha">
+                <label>% do projeto
+                    <input class="cell num" style="width:80px" @bind="R.Params.MargemAlvoPct" @bind:after="MargemEditada" />
+                </label>
+            </div>
+            <div class="ferr-status" style="color:var(--muted)">
+                atual: <strong>@Pricing.Porcento(R.Calculo().ProjectMargin)</strong>
+            </div>
+        </div>
+        <div class="ferr-bloco">
+            <h3 class="dash-title">Proposta anterior</h3>
+            <div class="ferr-linha">
+                <label>Diária anterior (R$, c/ imp.)
+                    <input class="cell num" style="width:120px" @bind="R.Params.PropAnteriorValor" />
+                </label>
+                <label>% a mais
+                    <input class="cell num" style="width:64px" @bind="R.Params.PropAnteriorPct" />
+                </label>
+            </div>
+            <div class="ferr-linha">
+                <button class="btn-ghost" @onclick="AcaoFecharDiaria">🔒 Fechar a diária</button>
+            </div>
+            @if (MetaAnterior > 0)
+            {
+                <div class="ferr-status @(FaltaParaAnterior > 0 ? "dias-vencida" : "saved-flag")">
+                    Diária meta: R$ @Pricing.Moeda(MetaAnterior) · atual: R$ @Pricing.Moeda(DiariaAtual)
+                    @(FaltaParaAnterior > 0 ? $"— faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "— já supera ✓")
+                </div>
+            }
+        </div>
+        <div class="ferr-bloco">
+            <h3 class="dash-title">Chegar no valor (meta)</h3>
+            <div class="ferr-linha">
+                <label>Valor final desejado (R$)
+                    <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
+                </label>
+                <button class="btn-ghost" @onclick="AcaoFecharTotal">🔒 Fechar o valor</button>
+            </div>
+            @if (Pricing.Num(R.Params.MetaValor) > 0)
+            {
+                <div class="ferr-status @(MargemDaMeta < 0 ? "dias-vencida" : "")">
+                    Com essa meta a margem fica <strong>@Pricing.Porcento(MargemDaMeta)</strong>
+                </div>
+            }
+        </div>
+        <div class="ferr-bloco">
+            <h3 class="dash-title">Os dois ao mesmo tempo</h3>
+            <div class="ferr-linha">
+                <button class="btn-primary" @onclick="AcaoFecharAmbos">🔒🔒 Fechar diária + valor</button>
+            </div>
+            <div class="ferr-nota">
+                Com os multiplicadores fixos o total acompanha a diária — se as metas não casarem, mostro o par exato.
+            </div>
+        </div>
+        <div class="ferr-bloco">
+            <div class="ferr-status" style="color:var(--muted)">
+                Total c/ impostos: <strong>@Cifrao @Pricing.Moeda(DocA.Total)</strong><br />
+                Diária normal: <strong>@Cifrao @Pricing.Moeda(DiariaAtual)</strong>
+            </div>
+        </div>
+    </div>
+</aside>
+
+</div> @* /doc-grid *@
+
+</div> @* /no-print *@
 
 <div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, DocA, _logo, Fat, RepInfo()))</div>
 
