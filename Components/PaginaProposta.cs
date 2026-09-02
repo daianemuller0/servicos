@@ -74,17 +74,21 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
 
     /// <summary>
     /// Soma das diárias lançadas (DIARIAS NORMAIS 1º/2º turno + DIARIAS EXTRAS)
-    /// preenche sozinha a quantidade das despesas por dia: hospedagem, locação
-    /// de carro, combustível e refeições. Continua editável depois.
+    /// preenche sozinha a quantidade das despesas por dia: locação de carro,
+    /// combustível e refeições = dias; HOSPEDAGEM = dias − 1 (são as noites —
+    /// sempre uma a menos que a alimentação). Continua editável depois.
     /// </summary>
     protected void SincronizarDiarias()
     {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
         var dias = R.ItensMO
             .Where(i => (i.Servico ?? "").TrimStart().ToUpperInvariant().StartsWith("DIARIAS"))
             .Sum(i => Data.Pricing.Num(i.QtdDiaria));
-        var texto = dias.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        var texto = dias.ToString("0.##", inv);
+        var noites = Math.Max(dias - 1, 0).ToString("0.##", inv);
         foreach (var d in R.ItensDespesa)
-            if (Data.Pricing.EhDespesaDiaria(d.Despesa)) d.Qtd = texto;
+            if (Data.Pricing.EhDespesaDiaria(d.Despesa))
+                d.Qtd = (d.Despesa ?? "").ToUpperInvariant().Contains("HOSPEDAGEM") ? noites : texto;
     }
 
     // ================= ferramentas de preço =================
