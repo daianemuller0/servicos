@@ -73,6 +73,31 @@ public static class Seed
     private static Representante Rep(string id, string nome, string local, string com, string contato) =>
         new() { Id = id, Nome = nome, Local = local, ComissaoPct = com, Contato = contato };
 
+    /// <summary>Vendedores (quem assina), da tabela de contatos do modelo Word.</summary>
+    public static List<Vendedor> Vendedores() => new()
+    {
+        V("rafael-toledo",    "Rafael Ribeiro de Toledo", "Sales Manager", "Industrial", "+56 9 8285 9721 (Chile) / +55 11 99450 7548 (Brasil)", "rafael.toledo@chartindustries.com"),
+        V("andre-carvalho",   "André Carvalho", "Key Account Manager", "Pulp & Paper / Metal Process", "+55 11 99452 5152", "andre.carvalho@chartindustries.com"),
+        V("jose-moura",       "José Ovídio Moura", "Key Account Manager", "Fertilizer / Glass / Cement / Chemical", "+55 11 96858 2183", "jose.moura@chartindustries.com"),
+        V("paulo-agostinho",  "Paulo Agostinho", "Key Account Manager", "Biofuel / Food", "+55 11 98145 1988", "paulo.agostinho@chartindustries.com"),
+        V("stephanie-cipriani","Stephanie Cipriani", "Sales Manager", "Tunnel / Metro", "+55 11 99451 4986", "stephanie.cipriani@chartindustries.com"),
+        V("jose-pereira",     "José Carlos L. Pereira", "Key Account", "Tunnel / Metro", "+55 11 99443 0060", "jose.pereira@chartindustries.com"),
+        V("rodrigo-ugas",     "Rodrigo Ugas", "Key Account Manager", "UG Mining", "+56 93947 3380", "rodrigo.ugas@chartindustries.com"),
+        V("manuel-gajardo",   "Manuel Gajardo", "Ventilation Engineer", "", "+56 9 2644 2972", "manuel.gajardo@chartindustries.com"),
+        V("wagner-ortiz",     "Wagner Ortiz", "Ventilation Engineer", "", "+51 972 459 337", "wagner.ortiz@chartindustries.com"),
+        V("daniel-nunez",     "Daniel Nuñez", "Ventilation Engineer", "", "+51 953 887 645", "daniel.nunez@chartindustries.com"),
+        V("elmer-calle",      "Elmer Calle Chumacero", "Sales Engineer", "", "+51 989 012 650", "elmer.calle@chartindustries.com"),
+        V("manuel-gutierrez", "Manuel Gutierrez", "Sales Engineer", "", "+51 951 175 126", "manuel.gutierrez@chartindustries.com"),
+        V("douglas-matavelli","Douglas M. Matavelli", "Key Account Manager", "Water", "+55 11 97144 3085", "douglas.matavelli@chartindustries.com"),
+        V("bruno-castro",     "Bruno Patricio de Castro", "Sales Manager", "PCOG / CCUS", "+55 11 98787 1188", "bruno.castro@chartindustries.com"),
+        V("marcos-pinto",     "Marcos Pinto", "Business Development Manager", "", "+55 11 9 9618 0413 (Brasil) / +56 9 3395 2405 (Chile)", "marcos.pinto@chartindustries.com"),
+        V("rogerio-silva",    "Rogerio Silva", "Field Service Manager", "", "+55 11 99448 1088", "rogerio.silva@chartindustries.com"),
+        V("thiago-veiga",     "Thiago César Veiga", "Application Engineer Manager", "", "+55 11 97144 3083", "thiago.veiga@chartindustries.com"),
+    };
+
+    private static Vendedor V(string id, string nome, string cargo, string area, string fones, string email) =>
+        new() { Id = id, Nome = nome, Cargo = cargo, Area = area, Fones = fones, Email = email };
+
     public static List<BillingInfo> Faturamento() => new()
     {
         new BillingInfo
@@ -118,6 +143,12 @@ public static class DbInitializer
         {
             var repo = new RepresentanteRepository(store);
             foreach (var x in Seed.Representantes()) repo.Save(x);
+        }
+
+        if (store.IsEmpty("vendedores"))
+        {
+            var repo = new VendedorRepository(store);
+            foreach (var x in Seed.Vendedores()) repo.Save(x);
         }
     }
 }

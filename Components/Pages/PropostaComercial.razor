@@ -6,6 +6,7 @@
 @inject BrandingRepository Branding
 @inject FaturamentoRepository Faturamentos
 @inject RepresentanteRepository Representantes
+@inject VendedorRepository Vendedores
 
 <div class="no-print">
 
@@ -40,61 +41,59 @@
     <div class="side-ok" style="max-width:1080px; margin-bottom:12px">@_msg</div>
 }
 
-<div class="panel" style="max-width:1080px; margin-bottom:14px">
-    <div style="display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end">
-        <div>
-            <h3 class="dash-title" style="margin-bottom:8px">Margem (GM)</h3>
-            <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
-                % do projeto
+<div class="panel ferramentas" style="max-width:1080px; margin-bottom:14px">
+    <div class="ferr-bloco">
+        <h3 class="dash-title">Margem (GM)</h3>
+        <div class="ferr-linha">
+            <label>% do projeto
                 <input class="cell num" style="width:80px" @bind="R.Params.MargemAlvoPct" @bind:after="MargemEditada" />
             </label>
-            <div style="margin-top:6px; font-size:12px; color:var(--muted)">
-                atual: <strong>@Pricing.Porcento(R.Calculo().ProjectMargin)</strong>
-            </div>
         </div>
-        <div>
-            <h3 class="dash-title" style="margin-bottom:8px">Proposta anterior</h3>
-            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap">
-                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
-                    Diária normal anterior (R$, c/ impostos)
-                    <input class="cell num" style="width:120px" @bind="R.Params.PropAnteriorValor" />
-                </label>
-                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
-                    % a mais
-                    <input class="cell num" style="width:64px" @bind="R.Params.PropAnteriorPct" />
-                </label>
-                <button class="btn-ghost" @onclick="AcaoFecharDiaria">🔒 Fechar a diária</button>
-            </div>
-            @if (MetaAnterior > 0)
-            {
-                <div style="margin-top:6px; font-size:12.5px" class="@(FaltaParaAnterior > 0 ? "dias-vencida" : "saved-flag")">
-                    Diária meta: R$ @Pricing.Moeda(MetaAnterior) · atual: R$ @Pricing.Moeda(DiariaAtual)
-                    @(FaltaParaAnterior > 0 ? $"— faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "— já supera ✓")
-                </div>
-            }
+        <div class="ferr-status" style="color:var(--muted)">
+            atual: <strong>@Pricing.Porcento(R.Calculo().ProjectMargin)</strong>
         </div>
-        <div>
-            <h3 class="dash-title" style="margin-bottom:8px">Chegar no valor (meta)</h3>
-            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap">
-                <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted)">
-                    Valor final desejado (R$)
-                    <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
-                </label>
-                <button class="btn-ghost" @onclick="AcaoFecharTotal">🔒 Fechar o valor final</button>
-            </div>
-            @if (Pricing.Num(R.Params.MetaValor) > 0)
-            {
-                <div style="margin-top:6px; font-size:12.5px" class="@(MargemDaMeta < 0 ? "dias-vencida" : "")" >
-                    Com essa meta a margem fica <strong>@Pricing.Porcento(MargemDaMeta)</strong>
-                </div>
-            }
+    </div>
+    <div class="ferr-bloco">
+        <h3 class="dash-title">Proposta anterior</h3>
+        <div class="ferr-linha">
+            <label>Diária anterior (R$, c/ imp.)
+                <input class="cell num" style="width:120px" @bind="R.Params.PropAnteriorValor" />
+            </label>
+            <label>% a mais
+                <input class="cell num" style="width:64px" @bind="R.Params.PropAnteriorPct" />
+            </label>
+            <button class="btn-ghost" @onclick="AcaoFecharDiaria">🔒 Fechar a diária</button>
         </div>
-        <div>
-            <h3 class="dash-title" style="margin-bottom:8px">Os dois ao mesmo tempo</h3>
+        @if (MetaAnterior > 0)
+        {
+            <div class="ferr-status @(FaltaParaAnterior > 0 ? "dias-vencida" : "saved-flag")">
+                Diária meta: R$ @Pricing.Moeda(MetaAnterior) · atual: R$ @Pricing.Moeda(DiariaAtual)
+                @(FaltaParaAnterior > 0 ? $"— faltam R$ {Pricing.Moeda(FaltaParaAnterior)}" : "— já supera ✓")
+            </div>
+        }
+    </div>
+    <div class="ferr-bloco">
+        <h3 class="dash-title">Chegar no valor (meta)</h3>
+        <div class="ferr-linha">
+            <label>Valor final desejado (R$)
+                <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
+            </label>
+            <button class="btn-ghost" @onclick="AcaoFecharTotal">🔒 Fechar o valor final</button>
+        </div>
+        @if (Pricing.Num(R.Params.MetaValor) > 0)
+        {
+            <div class="ferr-status @(MargemDaMeta < 0 ? "dias-vencida" : "")">
+                Com essa meta a margem fica <strong>@Pricing.Porcento(MargemDaMeta)</strong>
+            </div>
+        }
+    </div>
+    <div class="ferr-bloco">
+        <h3 class="dash-title">Os dois ao mesmo tempo</h3>
+        <div class="ferr-linha">
             <button class="btn-primary" @onclick="AcaoFecharAmbos">🔒🔒 Fechar diária + valor</button>
-            <div style="margin-top:6px; font-size:12px; color:var(--muted); max-width:230px">
-                Com os multiplicadores fixos o total acompanha a diária — se as metas não casarem, mostro o par exato.
-            </div>
+        </div>
+        <div class="ferr-nota">
+            Com os multiplicadores fixos o total acompanha a diária — se as metas não casarem, mostro o par exato.
         </div>
     </div>
 </div>
@@ -106,10 +105,13 @@
             <td style="vertical-align:top">
                 <div style="font-weight:bold; font-size:17px; color:#141E32">Howden South America</div>
                 <div style="margin-top:10px">
-                    <input class="de" style="font-weight:bold; width:220px" placeholder="Quem assina (nome)" @bind="P.AssinaNome" /><br />
-                    <input class="de" style="width:220px" placeholder="Cargo" @bind="P.AssinaCargo" /><br />
-                    <input class="de" style="width:220px" placeholder="E-mail" @bind="P.AssinaEmail" /><br />
-                    <input class="de" style="width:220px" placeholder="Telefones" @bind="P.AssinaFones" />
+                    <select class="de" style="font-weight:bold; width:240px" value="@P.AssinaNome" @onchange="MudarVendedor">
+                        <option value="">— quem assina (vendedor) —</option>
+                        @foreach (var v in _vendedores) { <option value="@v.Nome">@v.Nome</option> }
+                    </select><br />
+                    <input class="de" style="width:240px" placeholder="Cargo" @bind="P.AssinaCargo" /><br />
+                    <input class="de" style="width:240px" placeholder="E-mail" @bind="P.AssinaEmail" /><br />
+                    <input class="de" style="width:240px" placeholder="Telefones" @bind="P.AssinaFones" />
                 </div>
             </td>
             <td style="vertical-align:top; text-align:right">
@@ -297,6 +299,28 @@
         <tr class="total-row"><td>VALOR C/ PIS, COFINS E ISS</td><td class="right">@Cifrao @Pricing.Moeda(DocA.Total)</td></tr>
     </table>
 
+    @* ---------- diárias adicionais (sempre no documento) ---------- *@
+    @if (Pricing.DiariasAdicionais(DocA) is { Count: > 0 } adicionais)
+    {
+        <h2 style="margin-top:18px">DIÁRIAS ADICIONAIS</h2>
+        <div class="doc-muted" style="font-size:11.5px; margin-bottom:4px">Valores para dias e horas além do contratado</div>
+        <table class="doc-tbl">
+            <thead>
+                <tr><th>SERVIÇOS</th><th>OBS</th><th class="right" style="width:170px">VALOR</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var a in adicionais)
+                {
+                    <tr>
+                        <td class="doc-navy" style="font-weight:600">@a.Servico</td>
+                        <td>@a.Obs</td>
+                        <td class="right">@Cifrao @Pricing.Moeda(a.Valor)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
     @* ---------- faturamento ---------- *@
     <h2>DADOS PARA FATURAMENTO</h2>
     <div>
@@ -351,6 +375,7 @@
     private string? _msg, _erro, _logo;
     private List<BillingInfo> _faturamentos = new();
     private List<Representante> _reps = new();
+    private List<Vendedor> _vendedores = new();
 
     private Proposta P => R.Proposta;
     private Pricing.Documento Doc => R.Documento();
@@ -403,6 +428,7 @@
         _logo = Branding.GetLogo();
         _faturamentos = Faturamentos.All();
         _reps = Representantes.All();
+        _vendedores = Vendedores.All();
 
         if (!string.IsNullOrWhiteSpace(PropostaId))
         {
@@ -432,6 +458,17 @@
     {
         P.Bu = e.Value?.ToString() ?? P.Bu;
         R.Params.IssPct = Servicos.IssPadrao(P.Bu);
+    }
+
+    private void MudarVendedor(ChangeEventArgs e)
+    {
+        var nome = e.Value?.ToString() ?? "";
+        P.AssinaNome = nome;
+        var v = _vendedores.FirstOrDefault(x => x.Nome == nome);
+        if (v is null) return;
+        P.AssinaCargo = string.IsNullOrWhiteSpace(v.Area) ? v.Cargo : $"{v.Cargo} – {v.Area}";
+        P.AssinaEmail = v.Email;
+        P.AssinaFones = v.Fones;
     }
 
     private void MudarRep(ChangeEventArgs e, int qual)

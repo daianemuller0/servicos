@@ -136,6 +136,33 @@ public class RepresentanteRepository
     private static string S(System.Data.IDataReader r, int i) => r.IsDBNull(i) ? "" : r.GetString(i);
 }
 
+/// <summary>Vendedores (quem assina a proposta), com cargo, área e contatos.</summary>
+public class VendedorRepository
+{
+    private const string Entidade = "vendedores";
+    private readonly ParquetStore _store;
+    public VendedorRepository(ParquetStore store) => _store = store;
+
+    public List<Vendedor> All() => _store.ReadLatest(Entidade,
+        "id, nome, cargo, area, fones, email",
+        r => new Vendedor
+        {
+            Id = S(r, 0), Nome = S(r, 1), Cargo = S(r, 2),
+            Area = S(r, 3), Fones = S(r, 4), Email = S(r, 5),
+        }, "nome");
+
+    public void Save(Vendedor x) => _store.WriteRow(Entidade, new KeyValuePair<string, object?>[]
+    {
+        new("id", x.Id), new("nome", x.Nome), new("cargo", x.Cargo),
+        new("area", x.Area), new("fones", x.Fones), new("email", x.Email),
+    });
+
+    public void Delete(string id) => _store.WriteRow(Entidade,
+        new KeyValuePair<string, object?>[] { new("id", id) }, deleted: true);
+
+    private static string S(System.Data.IDataReader r, int i) => r.IsDBNull(i) ? "" : r.GetString(i);
+}
+
 /// <summary>
 /// Identidade visual, como data URIs: o logo do documento (cabeçalho da
 /// proposta) e o logo do sistema (tela de login e barra lateral).

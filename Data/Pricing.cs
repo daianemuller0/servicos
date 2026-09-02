@@ -435,6 +435,31 @@ public static class Pricing
                 Math.Round(doc.Total * c.ComPisCofins / c.ComImpostos, 2));
     }
 
+    /// <summary>Linha da tabela "DIÁRIAS ADICIONAIS" impressa no fim da proposta.</summary>
+    public sealed record DiariaAdicional(string Servico, string Obs, double Valor);
+
+    /// <summary>
+    /// Tabela "DIÁRIAS ADICIONAIS": os preços padrão derivados da diária normal
+    /// apresentada (2º turno = 1,5×; sáb/dom/fer = 2×; HE semana = 1,5× a hora;
+    /// HE sáb/dom/fer = 2× a hora). Sai SEMPRE na proposta, mesmo sem essas
+    /// linhas lançadas — se o serviço estourar um sábado ou um 2º turno, o
+    /// cliente já tem o preço fechado.
+    /// </summary>
+    public static List<DiariaAdicional> DiariasAdicionais(Documento apresentado)
+    {
+        var d = DiariaNormalApresentada(apresentado);
+        if (d <= 0) return new();
+        var hora = Math.Round(d / 8.0, 2);
+        return new()
+        {
+            new("DIARIA ADICIONAL", "1o. TURNO — 8 HORAS (DIAS UTEIS DE SEG. A SEX.)", d),
+            new("DIARIA ADICIONAL: 2o. TURNO NOITE", "", Math.Round(1.5 * d, 2)),
+            new("DIARIA EXTRA SAB, DOM E FER", "", Math.Round(2 * d, 2)),
+            new("HORA EXTRA SUP. 8h/DIA", "", Math.Round(1.5 * hora, 2)),
+            new("HORA EXTRA SAB, DOM E FER", "", Math.Round(2 * hora, 2)),
+        };
+    }
+
     /// <summary>Diária normal (1×, com impostos) como sai na proposta apresentada.</summary>
     public static double DiariaNormalApresentada(Documento apresentado)
     {

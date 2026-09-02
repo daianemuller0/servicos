@@ -69,7 +69,13 @@ public static class Servicos
         string Despesas, string Qtd, string ValorUnit, string TotalAssessoria, string TotalDespesas,
         string TotalComImpostos, string SemImpostos, string ComPisCofins, string ComPisCofinsIss,
         string Complementares, string Descricao, string Faturamento, string Banco, string Agencia,
-        string Conta, string PreparadaPor, string RevisadaPor, string Deslocamento, string DeslocamentoObs);
+        string Conta, string PreparadaPor, string RevisadaPor, string Deslocamento, string DeslocamentoObs)
+    {
+        /// <summary>Título da tabela de diárias adicionais (fim da proposta).</summary>
+        public string DiariasAdicionais { get; init; } = "DIÁRIAS ADICIONAIS";
+        /// <summary>Observação sob o título da tabela de diárias adicionais.</summary>
+        public string DiariasAdicionaisObs { get; init; } = "Valores para dias e horas além do contratado";
+    }
 
     public static DocLabels Labels(string idioma) => idioma switch
     {
@@ -83,7 +89,8 @@ public static class Servicos
             "AMOUNT WITH PIS AND COFINS", "AMOUNT WITH PIS, COFINS AND ISS",
             "ADDITIONAL INFORMATION — NOT INCLUDED", "DESCRIPTION", "INVOICING INFORMATION",
             "Bank", "Branch", "Account", "Prepared by:", "Reviewed by:",
-            "TRAVEL EXPENSES", "Taxi + airfare, administrative fee included"),
+            "TRAVEL EXPENSES", "Taxi + airfare, administrative fee included")
+        { DiariasAdicionais = "ADDITIONAL DAILY RATES", DiariasAdicionaisObs = "Rates for days and hours beyond the contracted scope" },
         "Español" => new DocLabels(
             "DATOS DEL CLIENTE", "Cliente:", "Al cuidado de:", "E-mail:", "Fono:",
             "OFERTA COMERCIAL", "FECHA", "VALIDEZ", "PROYECTO", "CIUDAD", "ESTADO / PROVINCIA",
@@ -94,7 +101,8 @@ public static class Servicos
             "VALOR CON PIS Y COFINS", "VALOR CON PIS, COFINS E ISS",
             "INFORMACIONES COMPLEMENTARIAS — NO INCLUIDO", "DESCRIPCIÓN", "DATOS PARA FACTURACIÓN",
             "Banco", "Sucursal", "Cuenta", "Preparado por:", "Revisado por:",
-            "GASTOS DE DESPLAZAMIENTO", "Taxi + pasaje aéreo, tasa administrativa incluida"),
+            "GASTOS DE DESPLAZAMIENTO", "Taxi + pasaje aéreo, tasa administrativa incluida")
+        { DiariasAdicionais = "DÍAS ADICIONALES", DiariasAdicionaisObs = "Valores para días y horas además de lo contratado" },
         _ => new DocLabels(
             "DADOS DO CLIENTE", "Cliente:", "Aos cuidados de:", "E-mail:", "Telefone:",
             "Proposta", "DATA", "VALIDADE", "PROJETO", "CIDADE", "ESTADO",
@@ -221,6 +229,13 @@ public static class Servicos
             $"<td style='{bd};text-align:center;color:{corpo}'>{Pricing.Moeda0(i.QtdDiaria)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{M(i.ValorTotal)}</td></tr>"));
 
+        var adicionais = Pricing.DiariasAdicionais(doc);
+        var linhasAdic = string.Join("", adicionais.Select(a =>
+            "<tr>" +
+            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{E(a.Servico)}</b></td>" +
+            $"<td style='{bd};color:{corpo}'>{E(a.Obs)}</td>" +
+            $"<td style='{bd};text-align:right;color:{corpo}'>{M(a.Valor)}</td></tr>"));
+
         var linhasDesp = string.Join("", doc.Despesas.Select(i =>
             "<tr>" +
             $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{E(i.Despesa)}</b></td>" +
@@ -315,6 +330,14 @@ public static class Servicos
 <tr><td style='{bd};color:{corpo}'>{L.ComPisCofins}</td><td style='{bd};text-align:right;color:{corpo}'>{M(resumo.ComPisCofins)}</td></tr>
 <tr><td style='{bd};color:{navy};font-weight:bold'>{L.ComPisCofinsIss}</td><td style='{bd};text-align:right;color:{navy};font-weight:bold'>{M(doc.Total)}</td></tr>
 </table>
+
+{(adicionais.Count == 0 ? "" : $@"
+<p style='margin:18px 0 2px;font-weight:bold;font-size:10pt;color:{navy}'>{L.DiariasAdicionais}</p>
+<p style='margin:0 0 4px;font-size:8pt;color:{sec}'>{L.DiariasAdicionaisObs}</p>
+<table style='width:100%;border-collapse:collapse;font-size:8.5pt'>
+<tr>{Th(L.Servico)}{Th(L.Obs)}{Th(L.ValorTotal, "right")}</tr>
+{linhasAdic}
+</table>")}
 
 <p style='margin:26px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Faturamento}</p>
 <p style='margin:0;color:{corpo}'><b style='color:{navy}'>{E(fat.Razao)}</b><br/>{E(fat.Endereco)}{(string.IsNullOrWhiteSpace(fat.Registro) ? "" : $"<br/><span style='color:{sec}'>{E(fat.Registro)}</span>")}</p>

@@ -157,6 +157,20 @@ public static class ExcelExport
         Rotulo(ws, r++, "VALOR C/ PIS, COFINS E ISS", doc.Total, Fmt);
         r++;
 
+        var adicionais = Pricing.DiariasAdicionais(doc);
+        if (adicionais.Count > 0)
+        {
+            Titulo(ws, r++, "DIÁRIAS ADICIONAIS — valores para dias e horas além do contratado");
+            foreach (var a in adicionais)
+            {
+                ws.Cell(r, 1).Value = a.Servico;
+                ws.Cell(r, 2).Value = a.Obs;
+                Num(ws, r, 7, a.Valor);
+                r++;
+            }
+            r++;
+        }
+
         Titulo(ws, r++, "DADOS PARA FATURAMENTO");
         ws.Cell(r++, 1).Value = fat.Razao;
         ws.Cell(r++, 1).Value = fat.Endereco;
