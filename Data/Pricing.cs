@@ -260,7 +260,8 @@ public static class Pricing
     public sealed record Documento(
         List<LinhaMO> MO, List<LinhaDespesa> Despesas, List<Complementar> Complementares,
         double TotalMO, double TotalDespesas, double Total, Resultado Calculo,
-        double Deslocamento = 0);
+        double Deslocamento = 0,
+        double DescontoDia = 0);   // modo aberto: despesas do dia descontadas da diária
 
     /// <summary>
     /// Distribui o preço de venda entre os itens (proporcional ao custo) e monta
@@ -419,10 +420,11 @@ public static class Pricing
         // unitários mostrados de hospedagem, locação de carro, combustível e
         // refeições (já com a taxa adm). Ex.: fechada 9.000 − (560+224+42+140)
         // = 8.034. O total com impostos continua o mesmo nos dois modos.
+        var descontoDia = 0.0;
         if (modo != "SemDespesas" && desp.Count > 0)
         {
             deslocamento = 0;   // táxi + passagem ficam na tabela de despesas
-            var descontoDia = desp.Where(d => EhDespesaDiaria(d.Despesa)).Sum(d => d.ValorUnitario);
+            descontoDia = desp.Where(d => EhDespesaDiaria(d.Despesa)).Sum(d => d.ValorUnitario);
             if (descontoDia > 0)
             {
                 for (var i = 0; i < mo.Count; i++)
@@ -490,7 +492,7 @@ public static class Pricing
         }
 
         return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp,
-            totalGeral, doc.Calculo, deslocamento);
+            totalGeral, doc.Calculo, deslocamento, descontoDia);
     }
 
     /// <summary>
@@ -518,7 +520,11 @@ public static class Pricing
     /// </summary>
     public static List<DiariaAdicional> DiariasAdicionais(Documento apresentado)
     {
-        var d = DiariaNormalApresentada(apresentado);
+        // Sempre a DIÁRIA CHEIA: no modo com despesas abertas, é a diária
+        // mostrada + as despesas do dia (hospedagem, carro, combustível,
+        // refeições) — de volta aos mesmos 9.000 da diária fechada. As
+        // derivadas (1,5× / 2×) saem dela.
+        var d = Math.Round(DiariaNormalApresentada(apresentado) + apresentado.DescontoDia, 2);
         if (d <= 0) return new();
         var hora = Math.Round(d / 8.0, 2);
         return new()
