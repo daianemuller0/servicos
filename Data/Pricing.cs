@@ -415,21 +415,21 @@ public static class Pricing
         }
 
         // Modo "com despesas abertas + taxa": a diária mostrada = DIÁRIA FECHADA
-        // menos as despesas do dia (hospedagem, locação, combustível, refeições…)
-        // nos valores finais já com a taxa — na média por diária lançada. O que
-        // sai das diárias reaparece na tabela de despesas: o total não muda.
+        // menos o PREÇO DE VENDA do dia de despesas — a soma dos valores
+        // unitários mostrados de hospedagem, locação de carro, combustível e
+        // refeições (já com a taxa adm). Ex.: fechada 9.000 − (560+224+42+140)
+        // = 8.034. O total com impostos continua o mesmo nos dois modos.
         if (modo != "SemDespesas" && desp.Count > 0)
         {
             deslocamento = 0;   // táxi + passagem ficam na tabela de despesas
-            var dias = mo.Where(EhLinhaDiaria).Sum(l => l.QtdDiaria);
-            if (dias > 0)
+            var descontoDia = desp.Where(d => EhDespesaDiaria(d.Despesa)).Sum(d => d.ValorUnitario);
+            if (descontoDia > 0)
             {
-                var mediaDia = desp.Where(d => !EhDeslocamento(d.Despesa)).Sum(d => d.ValorTotal) / dias;
                 for (var i = 0; i < mo.Count; i++)
                 {
                     var l = mo[i];
                     if (!EhLinhaDiaria(l)) continue;
-                    var diaria = Math.Round(l.ValorDiaria - mediaDia, 2);
+                    var diaria = Math.Round(l.ValorDiaria - descontoDia, 2);
                     if (diariaTravada > 0 && l.Mult is > 0.99 and < 1.01 &&
                         Math.Abs(diaria - diariaTravada) <= 1.0)
                         diaria = diariaTravada;
@@ -453,11 +453,14 @@ public static class Pricing
         // assessoria — os multiplicadores são lei. Ele é aparado no
         // deslocamento (quando houver) ou na maior despesa mostrada.
         var alvoTotal = totalTravado > 0 ? totalTravado : Math.Round(doc.Calculo.ComImpostos, 2);
-        if (alvoTotal > 0 && Math.Abs(totalGeral - alvoTotal) <= 10)
+        if (alvoTotal > 0)
         {
             var diff = Math.Round(alvoTotal - totalGeral, 2);
-            if (diff == 0)
+            if (diff == 0 || Math.Abs(diff) > 10)
             {
+                // Resíduo grande (ex.: a noite de hotel a menos no desconto da
+                // diária aberta): o total mostra o valor exato do pricing mesmo
+                // assim — igual a planilha sempre fez (H34 = Q20).
                 totalGeral = alvoTotal;
             }
             else if (deslocamento > 0 && deslocamento + diff > 0)
