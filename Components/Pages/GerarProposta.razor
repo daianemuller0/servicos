@@ -210,17 +210,25 @@
                 <label>Garantia do projeto (%)
                     <input class="cell num" @bind="R.Params.GarantiaProjetoPct" />
                 </label>
-                <label>Portal (%)
-                    <input class="cell num" @bind="R.Params.PortalPct" />
+                <label>Portal (como na planilha)
+                    <select class="cell" value="@(Pricing.Num(R.Params.PortalPct) > 0 ? "Sim" : "Não")" @onchange="MudarPortal">
+                        <option value="Não">Não</option>
+                        <option value="Sim">Sim (0,7%)</option>
+                    </select>
                 </label>
                 <label>Taxa adm. mostrada sobre despesas (%)
                     <input class="cell num" @bind="R.Params.TaxaAdmPct" />
                 </label>
             </div>
 
-            <h4 style="margin:14px 0 8px; font-size:13px; color:var(--muted)">Seguro garantia / carta de fiança</h4>
+            <h4 style="margin:14px 0 8px; font-size:13px; color:var(--muted)">
+                Seguro garantia / carta de fiança
+                <span class="@(Pricing.TaxaGarantia(R.Params.FiancaTipo) > 0 ? "saved-flag" : "")" style="margin-left:8px">
+                    @(Pricing.TaxaGarantia(R.Params.FiancaTipo) > 0 ? "LIGADA — entra no preço" : "desligada")
+                </span>
+            </h4>
             <div class="form3">
-                <label>Instrumento
+                <label>Fiança / Seguro garantia?
                     <select class="cell" @bind="R.Params.FiancaTipo">
                         @foreach (var g in Pricing.GarantiaTipos)
                         {
@@ -612,6 +620,10 @@
     }
 
     private void MudarBu(ChangeEventArgs e) => AplicarBu(e.Value?.ToString() ?? P.Bu);
+
+    // Portal como na planilha (P4): Sim = 0,7% sobre a venda, Não = 0.
+    private void MudarPortal(ChangeEventArgs e) =>
+        R.Params.PortalPct = e.Value?.ToString() == "Sim" ? "0.7" : "0";
 
     private void MudarSegmento(ChangeEventArgs e)
     {
