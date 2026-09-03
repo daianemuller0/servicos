@@ -329,31 +329,6 @@
             </div>
         </div>
         <div class="ferr-bloco">
-            <h3 class="dash-title">Fiança e Portal</h3>
-            <div class="ferr-linha">
-                <label>Fiança / Seguro garantia
-                    <select class="cell" style="max-width:210px" @bind="R.Params.FiancaTipo">
-                        @foreach (var g in Pricing.GarantiaTipos)
-                        {
-                            <option value="@g.Nome">@g.Nome @(g.TaxaAnualPct > 0 ? $"({g.TaxaAnualPct}% a.a.)" : "")</option>
-                        }
-                    </select>
-                </label>
-            </div>
-            <div class="ferr-linha">
-                <label>Portal
-                    <select class="cell" value="@(Pricing.Num(R.Params.PortalPct) > 0 ? "Sim" : "Não")" @onchange="MudarPortal">
-                        <option value="Não">Não</option>
-                        <option value="Sim">Sim (0,7%)</option>
-                    </select>
-                </label>
-            </div>
-            <div class="ferr-status" style="color:var(--muted)">
-                fiança: <strong>@(Pricing.TaxaGarantia(R.Params.FiancaTipo) > 0 ? "ligada" : "desligada")</strong>
-                · portal: <strong>@(Pricing.Num(R.Params.PortalPct) > 0 ? "sim" : "não")</strong>
-            </div>
-        </div>
-        <div class="ferr-bloco">
             <h3 class="dash-title">Proposta anterior</h3>
             <div class="ferr-linha">
                 <label>Diária anterior (R$, c/ imp.)
@@ -500,10 +475,6 @@
     }
 
     private void MudarBu(ChangeEventArgs e) => AplicarBu(e.Value?.ToString() ?? P.Bu);
-
-    // Portal como na planilha (P4): Sim = 0,7% sobre a venda, Não = 0.
-    private void MudarPortal(ChangeEventArgs e) =>
-        R.Params.PortalPct = e.Value?.ToString() == "Sim" ? "0.7" : "0";
 
     private void MudarVendedor(ChangeEventArgs e)
     {
