@@ -515,11 +515,14 @@
         </div>
 
         <div class="panel" style="padding:14px">
-            @{ var resumoSide = Pricing.ResumoDoTotal(DocA); }
-            <div class="side-item"><span>Custo total</span><strong>R$ @Pricing.Moeda(Calc.CustoTotal)</strong></div>
-            <div class="side-item"><span>Valor sem impostos</span><strong>@Cifrao @Pricing.Moeda(resumoSide.SemImpostos)</strong></div>
-            <div class="side-item"><span>Valor c/ PIS e COFINS</span><strong>@Cifrao @Pricing.Moeda(resumoSide.ComPisCofins)</strong></div>
-            <div class="side-item side-item-total"><span>Valor c/ PIS, COFINS e ISS</span><strong>@Cifrao @Pricing.Moeda(DocA.Total)</strong></div>
+            @{ var resumoSide = Pricing.ResumoDoTotal(DocA); var semImp = Calc.Pis + Calc.Cofins + Calc.Iss <= 0.005; }
+            <div class="side-item"><span>Custo total</span><strong>@Cifrao @Pricing.Moeda(Calc.CustoTotal)</strong></div>
+            @if (!semImp)
+            {
+                <div class="side-item"><span>Valor sem impostos</span><strong>@Cifrao @Pricing.Moeda(resumoSide.SemImpostos)</strong></div>
+                <div class="side-item"><span>Valor c/ PIS e COFINS</span><strong>@Cifrao @Pricing.Moeda(resumoSide.ComPisCofins)</strong></div>
+            }
+            <div class="side-item side-item-total"><span>@(semImp ? "Valor total (líquido)" : "Valor c/ PIS, COFINS e ISS")</span><strong>@Cifrao @Pricing.Moeda(DocA.Total)</strong></div>
         </div>
 
         <div class="side-note">
@@ -608,11 +611,7 @@
         if (string.IsNullOrWhiteSpace(P.PreparadaPor)) P.PreparadaPor = Usuario;
     }
 
-    private void MudarBu(ChangeEventArgs e)
-    {
-        P.Bu = e.Value?.ToString() ?? P.Bu;
-        R.Params.IssPct = Servicos.IssPadrao(P.Bu);
-    }
+    private void MudarBu(ChangeEventArgs e) => AplicarBu(e.Value?.ToString() ?? P.Bu);
 
     private void MudarSegmento(ChangeEventArgs e)
     {

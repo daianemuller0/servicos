@@ -161,7 +161,7 @@
                 </tr>
             }
             <tr class="total-row">
-                <td colspan="7">TOTAL ASSESSORIA C/ IMPOSTOS</td>
+                <td colspan="7">TOTAL ASSESSORIA @(SemImpostos ? "TÉCNICA" : "C/ IMPOSTOS")</td>
                 <td class="right">@Cifrao @Pricing.Moeda(DocA.TotalMO)</td>
             </tr>
         </tbody>
@@ -200,7 +200,7 @@
                 </tr>
             }
             <tr class="total-row">
-                <td colspan="5">TOTAL DESPESAS C/ IMPOSTOS</td>
+                <td colspan="5">TOTAL DESPESAS @(SemImpostos ? "" : "C/ IMPOSTOS")</td>
                 <td class="right">@Cifrao @Pricing.Moeda(DocA.TotalDespesas)</td>
             </tr>
         </tbody>
@@ -224,17 +224,20 @@
     <table style="width:100%; border-collapse:collapse; margin-top:10px">
         <tr>
             <td></td>
-            <td class="doc-total" style="width:220px">TOTAL C/ IMPOSTOS</td>
+            <td class="doc-total" style="width:220px">@(SemImpostos ? "VALOR TOTAL" : "TOTAL C/ IMPOSTOS")</td>
             <td class="doc-total" style="width:170px; text-align:right">@Cifrao @Pricing.Moeda(DocA.Total)</td>
         </tr>
     </table>
 
+    @if (!SemImpostos)
+    {
     <table class="doc-tbl" style="margin-top:14px; max-width:520px">
         @{ var resumo = Pricing.ResumoDoTotal(DocA); }
         <tr><td>VALOR SEM IMPOSTOS</td><td class="right">@Cifrao @Pricing.Moeda(resumo.SemImpostos)</td></tr>
         <tr><td>VALOR C/ PIS E COFINS</td><td class="right">@Cifrao @Pricing.Moeda(resumo.ComPisCofins)</td></tr>
         <tr class="total-row"><td>VALOR C/ PIS, COFINS E ISS</td><td class="right">@Cifrao @Pricing.Moeda(DocA.Total)</td></tr>
     </table>
+    }
 
     @* ---------- diárias adicionais (sempre no documento) ---------- *@
     @if (Pricing.DiariasAdicionais(DocA) is { Count: > 0 } adicionais)
@@ -394,6 +397,7 @@
     private List<Vendedor> _vendedores = new();
 
     private Proposta P => R.Proposta;
+    private bool SemImpostos => Doc.Calculo.Pis + Doc.Calculo.Cofins + Doc.Calculo.Iss <= 0.005;
     private Pricing.Documento Doc => R.Documento();
     private Pricing.Documento DocA =>
         Pricing.Apresentar(Doc, P.ModoApresentacao, Pricing.Num(R.Params.TaxaAdmPct),
@@ -470,11 +474,7 @@
         if (string.IsNullOrWhiteSpace(P.PreparadaPor)) P.PreparadaPor = Usuario;
     }
 
-    private void MudarBu(ChangeEventArgs e)
-    {
-        P.Bu = e.Value?.ToString() ?? P.Bu;
-        R.Params.IssPct = Servicos.IssPadrao(P.Bu);
-    }
+    private void MudarBu(ChangeEventArgs e) => AplicarBu(e.Value?.ToString() ?? P.Bu);
 
     private void MudarVendedor(ChangeEventArgs e)
     {

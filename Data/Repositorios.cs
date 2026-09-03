@@ -62,20 +62,40 @@ public class ParametroRepository
     private readonly ParquetStore _store;
     public ParametroRepository(ParquetStore store) => _store = store;
 
-    public List<Parametro> All() => _store.ReadLatest(Entidade,
-        "id, tipo, descricao, obs, horas, valor, porTecnico, ordem, mult",
-        r => new Parametro
+    public List<Parametro> All()
+    {
+        // Bancos gravados antes da coluna "pais" não a têm — fallback lê sem ela
+        // e a primeira gravação nova cria a coluna (union_by_name).
+        try
         {
-            Id = S(r, 0), Tipo = S(r, 1), Descricao = S(r, 2), Obs = S(r, 3),
-            Horas = S(r, 4), Valor = S(r, 5), PorTecnico = S(r, 6), Ordem = S(r, 7),
-            Mult = S(r, 8) == "" ? "0" : S(r, 8),
-        }, "ordem");
+            return _store.ReadLatest(Entidade,
+                "id, tipo, descricao, obs, horas, valor, porTecnico, ordem, mult, pais",
+                r => new Parametro
+                {
+                    Id = S(r, 0), Tipo = S(r, 1), Descricao = S(r, 2), Obs = S(r, 3),
+                    Horas = S(r, 4), Valor = S(r, 5), PorTecnico = S(r, 6), Ordem = S(r, 7),
+                    Mult = S(r, 8) == "" ? "0" : S(r, 8),
+                    Pais = S(r, 9) == "" ? "Brasil" : S(r, 9),
+                }, "ordem");
+        }
+        catch
+        {
+            return _store.ReadLatest(Entidade,
+                "id, tipo, descricao, obs, horas, valor, porTecnico, ordem, mult",
+                r => new Parametro
+                {
+                    Id = S(r, 0), Tipo = S(r, 1), Descricao = S(r, 2), Obs = S(r, 3),
+                    Horas = S(r, 4), Valor = S(r, 5), PorTecnico = S(r, 6), Ordem = S(r, 7),
+                    Mult = S(r, 8) == "" ? "0" : S(r, 8),
+                }, "ordem");
+        }
+    }
 
     public void Save(Parametro p) => _store.WriteRow(Entidade, new KeyValuePair<string, object?>[]
     {
         new("id", p.Id), new("tipo", p.Tipo), new("descricao", p.Descricao), new("obs", p.Obs),
         new("horas", p.Horas), new("valor", p.Valor), new("porTecnico", p.PorTecnico),
-        new("ordem", p.Ordem), new("mult", p.Mult),
+        new("ordem", p.Ordem), new("mult", p.Mult), new("pais", p.Pais),
     });
 
     public void Delete(string id) => _store.WriteRow(Entidade,

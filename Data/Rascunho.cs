@@ -72,6 +72,17 @@ public class Rascunho
         Params.PropAnteriorPct = V("padrao.percAMais") ?? Params.PropAnteriorPct;
         Params.IssPct = Servicos.IssPadrao(Proposta.Bu);
         Params.MargemAlvoPct = Servicos.MargemPadrao(Proposta.Segmento, padroes);
+
+        // BU do Chile/Peru: proposta em espanhol, na moeda local e SEM impostos
+        // (só valor líquido) — e a tabela de custos é a do país.
+        var pais = Servicos.PaisDaBu(Proposta.Bu);
+        if (pais != "Brasil")
+        {
+            Proposta.Idioma = "Español";
+            Proposta.Moeda = Servicos.MoedaPadrao(Proposta.Bu);
+            Params.PisPct = "0"; Params.CofinsPct = "0"; Params.IssPct = "0";
+        }
+        parametros = parametros.Where(p => (string.IsNullOrWhiteSpace(p.Pais) ? "Brasil" : p.Pais) == pais).ToList();
         ItensMO = parametros.Where(p => p.Tipo == "MO").Select(p => new ItemMO
         {
             Servico = p.Descricao, Obs = p.Obs, Horas = p.Horas,
@@ -83,6 +94,37 @@ public class Rascunho
             Despesa = p.Descricao, Obs = p.Obs, Qtd = "0",
             CustoUnitario = p.Valor, PorTecnico = p.PorTecnico == "Sim",
         }).ToList();
+    }
+
+    /// <summary>
+    /// Troca a tabela de custos para a do país informado (mudança de BU),
+    /// preservando as quantidades já lançadas: os itens são casados por
+    /// posição, já que as três tabelas têm a mesma estrutura.
+    /// </summary>
+    public void TrocarTabela(List<Parametro> parametros, string pais)
+    {
+        var doPais = parametros
+            .Where(p => (string.IsNullOrWhiteSpace(p.Pais) ? "Brasil" : p.Pais) == pais)
+            .OrderBy(p => p.Ordem).ToList();
+
+        var mo = doPais.Where(p => p.Tipo == "MO").ToList();
+        for (var i = 0; i < ItensMO.Count && i < mo.Count; i++)
+        {
+            ItensMO[i].Servico = mo[i].Descricao;
+            ItensMO[i].Obs = mo[i].Obs;
+            ItensMO[i].Horas = mo[i].Horas;
+            ItensMO[i].CustoHora = mo[i].Valor;
+            ItensMO[i].PorTecnico = mo[i].PorTecnico == "Sim";
+            ItensMO[i].Mult = string.IsNullOrWhiteSpace(mo[i].Mult) ? "0" : mo[i].Mult;
+        }
+        var desp = doPais.Where(p => p.Tipo == "DESPESA").ToList();
+        for (var i = 0; i < ItensDespesa.Count && i < desp.Count; i++)
+        {
+            ItensDespesa[i].Despesa = desp[i].Descricao;
+            ItensDespesa[i].Obs = desp[i].Obs;
+            ItensDespesa[i].CustoUnitario = desp[i].Valor;
+            ItensDespesa[i].PorTecnico = desp[i].PorTecnico == "Sim";
+        }
     }
 
     /// <summary>Carrega uma proposta gravada de volta para edição.</summary>

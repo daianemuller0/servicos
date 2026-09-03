@@ -18,4 +18,6 @@ public class Parametro
     public string Ordem { get; set; } = "0";
     /// <summary>Multiplicador sobre a hora-base (só mão de obra; 0 = independente).</summary>
     public string Mult { get; set; } = "0";
+    /// <summary>Tabela de custos do país: "Brasil" (padrão), "Chile" ou "Peru".</summary>
+    public string Pais { get; set; } = "Brasil";
 }

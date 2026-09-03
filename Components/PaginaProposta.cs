@@ -69,6 +69,35 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         await JS.InvokeVoidAsync("appSaveDraft", _ultimoSalvo);
     }
 
+    /// <summary>
+    /// Troca de BU emissora. Chile (HCHL) e Peru (HPU): proposta em espanhol,
+    /// moeda local, SEM impostos (só valor líquido) e a tabela de custos do
+    /// país; BUs do Brasil restauram PIS/COFINS/ISS e a tabela brasileira.
+    /// As quantidades lançadas são preservadas.
+    /// </summary>
+    protected void AplicarBu(string bu)
+    {
+        var paisAntes = Data.Servicos.PaisDaBu(R.Proposta.Bu);
+        R.Proposta.Bu = bu;
+        var pais = Data.Servicos.PaisDaBu(bu);
+
+        if (pais == "Brasil")
+        {
+            R.Params.PisPct = "1.65";
+            R.Params.CofinsPct = "7.6";
+            R.Params.IssPct = Data.Servicos.IssPadrao(bu);
+            if (paisAntes != "Brasil") { R.Proposta.Moeda = "BRL"; R.Proposta.Idioma = "Português"; }
+        }
+        else
+        {
+            R.Params.PisPct = "0"; R.Params.CofinsPct = "0"; R.Params.IssPct = "0";
+            R.Proposta.Idioma = "Español";
+            R.Proposta.Moeda = Data.Servicos.MoedaPadrao(bu);
+        }
+
+        if (pais != paisAntes) R.TrocarTabela(Parametros.All(), pais);
+    }
+
     /// <summary>Grava o rascunho agora.</summary>
     protected async Task SalvarRascunho()
     {

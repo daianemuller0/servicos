@@ -34,6 +34,22 @@ public static class Seed
         P("de-outros",     "DESPESA", "OUTROS", "ADMINISTRATIVA", "", "0", "Sim", 29),
     };
 
+    /// <summary>
+    /// Tabela de custos do Chile ou do Peru: mesma estrutura da do Brasil
+    /// (os nomes precisam ser mantidos — as regras de diárias/despesas os
+    /// reconhecem), com os valores a preencher na Tabela de Custos.
+    /// </summary>
+    public static List<Parametro> ParametrosPais(string pais)
+    {
+        var prefixo = pais == "Chile" ? "cl-" : "pe-";
+        return Parametros().Select(p => new Parametro
+        {
+            Id = prefixo + p.Id, Tipo = p.Tipo, Descricao = p.Descricao, Obs = p.Obs,
+            Horas = p.Horas, Valor = p.Valor, PorTecnico = p.PorTecnico,
+            Ordem = p.Ordem, Mult = p.Mult, Pais = pais,
+        }).ToList();
+    }
+
     /// <summary>Representantes e comissões, direto de BD_pricing A67:E99 da planilha.</summary>
     public static List<Representante> Representantes() => new()
     {
@@ -149,6 +165,16 @@ public static class DbInitializer
         {
             var repo = new VendedorRepository(store);
             foreach (var x in Seed.Vendedores()) repo.Save(x);
+        }
+
+        // Tabelas de custo do Chile e do Peru: semeadas uma única vez, também
+        // em bancos que já existiam antes delas.
+        {
+            var repo = new ParametroRepository(store);
+            var todos = repo.All();
+            foreach (var pais in new[] { "Chile", "Peru" })
+                if (!todos.Any(p => p.Pais == pais))
+                    foreach (var x in Seed.ParametrosPais(pais)) repo.Save(x);
         }
     }
 }

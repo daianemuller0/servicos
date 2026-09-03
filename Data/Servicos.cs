@@ -43,6 +43,18 @@ public static class Servicos
     /// <summary>Alíquota de ISS conforme a BU emissora (2% Itatiba / 5% Serra).</summary>
     public static string IssPadrao(string bu) => bu == "HSA-ES" ? "5" : "2";
 
+    /// <summary>País da BU emissora: HCHL = Chile, HPU = Peru, demais = Brasil.</summary>
+    public static string PaisDaBu(string bu) => bu switch
+    {
+        "HCHL" => "Chile", "HPU" => "Peru", _ => "Brasil",
+    };
+
+    /// <summary>Moeda padrão da BU (como na planilha: HCHL em CLP, HPU em USD).</summary>
+    public static string MoedaPadrao(string bu) => bu switch
+    {
+        "HCHL" => "CLP", "HPU" => "USD", _ => "BRL",
+    };
+
     /// <summary>Símbolo da moeda usado no documento.</summary>
     public static string Simbolo(string moeda) => moeda switch
     {
@@ -251,6 +263,28 @@ public static class Servicos
         var L = Labels(p.Idioma);
         var cif = Simbolo(p.Moeda);
         var resumo = Pricing.ResumoDoTotal(doc);
+
+        // Chile/Peru (impostos zerados): o documento mostra só o valor líquido —
+        // sem o bloco de PIS/COFINS/ISS e sem "c/ impostos" nos rótulos.
+        var semImp = doc.Calculo.Pis + doc.Calculo.Cofins + doc.Calculo.Iss <= 0.005;
+        if (semImp)
+            L = L with
+            {
+                TotalComImpostos = p.Idioma == "English" ? "TOTAL AMOUNT" : "VALOR TOTAL",
+                TotalAssessoria = p.Idioma switch
+                {
+                    "English" => "TOTAL TECHNICAL ASSISTANCE",
+                    "Español" => "TOTAL ASESORÍA TÉCNICA",
+                    _ => "TOTAL ASSESSORIA TÉCNICA",
+                },
+                TotalDespesas = p.Idioma switch
+                {
+                    "English" => "TOTAL EXPENSES",
+                    "Español" => "TOTAL GASTOS",
+                    _ => "TOTAL DESPESAS",
+                },
+            };
+
         string M(double v) => $"{cif} {Pricing.Moeda(v)}";
 
         string Th(string t, string align = "left") =>
@@ -362,11 +396,12 @@ public static class Servicos
 
 {totalTabela}
 
+{(semImp ? "" : $@"
 <table style='width:100%;border-collapse:collapse;margin-top:16px;font-size:8.5pt'>
 <tr><td style='{bd};color:{corpo}'>{L.SemImpostos}</td><td style='{bd};text-align:right;color:{corpo}'>{M(resumo.SemImpostos)}</td></tr>
 <tr><td style='{bd};color:{corpo}'>{L.ComPisCofins}</td><td style='{bd};text-align:right;color:{corpo}'>{M(resumo.ComPisCofins)}</td></tr>
 <tr><td style='{bd};color:{navy};font-weight:bold'>{L.ComPisCofinsIss}</td><td style='{bd};text-align:right;color:{navy};font-weight:bold'>{M(doc.Total)}</td></tr>
-</table>
+</table>")}
 
 {(adicionais.Count == 0 ? "" : $@"
 <p style='margin:18px 0 2px;font-weight:bold;font-size:10pt;color:{navy}'>{L.DiariasAdicionais}</p>
