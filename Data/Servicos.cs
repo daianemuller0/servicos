@@ -40,8 +40,8 @@ public static class Servicos
         return segmento switch { "NB" => "32", "AFM" => "52", "Intercompany" => "28", _ => "50" };   // Service
     }
 
-    /// <summary>Alíquota de ISS conforme a BU emissora (2% Itatiba / 5% Serra).</summary>
-    public static string IssPadrao(string bu) => bu == "HSA-ES" ? "5" : "2";
+    /// <summary>ISS padrão: fixo em 7% para as BUs do Brasil (editável no Pricing caso a caso).</summary>
+    public static string IssPadrao(string bu) => "7";
 
     /// <summary>País da BU emissora: HCHL = Chile, HPU = Peru, demais = Brasil.</summary>
     public static string PaisDaBu(string bu) => bu switch
