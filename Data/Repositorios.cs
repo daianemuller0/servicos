@@ -136,6 +136,27 @@ public class RepresentanteRepository
     private static string S(System.Data.IDataReader r, int i) => r.IsDBNull(i) ? "" : r.GetString(i);
 }
 
+/// <summary>
+/// Configurações do sistema em chave/valor: padrões da proposta nova
+/// (chaves "padrao.*" e "margem.*") e modelos de e-mail ("email.*").
+/// Valor vazio = usa o padrão de fábrica.
+/// </summary>
+public class ConfigRepository
+{
+    private const string Entidade = "config";
+    private readonly ParquetStore _store;
+    public ConfigRepository(ParquetStore store) => _store = store;
+
+    public Dictionary<string, string> All() => _store
+        .ReadLatest(Entidade, "id, valor",
+            r => new { Id = r.IsDBNull(0) ? "" : r.GetString(0), Valor = r.IsDBNull(1) ? "" : r.GetString(1) })
+        .Where(x => x.Id != "" && x.Valor != "")
+        .ToDictionary(x => x.Id, x => x.Valor);
+
+    public void Set(string id, string valor) => _store.WriteRow(Entidade,
+        new KeyValuePair<string, object?>[] { new("id", id), new("valor", valor ?? "") });
+}
+
 /// <summary>Vendedores (quem assina a proposta), com cargo, área e contatos.</summary>
 public class VendedorRepository
 {

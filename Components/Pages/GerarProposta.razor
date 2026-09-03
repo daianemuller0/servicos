@@ -541,8 +541,8 @@
         <button class="btn-primary btn-block" @onclick="Imprimir">🖨 Gerar proposta (PDF)</button>
         <button class="btn-ghost btn-block" @onclick="GerarWord">📄 Gerar proposta (Word)</button>
         <button class="btn-ghost btn-block" @onclick="GerarExcel">📊 Gerar Excel (registro p/ pasta)</button>
-        <a class="btn-ghost btn-block" href="@Servicos.MailtoEnvio(P, DocA)">✉ E-mail de envio ao cliente</a>
-        <a class="btn-ghost btn-block" href="@Servicos.MailtoAprovacao(P, Doc)">✅ E-mail de aprovação (interno)</a>
+        <a class="btn-ghost btn-block" href="@Servicos.MailtoEnvio(P, DocA, Cfg)">✉ E-mail de envio ao cliente</a>
+        <a class="btn-ghost btn-block" href="@Servicos.MailtoAprovacao(P, Doc, Cfg)">✅ E-mail de aprovação (interno)</a>
         <div class="side-caption">Os e-mails abrem já preenchidos no seu cliente de e-mail — anexe o PDF/Word gerado.</div>
     </div>
 </div>
@@ -617,7 +617,7 @@
     private void MudarSegmento(ChangeEventArgs e)
     {
         P.Segmento = e.Value?.ToString() ?? P.Segmento;
-        R.Params.MargemAlvoPct = Servicos.MargemPadrao(P.Segmento);
+        R.Params.MargemAlvoPct = Servicos.MargemPadrao(P.Segmento, Cfg);
     }
 
     // Escolheu o representante → a comissão do cadastro entra sozinha (e segue editável).

@@ -20,9 +20,12 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     [Inject] protected Rascunho R { get; set; } = default!;
     [Inject] protected IJSRuntime JS { get; set; } = default!;
     [Inject] protected ParametroRepository Parametros { get; set; } = default!;
+    [Inject] protected ConfigRepository Config { get; set; } = default!;
     [CascadingParameter] protected Task<AuthenticationState>? AuthState { get; set; }
 
     protected string Usuario { get; private set; } = "";
+    /// <summary>Padrões e modelos de e-mail configurados (tela E-mails e Padrões).</summary>
+    protected Dictionary<string, string> Cfg { get; private set; } = new();
     private string _ultimoSalvo = "";
 
     protected override async Task OnInitializedAsync()
@@ -32,6 +35,7 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
             var auth = await AuthState;
             Usuario = auth.User.Identity?.Name ?? "";
         }
+        Cfg = Config.All();
     }
 
     protected override async Task OnAfterRenderAsync(bool primeiraVez)
@@ -40,7 +44,7 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         {
             var json = await JS.InvokeAsync<string>("appLoadDraft");
             if (R.Vazio) R.FromJson(json);
-            if (R.Vazio) R.Novo(Parametros.All(), Usuario);
+            if (R.Vazio) R.Novo(Parametros.All(), Usuario, Cfg);
             _ultimoSalvo = R.ToJson();
 
             // Escuta alterações feitas em OUTRAS guias do navegador.
@@ -60,7 +64,7 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     /// <summary>Começa uma proposta do zero, limpando também o rascunho do navegador.</summary>
     protected async Task NovaProposta()
     {
-        R.Novo(Parametros.All(), Usuario);
+        R.Novo(Parametros.All(), Usuario, Cfg);
         _ultimoSalvo = R.ToJson();
         await JS.InvokeVoidAsync("appSaveDraft", _ultimoSalvo);
     }

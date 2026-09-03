@@ -29,11 +29,16 @@ public static class Servicos
         "PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO","Chile","Peru","Exportação",
     };
 
-    /// <summary>Margem padrão (Project Margin) por segmento — BD_pricing A21:B25.</summary>
-    public static string MargemPadrao(string segmento) => segmento switch
+    /// <summary>
+    /// Margem padrão (Project Margin) por segmento — BD_pricing A21:B25; pode
+    /// ser sobrescrita na tela E-mails e Padrões (chaves "margem.&lt;segmento&gt;").
+    /// </summary>
+    public static string MargemPadrao(string segmento, IReadOnlyDictionary<string, string>? cfg = null)
     {
-        "NB" => "32", "AFM" => "52", "Intercompany" => "28", _ => "50",   // Service
-    };
+        if (cfg is not null && cfg.TryGetValue($"margem.{segmento}", out var v) && !string.IsNullOrWhiteSpace(v))
+            return v;
+        return segmento switch { "NB" => "32", "AFM" => "52", "Intercompany" => "28", _ => "50" };   // Service
+    }
 
     /// <summary>Alíquota de ISS conforme a BU emissora (2% Itatiba / 5% Serra).</summary>
     public static string IssPadrao(string bu) => bu == "HSA-ES" ? "5" : "2";
@@ -124,55 +129,87 @@ public static class Servicos
     private static string Mailto(string para, string assunto, string corpo) =>
         $"mailto:{Uri.EscapeDataString(para)}?subject={Uri.EscapeDataString(assunto)}&body={Uri.EscapeDataString(corpo)}";
 
-    /// <summary>E-mail de envio da proposta ao cliente, no idioma da proposta.</summary>
-    public static string MailtoEnvio(Proposta p, Pricing.Documento doc)
+    /// <summary>
+    /// Modelo padrão do e-mail de envio, com variáveis entre chaves — o texto
+    /// pode ser personalizado na tela "E-mails e Padrões" (chaves
+    /// email.envio.pt/en/es.assunto e .corpo).
+    /// </summary>
+    public static (string Assunto, string Corpo) ModeloEnvioPadrao(string idioma) => idioma switch
     {
-        var cif = Simbolo(p.Moeda);
-        var total = $"{cif} {Pricing.Moeda(doc.Total)}";
-        var (assunto, corpo) = p.Idioma switch
-        {
-            "English" => (
-                $"Quote {p.Numero} - {p.Cliente}",
-                $"Dear {p.ContatoNome},\r\n\r\n" +
-                $"Please find attached our quote {p.Numero} (rev. {p.Revisao}) - {p.Referencia}.\r\n\r\n" +
-                $"Total amount (taxes included): {total}\r\n" +
-                $"Validity: {ValidadeData(p)}\r\nDelivery time: {p.PrazoEntregaDias} days\r\n\r\n" +
-                $"We remain at your disposal.\r\n\r\nBest regards,\r\n{p.PreparadaPor}"),
-            "Español" => (
-                $"Oferta {p.Numero} - {p.Cliente}",
-                $"Estimado(a) {p.ContatoNome}:\r\n\r\n" +
-                $"Adjuntamos nuestra oferta {p.Numero} (rev. {p.Revisao}) - {p.Referencia}.\r\n\r\n" +
-                $"Valor total (con impuestos): {total}\r\n" +
-                $"Validez: {ValidadeData(p)}\r\nPlazo de entrega: {p.PrazoEntregaDias} días\r\n\r\n" +
-                $"Quedamos a su disposición.\r\n\r\nSaludos cordiales,\r\n{p.PreparadaPor}"),
-            _ => (
-                $"Proposta {p.Numero} - {p.Cliente}",
-                $"Prezado(a) {p.ContatoNome},\r\n\r\n" +
-                $"Segue em anexo a nossa proposta {p.Numero} (rev. {p.Revisao}) - {p.Referencia}.\r\n\r\n" +
-                $"Valor total (com impostos): {total}\r\n" +
-                $"Validade: {ValidadeData(p)}\r\nPrazo de entrega: {p.PrazoEntregaDias} dias\r\n\r\n" +
-                $"Ficamos à disposição para qualquer esclarecimento.\r\n\r\nAtenciosamente,\r\n{p.PreparadaPor}"),
-        };
-        return Mailto(p.ContatoEmail, assunto, corpo);
-    }
+        "English" => (
+            "Quote {numero} - {cliente}",
+            "Dear {contato},\r\n\r\nPlease find attached our quote {numero} (rev. {rev}) - {referencia}.\r\n\r\n" +
+            "Total amount (taxes included): {total}\r\nValidity: {validade}\r\nDelivery time: {prazo} days\r\n\r\n" +
+            "We remain at your disposal.\r\n\r\nBest regards,\r\n{preparada_por}"),
+        "Español" => (
+            "Oferta {numero} - {cliente}",
+            "Estimado(a) {contato}:\r\n\r\nAdjuntamos nuestra oferta {numero} (rev. {rev}) - {referencia}.\r\n\r\n" +
+            "Valor total (con impuestos): {total}\r\nValidez: {validade}\r\nPlazo de entrega: {prazo} días\r\n\r\n" +
+            "Quedamos a su disposición.\r\n\r\nSaludos cordiales,\r\n{preparada_por}"),
+        _ => (
+            "Proposta {numero} - {cliente}",
+            "Prezado(a) {contato},\r\n\r\nSegue em anexo a nossa proposta {numero} (rev. {rev}) - {referencia}.\r\n\r\n" +
+            "Valor total (com impostos): {total}\r\nValidade: {validade}\r\nPrazo de entrega: {prazo} dias\r\n\r\n" +
+            "Ficamos à disposição para qualquer esclarecimento.\r\n\r\nAtenciosamente,\r\n{preparada_por}"),
+    };
 
-    /// <summary>E-mail interno de aprovação do pricing (destinatário fica a cargo de quem envia).</summary>
-    public static string MailtoAprovacao(Proposta p, Pricing.Documento doc)
+    /// <summary>Modelo padrão do e-mail interno de aprovação (chaves email.aprovacao.*).</summary>
+    public static (string Assunto, string Corpo) ModeloAprovacaoPadrao() => (
+        "Aprovação de pricing - {numero} - {cliente}",
+        "Solicito aprovação do pricing abaixo.\r\n\r\n" +
+        "Proposta: {numero} (rev. {rev})\r\nCliente: {cliente} - {cidade}\r\nEscopo: {referencia}\r\nBU: {bu}\r\n\r\n" +
+        "Custo total: R$ {custo_total}\r\nCusto com riscos: R$ {custo_riscos}\r\n" +
+        "Venda liquida (sem impostos): R$ {venda_liquida}\r\nValor com impostos: R$ {valor_impostos}\r\n" +
+        "Project Margin: {pm}\r\nContribution Margin: {cm}\r\nMarkup: {markup}\r\n\r\n" +
+        "Preparada por: {preparada_por}");
+
+    /// <summary>Substitui as variáveis {…} de um modelo pelos dados da proposta.</summary>
+    public static string PreencherModelo(string modelo, Proposta p, Pricing.Documento doc)
     {
         var c = doc.Calculo;
-        var corpo =
-            $"Solicito aprovação do pricing abaixo.\r\n\r\n" +
-            $"Proposta: {p.Numero} (rev. {p.Revisao})\r\nCliente: {p.Cliente} - {p.Cidade}\r\n" +
-            $"Escopo: {p.Referencia}\r\nBU: {p.Bu}\r\n\r\n" +
-            $"Custo total: R$ {Pricing.Moeda(c.CustoTotal)}\r\n" +
-            $"Custo com riscos: R$ {Pricing.Moeda(c.CustoComRisco)}\r\n" +
-            $"Venda liquida (sem impostos): R$ {Pricing.Moeda(c.VendaLiquida)}\r\n" +
-            $"Valor com impostos: R$ {Pricing.Moeda(c.ComImpostos)}\r\n" +
-            $"Project Margin: {Pricing.Porcento(c.ProjectMargin)}\r\n" +
-            $"Contribution Margin: {Pricing.Porcento(c.ContributionMargin)}\r\n" +
-            $"Markup: {c.Markup:0.0000}\r\n\r\n" +
-            $"Preparada por: {p.PreparadaPor}";
-        return Mailto("", $"Aprovação de pricing - {p.Numero} - {p.Cliente}", corpo);
+        var cif = Simbolo(p.Moeda);
+        return modelo
+            .Replace("{numero}", string.IsNullOrWhiteSpace(p.Numero) ? NumeroCompleto(p) : p.Numero)
+            .Replace("{rev}", p.Revisao)
+            .Replace("{cliente}", p.Cliente)
+            .Replace("{cidade}", p.Cidade)
+            .Replace("{contato}", p.ContatoNome)
+            .Replace("{referencia}", p.Referencia)
+            .Replace("{bu}", p.Bu)
+            .Replace("{total}", $"{cif} {Pricing.Moeda(doc.Total)}")
+            .Replace("{validade}", ValidadeData(p))
+            .Replace("{prazo}", p.PrazoEntregaDias)
+            .Replace("{preparada_por}", p.PreparadaPor)
+            .Replace("{custo_total}", Pricing.Moeda(c.CustoTotal))
+            .Replace("{custo_riscos}", Pricing.Moeda(c.CustoComRisco))
+            .Replace("{venda_liquida}", Pricing.Moeda(c.VendaLiquida))
+            .Replace("{valor_impostos}", Pricing.Moeda(doc.Total))
+            .Replace("{pm}", Pricing.Porcento(c.ProjectMargin))
+            .Replace("{cm}", Pricing.Porcento(c.ContributionMargin))
+            .Replace("{markup}", c.Markup.ToString("0.0000"));
+    }
+
+    private static string? Cfg(IReadOnlyDictionary<string, string>? cfg, string chave) =>
+        cfg is not null && cfg.TryGetValue(chave, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
+
+    /// <summary>E-mail de envio da proposta ao cliente, no idioma da proposta.</summary>
+    public static string MailtoEnvio(Proposta p, Pricing.Documento doc, IReadOnlyDictionary<string, string>? cfg = null)
+    {
+        var chave = p.Idioma switch { "English" => "en", "Español" => "es", _ => "pt" };
+        var padrao = ModeloEnvioPadrao(p.Idioma);
+        var assunto = Cfg(cfg, $"email.envio.{chave}.assunto") ?? padrao.Assunto;
+        var corpo = Cfg(cfg, $"email.envio.{chave}.corpo") ?? padrao.Corpo;
+        return Mailto(p.ContatoEmail, PreencherModelo(assunto, p, doc), PreencherModelo(corpo, p, doc));
+    }
+
+    /// <summary>E-mail interno de aprovação do pricing.</summary>
+    public static string MailtoAprovacao(Proposta p, Pricing.Documento doc, IReadOnlyDictionary<string, string>? cfg = null)
+    {
+        var padrao = ModeloAprovacaoPadrao();
+        var assunto = Cfg(cfg, "email.aprovacao.assunto") ?? padrao.Assunto;
+        var corpo = Cfg(cfg, "email.aprovacao.corpo") ?? padrao.Corpo;
+        var para = Cfg(cfg, "email.aprovacao.para") ?? "";
+        return Mailto(para, PreencherModelo(assunto, p, doc), PreencherModelo(corpo, p, doc));
     }
 
     /// <summary>Logo do cabeçalho: imagem enviada em Identidade Visual ou o wordmark padrão.</summary>

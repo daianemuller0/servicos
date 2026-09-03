@@ -549,7 +549,7 @@ h1 { font-size: 24px; margin: 0 0 4px; color: var(--primary); letter-spacing: -.
     border-radius: 50%; background: rgba(255, 255, 255, .045);
 }
 .login2-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.login2-logo img { max-height: 120px; max-width: 340px; }
+.login2-logo img { max-height: 78px; max-width: 260px; }
 .login2-logo-fallback { font-weight: 700; font-size: 30px; letter-spacing: .5px; line-height: 1; }
 .login2-logo-fallback small { display: block; font-style: italic; font-weight: 400; font-size: 11px; opacity: .8; margin-top: 3px; }
 .login2-tag { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #bcd3e6; white-space: nowrap; }
@@ -589,6 +589,7 @@ h1 { font-size: 24px; margin: 0 0 4px; color: var(--primary); letter-spacing: -.
 @media (max-width: 940px) { .login2-left { display: none; } }
 
 /* logo do sistema na barra lateral */
+.brand.logo { padding: 0 12px; justify-content: flex-start; }
 .brand-img { display: inline-flex; align-items: center; }
 .brand-img img { max-height: 64px; max-width: 210px; display: block; }
 

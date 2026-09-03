@@ -43,7 +43,8 @@ public class Rascunho
     }
 
     /// <summary>Começa uma proposta nova, já com os itens padrão da tabela de custos.</summary>
-    public void Novo(List<Parametro> parametros, string usuario)
+    public void Novo(List<Parametro> parametros, string usuario,
+        IReadOnlyDictionary<string, string>? padroes = null)
     {
         Proposta = new Proposta
         {
@@ -52,6 +53,25 @@ public class Rascunho
             PreparadaPor = usuario,
         };
         Params = new PricingParams();
+
+        // Padrões configurados em "E-mails e Padrões" (valor vazio = de fábrica).
+        string? V(string chave) => padroes is not null &&
+            padroes.TryGetValue(chave, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
+        Proposta.Bu = V("padrao.bu") ?? Proposta.Bu;
+        Proposta.Estado = V("padrao.estado") ?? Proposta.Estado;
+        Proposta.Segmento = V("padrao.segmento") ?? Proposta.Segmento;
+        Proposta.Idioma = V("padrao.idioma") ?? Proposta.Idioma;
+        Proposta.Moeda = V("padrao.moeda") ?? Proposta.Moeda;
+        Proposta.ValidadeDias = V("padrao.validade") ?? Proposta.ValidadeDias;
+        Proposta.PrazoEntregaDias = V("padrao.prazo") ?? Proposta.PrazoEntregaDias;
+        Proposta.ModoApresentacao = V("padrao.modo") ?? Proposta.ModoApresentacao;
+        Params.TaxaAdmPct = V("padrao.taxaAdm") ?? Params.TaxaAdmPct;
+        Params.RiscoPct = V("padrao.risco") ?? Params.RiscoPct;
+        Params.FiancaTipo = V("padrao.fiancaTipo") ?? Params.FiancaTipo;
+        Params.FiancaPctVenda = V("padrao.fiancaPct") ?? Params.FiancaPctVenda;
+        Params.PropAnteriorPct = V("padrao.percAMais") ?? Params.PropAnteriorPct;
+        Params.IssPct = Servicos.IssPadrao(Proposta.Bu);
+        Params.MargemAlvoPct = Servicos.MargemPadrao(Proposta.Segmento, padroes);
         ItensMO = parametros.Where(p => p.Tipo == "MO").Select(p => new ItemMO
         {
             Servico = p.Descricao, Obs = p.Obs, Horas = p.Horas,
