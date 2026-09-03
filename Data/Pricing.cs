@@ -134,6 +134,31 @@ public static class Pricing
         return Pct(p.FiancaPctVenda) * dias * taxa / 365.0;
     }
 
+    /// <summary>
+    /// Emulação exata da macro WILGERAPRECO da planilha: markup parte de 1,5 e
+    /// sobe/desce em degraus (0,1 → 0,05 → 0,01 → … → 0,000005) até a Project
+    /// Margin cruzar o alvo. Na planilha: venda = markup × custo com riscos ÷
+    /// (1 − provisões − k) e PM(markup) = (1 − provTotal) × (1 − 1/markup),
+    /// onde provTotal = provisões + fração da fiança.
+    /// </summary>
+    private static double VendaEscadaPlanilha(double custoRisco, double provTotal, double alvo)
+    {
+        double PM(double m) => (1 - provTotal) * (1 - 1 / m);
+
+        var mup = 1.5;
+        if (Math.Abs(PM(mup) - alvo) > 1e-12)
+        {
+            double[] sobe = { 0.1, 0.01, 0.001, 0.0001, 0.00001 };
+            double[] desce = { 0.05, 0.005, 0.0005, 0.00005, 0.000005 };
+            for (var i = 0; i < sobe.Length; i++)
+            {
+                while (PM(mup) < alvo) mup += sobe[i];
+                while (PM(mup) > alvo) mup -= desce[i];
+            }
+        }
+        return mup * custoRisco / (1 - provTotal);
+    }
+
     // ---------- resultado ----------
     public sealed record Resultado(
         double TotalMO, double TotalDespesas, double CustoTotal,
@@ -166,6 +191,14 @@ public static class Pricing
         var k = FiancaFrac(p, prazoDias);
         var den = 1 - provisoes - margem - k;
         var vendaLiquida = den > 0.0001 ? custoRisco / den : 0;
+
+        // Paridade com o botão "Calcular Preço" da planilha (macro WILGERAPRECO):
+        // ela acha o markup por busca em degraus e PARA no primeiro degrau que
+        // cruza a margem alvo — não no valor exato. Reproduzimos os mesmos
+        // degraus para o preço bater centavo a centavo com a planilha.
+        if (vendaLiquida > 0 && den > 0.0001 && margem > 0)
+            vendaLiquida = VendaEscadaPlanilha(custoRisco, provisoes + k, margem);
+
         var fianca = vendaLiquida * k;
 
         var pis = Pct(p.PisPct);
@@ -174,9 +207,9 @@ public static class Pricing
         var denImp = 1 - pis - cofins - iss;
 
         // Total cravado pela ferramenta de meta: apara resíduo de arredondamento
-        // da margem (≤ 5 centavos) para o valor com impostos bater em ponto.
+        // da margem e da busca em degraus (≤ 50 centavos) para bater em ponto.
         var travado = Num(p.TotalTravado);
-        if (travado > 0 && denImp > 0.0001 && Math.Abs(vendaLiquida / denImp - travado) <= 0.05)
+        if (travado > 0 && denImp > 0.0001 && Math.Abs(vendaLiquida / denImp - travado) <= 0.5)
             vendaLiquida = travado * denImp;
 
         var comImpostos = denImp > 0.0001 ? vendaLiquida / denImp : 0;
@@ -384,23 +417,25 @@ public static class Pricing
         var totalDesp = desp.Sum(d => d.ValorTotal);
         var totalGeral = totalMO + totalDesp + deslocamento;
 
-        // Total cravado pela meta de valor: o resíduo dos arredondamentos por
-        // linha (até R$ 10) NUNCA mexe nas linhas da assessoria — os
-        // multiplicadores são lei. Ele é aparado no deslocamento (quando houver)
-        // ou na maior despesa mostrada.
-        if (totalTravado > 0 && Math.Abs(totalGeral - totalTravado) <= 10)
+        // O TOTAL apresentado crava no valor com impostos EXATO do pricing
+        // (o Q20 da planilha) — ou na meta travada, quando houver. O resíduo
+        // dos arredondamentos por linha (até R$ 10) NUNCA mexe nas linhas da
+        // assessoria — os multiplicadores são lei. Ele é aparado no
+        // deslocamento (quando houver) ou na maior despesa mostrada.
+        var alvoTotal = totalTravado > 0 ? totalTravado : Math.Round(doc.Calculo.ComImpostos, 2);
+        if (alvoTotal > 0 && Math.Abs(totalGeral - alvoTotal) <= 10)
         {
-            var diff = Math.Round(totalTravado - totalGeral, 2);
+            var diff = Math.Round(alvoTotal - totalGeral, 2);
             if (diff == 0)
             {
-                totalGeral = totalTravado;
+                totalGeral = alvoTotal;
             }
             else if (deslocamento > 0 && deslocamento + diff > 0)
             {
                 deslocamento = Math.Round(deslocamento + diff, 2);
-                totalGeral = totalTravado;
+                totalGeral = alvoTotal;
             }
-            else if (desp.Count > 0)
+            else
             {
                 var alvoDesp = desp.Where(d => d.ValorTotal > 0)
                     .OrderByDescending(d => Math.Abs(d.Qtd - 1) < 0.001 ? 1 : 0)
@@ -413,8 +448,11 @@ public static class Pricing
                     var unit = alvoDesp.Qtd > 0 ? Math.Round(novoTotal / alvoDesp.Qtd, 2) : novoTotal;
                     desp[idx] = alvoDesp with { ValorTotal = novoTotal, ValorUnitario = unit };
                     totalDesp = Math.Round(totalDesp + diff, 2);
-                    totalGeral = totalTravado;
                 }
+                // Sem onde absorver (proposta só de assessoria): o total mostra o
+                // valor exato mesmo assim — igual a planilha sempre fez (H34 = Q20),
+                // com as linhas arredondadas para cima em reais inteiros.
+                totalGeral = alvoTotal;
             }
         }
 
