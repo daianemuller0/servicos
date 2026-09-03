@@ -92,6 +92,10 @@ public static class Pricing
         return n.Contains("TAXI") || n.Contains("TÁXI") || n.Contains("PASSAGEM");
     }
 
+    /// <summary>Linha de DIÁRIA da assessoria (normais, 2º turno, extras sáb/dom).</summary>
+    private static bool EhLinhaDiaria(LinhaMO l) =>
+        l.QtdDiaria > 0 && (l.Servico ?? "").TrimStart().ToUpperInvariant().StartsWith("DIARIAS");
+
     /// <summary>
     /// Margem (Project Margin) que resulta se o valor final com impostos for
     /// exatamente a meta informada — a função "chegar no valor".
@@ -318,33 +322,30 @@ public static class Pricing
         // Sem linhas de assessoria não há onde embutir — mantém como está.
         if (doc.MO.Count == 0) return doc;
 
-        List<LinhaDespesa> desp;
-        double deslocamento = 0;
+        // A DIÁRIA FECHADA manda: o layout base é sempre o "sem despesas"
+        // (tudo embutido nas diárias, deslocamento numa linha à parte). O modo
+        // "com despesas" é derivado DELA logo abaixo.
         var admFrac = 1 + taxaAdmPct / 100.0;
-        if (modo == "SemDespesas")
+        var deslocFechado = doc.Despesas
+            .Where(d => EhDeslocamento(d.Despesa))
+            .Sum(d => ParaCima(d.Custo * admFrac));
+        var deslocamento = deslocFechado;
+
+        var desp = new List<LinhaDespesa>();
+        if (modo != "SemDespesas")
         {
-            desp = new List<LinhaDespesa>();
-            // Táxi + passagem aérea saem numa linha própria, a custo + taxa adm;
-            // o restante do valor (e as demais despesas) sobe para as diárias.
-            deslocamento = doc.Despesas
-                .Where(d => EhDeslocamento(d.Despesa))
-                .Sum(d => ParaCima(d.Custo * admFrac));
-        }
-        else
-        {
-            var adm = 1 + taxaAdmPct / 100.0;
-            // "OUTROS" nunca sai na proposta — o valor dele é diluído nas diárias.
+            // Tabela de despesas a custo + taxa adm ("OUTROS" nunca sai — é
+            // diluído nas diárias).
             desp = doc.Despesas.Where(d => !EhOutros(d.Despesa)).Select(d =>
             {
                 var custoUnit = d.Qtd > 0 ? d.Custo / d.Qtd : d.Custo;
-                var unit = ParaCima(custoUnit * adm);
+                var unit = ParaCima(custoUnit * admFrac);
                 var total = unit * Math.Max(d.Qtd, 1);
                 return new LinhaDespesa(d.Despesa, d.Obs, d.Qtd, d.Custo, d.Participacao, unit, total);
             }).ToList();
         }
 
-        // O que as despesas deixam de mostrar vai para a assessoria.
-        var alvoMO = doc.Total - desp.Sum(d => d.ValorTotal) - deslocamento;
+        var alvoMO = doc.Total - deslocFechado;
         if (alvoMO <= 0 || doc.TotalMO <= 0) return doc;
 
         // Os multiplicadores são LEI sobre a diária normal apresentada:
@@ -410,6 +411,35 @@ public static class Pricing
                 var diaria = l.QtdDiaria > 0 ? Math.Round(total / l.QtdDiaria, 2) : 0;
                 var hora = l.Horas > 0 ? Math.Round(diaria / l.Horas, 2) : 0;
                 mo.Add(new LinhaMO(l.Servico, l.Obs, l.Horas, l.QtdDiaria, l.Custo, l.Participacao, total, diaria, hora, l.Mult));
+            }
+        }
+
+        // Modo "com despesas abertas + taxa": a diária mostrada = DIÁRIA FECHADA
+        // menos as despesas do dia (hospedagem, locação, combustível, refeições…)
+        // nos valores finais já com a taxa — na média por diária lançada. O que
+        // sai das diárias reaparece na tabela de despesas: o total não muda.
+        if (modo != "SemDespesas" && desp.Count > 0)
+        {
+            deslocamento = 0;   // táxi + passagem ficam na tabela de despesas
+            var dias = mo.Where(EhLinhaDiaria).Sum(l => l.QtdDiaria);
+            if (dias > 0)
+            {
+                var mediaDia = desp.Where(d => !EhDeslocamento(d.Despesa)).Sum(d => d.ValorTotal) / dias;
+                for (var i = 0; i < mo.Count; i++)
+                {
+                    var l = mo[i];
+                    if (!EhLinhaDiaria(l)) continue;
+                    var diaria = Math.Round(l.ValorDiaria - mediaDia, 2);
+                    if (diariaTravada > 0 && l.Mult is > 0.99 and < 1.01 &&
+                        Math.Abs(diaria - diariaTravada) <= 1.0)
+                        diaria = diariaTravada;
+                    mo[i] = l with
+                    {
+                        ValorDiaria = diaria,
+                        ValorTotal = Math.Round(diaria * l.QtdDiaria, 2),
+                        ValorHora = Math.Round(diaria / Math.Max(l.Horas, 1), 2),
+                    };
+                }
             }
         }
 
