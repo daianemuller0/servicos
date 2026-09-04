@@ -252,17 +252,145 @@ public static class Servicos
     }
 
     /// <summary>Documento completo em HTML (usado no download em Word).</summary>
-    public static string DocHtml(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? fat, string? repInfo = null) =>
+    /// <summary>
+    /// Notas da proposta (INCLUSO / EXCLUSOS / Notas Gerais), montadas a partir
+    /// do que está no CUSTO: despesa considerada entra no "incluso", despesa
+    /// não considerada vai para o "excluso". Vínculos: Estadias acompanha
+    /// HOSPEDAGEM; Lanches acompanha REFEIÇÕES; Traslado acompanha TAXI;
+    /// Locomoções acompanha LOCAÇÃO DE CARRO; Transporte acompanha
+    /// locação/combustível/pedágios. Itens "EM CASO DE TREINAMENTOS" só saem
+    /// quando há treinamento; "trabalho em período noturno" sai dos exclusos
+    /// quando há diária de 2º turno; a frase de mobilização se adapta a
+    /// sáb/dom e 2º turno.
+    /// </summary>
+    public static string NotasHtml(Proposta p, List<ItemMO> itensMO, List<ItemDespesa> itensDespesa,
+        PricingParams par, Pricing.Documento apresentado)
+    {
+        if (p.Idioma != "Português") return "";   // notas padrão em português (traduções sob demanda)
+
+        const string navy = "#141E32";
+        const string corpo = "#3C465A";
+        var tec = Math.Max(Pricing.Inteiro(par.QtdTecnicos), 1);
+
+        bool Desp(Func<string, bool> m) => itensDespesa.Any(d =>
+            m((d.Despesa ?? "").ToUpperInvariant()) && Pricing.CustoDespesa(d, tec) > 0);
+        var temPassagem = Desp(n => n.Contains("PASSAGEM"));
+        var temTaxi = Desp(n => n.Contains("TAXI") || n.Contains("TÁXI"));
+        var temHosp = Desp(n => n.Contains("HOSPEDAGEM"));
+        var temCarro = Desp(n => n.Contains("LOCA"));
+        var temComb = Desp(n => n.Contains("COMBUST"));
+        var temPedagio = Desp(n => n.Contains("PEDÁGIO") || n.Contains("PEDAGIO"));
+        var temRefei = Desp(n => n.Contains("REFEI"));
+        var temTransporte = temCarro || temComb || temPedagio;
+        var temQualquerDespesa = temPassagem || temTaxi || temHosp || temCarro || temComb || temRefei;
+
+        bool Mo(Func<string, bool> m) => itensMO.Any(i =>
+            m(((i.Servico ?? "") + " " + (i.Obs ?? "")).ToUpperInvariant()) && Pricing.CustoMO(i, tec) > 0);
+        var tem2Turno = Mo(n => n.Contains("TURNO") && n.Contains("2"));
+        var temFds = Mo(n => n.Contains("EXTRAS"));
+        var temTrein = Mo(n => n.Contains("TREINAMENTO")) ||
+            (p.EscopoServico ?? "").ToUpperInvariant().Contains("TREINAMENTO");
+        var semImpostos = apresentado.Calculo.Pis + apresentado.Calculo.Cofins + apresentado.Calculo.Iss <= 0.005;
+        var taxaAdm = Pricing.Moeda0(apresentado.TaxaAdmPct > 0 ? apresentado.TaxaAdmPct : Pricing.Num(par.TaxaAdmPct));
+
+        // ---- itens variáveis (o custo decide de que lado saem) ----
+        var variaveis = new (bool Incluso, string Texto)[]
+        {
+            (temPassagem, "Passagem Aérea;"),
+            (temTaxi, "Traslado;"),
+            (temHosp, "Hospedagem;"),
+            (temCarro, "Locomoções;"),
+            (temHosp, "Estadias;"),
+            (temRefei, "Lanches;"),
+            (temRefei, "Alimentação;"),
+            (temTransporte, "Transporte (Carro, Pedágios, Combustível, etc.);"),
+        };
+
+        var inclusos = variaveis.Where(v => v.Incluso).Select(v => v.Texto).ToList();
+        var mobilizacao = "Proposta está considerando todos os serviços, Mobilização e Desmobilização" +
+            (temFds ? "" : " durante semana (Segunda a Sexta, exceto feriados)") +
+            (tem2Turno ? "" : " no período diurno das 08h00 às 17h00 incluindo 01 hora de descanso") + ";";
+        inclusos.Add(mobilizacao);
+        inclusos.Add("O tempo de viagem e/ou de locomoção na origem e no destino e horas de integração será apurado como período trabalhado;");
+        inclusos.Add("É facultado ao Cliente, dentro do prazo mínimo de 20 dias acionar a Howden para que a mesma proceda com a execução do Serviço. O não manifesto do Cliente no prazo e a execução do Serviço por conta própria ou por terceiros cessa automaticamente a garantia contratual concedida inicialmente;");
+        inclusos.Add("As partes devem estabelecer o prazo técnico razoável para execução do Serviço, sendo que, a partir do comunicado do Cliente, a Howden definirá o(s) Técnico(s) responsável(eis) e providenciará a documentação necessária para integração do(s) mesmo(s), de acordo com as exigências do Cliente;");
+        inclusos.Add("Equipamento de Proteção Individual (EPI).");
+
+        var exclusos = variaveis.Where(v => !v.Incluso).Select(v => v.Texto).ToList();
+        if (temTrein)
+        {
+            exclusos.Add("Fornecimento de material didático do treinamento em mídia digital (e-mail) – EM CASO DE TREINAMENTOS;");
+            exclusos.Add("Fornecimento de projetor para apresentações do treinamento – EM CASO DE TREINAMENTOS;");
+            exclusos.Add("Fornecimento de material didático do treinamento impresso – EM CASO DE TREINAMENTOS;");
+            exclusos.Add("Fornecimento de desenhos e informações construtivas – EM CASO DE TREINAMENTOS;");
+            exclusos.Add("Fornecimento de procedimentos de fabricação – EM CASO DE TREINAMENTOS;");
+        }
+        exclusos.Add("Não estamos considerando trabalho em área classificada/explosiva;");
+        exclusos.Add("Não estamos considerando recolhimento de ART;");
+        exclusos.Add("Não estamos contemplando PGR, PCMSO e outros documentos específicos para este serviço;");
+        if (!tem2Turno) exclusos.Add("Trabalho em período noturno;");
+        exclusos.Add("Não estamos prevendo tempo para protocolo de COVID 19;");
+        exclusos.Add("Não estamos prevendo pintura em nosso escopo;");
+        exclusos.Add("Fornecimento de materiais de instalação/aplicação;");
+        exclusos.Add("Fornecimento de mão de obra de eletricista para os serviços;");
+        exclusos.Add("Fornecimento de andaimes, plataformas elevatórias e guindastes;");
+        exclusos.Add("Mão de obra de civil;");
+        exclusos.Add("Materiais e acessórios relacionados à elétrica e instrumentação;");
+        exclusos.Add("Projeto, equipamentos e mão-de-obra para fundações, obras civis;");
+        exclusos.Add("Serviços adicionais de nosso departamento de Engenharia, gerados por alterações ocorridas após a colocação do pedido de compra e que forem solicitadas pelo cliente;");
+        exclusos.Add("Quaisquer protocolos de comunicação, tais como Hart, Modbus, Profibus, etc., para os instrumentos inclusos na presente proposta;");
+        exclusos.Add("Excluso de nosso fornecimento qualquer item ou acessórios que não conste claramente em nossa proposta;");
+        exclusos.Add("Os valores aqui apresentados são válidos somente se adquiridos na quantidade total ofertada; caso esta quantidade seja alterada, os valores citados deverão ser recalculados e apresentados em uma revisão da proposta;");
+        exclusos.Add("<b>Exclusão de Lucros Cessantes.</b> A Howden não será, em nenhuma hipótese, responsável por lucros cessantes e/ou danos indiretos de qualquer tipo incluindo, mas não se limitando a perda de negócio, lucro ou produtividade, <b>conforme item 12 das condições de fornecimento</b>;");
+        exclusos.Add($"Outros recursos eventualmente necessários devem ser providenciados e custeados pelo CONTRATANTE. Caso contrário, as despesas serão acrescidas de taxa administrativa de {taxaAdm}% somadas ao valor dos serviços e cobradas via Nota de Débito usada para reembolso de despesas.");
+
+        var gerais = new List<string>
+        {
+            "(*) Acréscimo - adicional noturno (22h00min às 05h00min) de 50% sobre os preços informados acima;",
+        };
+        if (!semImpostos)
+            gerais.Add("Imposto: ISS incluso — \"ISS recolhido no município do prestador conforme lei 3667/2003.\";");
+        gerais.Add("O valor total será apurado após o término dos serviços e conforme medição realizada;");
+        gerais.Add("O valor mínimo é o correspondente a 01 (um) dia normal de trabalho, ou seja, 08 horas;");
+        gerais.Add("Carga horária máxima por dia de 08 horas; casos especiais serão cobradas horas adicionais (50% semana, 100% Sábado, Domingos e Feriados);");
+        gerais.Add("Os valores poderão ser reajustados após 180 dias do aceite da ordem de compra;");
+        gerais.Add(tem2Turno
+            ? "Período das diárias do 1º turno: das 08h00 às 17h00 incluindo 01 hora de descanso;"
+            : "Período das diárias: das 08h00 às 17h00 incluindo 01 hora de descanso;");
+        if (temQualquerDespesa)
+            gerais.Add("Passagens, translado, locomoções, hospedagens, estadias, lanches, alimentação devem ser providenciados e custeados pela Howden exclusivamente para esta proposta;");
+        gerais.Add("A Howden não está considerando fornecimento de matéria prima e/ou acessórios;");
+        gerais.Add("Em caso de contratação das despesas pela empresa contratante, essa deverá seguir a política de viagens e estadias seguindo o padrão adotado pela Howden;");
+        gerais.Add("Em caso de trabalhos em áreas classificadas com periculosidade, será acrescida uma taxa de 30% ao valor ofertado pelo técnico;");
+        gerais.Add("Está sujeito para execução dos serviços a subcontratação;");
+        gerais.Add("<b>Legislação Tributária e Reforma Tributária:</b> informamos que a presente proposta comercial foi elaborada com base na legislação tributária vigente até a data de sua emissão. Qualquer alteração decorrente da reforma tributária ou legislação vigente, que venha a ser implementada, poderá impactar os valores e condições aqui apresentados. Dessa forma, reservamo-nos o direito de revisar e ajustar esta proposta conforme necessário, para refletir as mudanças na legislação tributária e seus respectivos impactos. Agradecemos a compreensão e estamos à disposição para quaisquer esclarecimentos adicionais;");
+        gerais.Add("O presente orçamento ou a presente proposta estão sujeitos à conclusão satisfatória dos nossos procedimentos habituais de conhecimento do cliente e de conformidade (KYC). As condições contratuais finais serão posteriormente acordadas por escrito;");
+        gerais.Add("<b>Os serviços deverão ser executados no prazo máximo de 90 dias após o recebimento do Pedido de Compra.</b>");
+
+        string Lista(IEnumerable<string> itens, string marcador) => "<ul style='margin:4px 0 0;padding-left:20px'>" +
+            string.Join("", itens.Select(i =>
+                $"<li style='margin:3px 0;color:{corpo};font-size:8.5pt;list-style-type:\"{marcador}  \"'>{i}</li>")) + "</ul>";
+
+        return
+            $"<p style='margin:20px 0 2px;font-weight:bold;font-size:10pt;color:#004785;text-decoration:underline'>INCLUSO NO FORNECIMENTO DA HOWDEN:</p>" +
+            Lista(inclusos, "•") +
+            $"<p style='margin:14px 0 2px;font-weight:bold;font-size:10pt;color:#004785;text-decoration:underline'>EXCLUSOS DO FORNECIMENTO DA HOWDEN:</p>" +
+            Lista(exclusos, "•") +
+            $"<p style='margin:14px 0 2px;font-weight:bold;font-size:10pt;color:{navy};text-decoration:underline'>Notas Gerais:</p>" +
+            Lista(gerais, "✓");
+    }
+
+    public static string DocHtml(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? fat, string? repInfo = null, string? notas = null) =>
         $@"<html><head><meta charset='utf-8'><title>Proposta {System.Net.WebUtility.HtmlEncode(p.Numero)}</title>
 <style>body {{ font-family: Arial, sans-serif; color: #3C465A; font-size: 9pt; margin: 32px; }}</style>
-</head><body>{DocBody(p, doc, logo, fat, repInfo)}</body></html>";
+</head><body>{DocBody(p, doc, logo, fat, repInfo, notas)}</body></html>";
 
     /// <summary>
     /// Miolo do documento — compartilhado entre a impressão/PDF e o Word.
     /// Mesmas cores do modelo oficial: Arial, títulos navy #141E32, texto
     /// #3C465A e caixas/tabelas em azul #004785. Estilos inline por causa do Word.
     /// </summary>
-    public static string DocBody(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? billing, string? repInfo = null)
+    public static string DocBody(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? billing, string? repInfo = null, string? notas = null)
     {
         const string azul = "#004785";
         const string navy = "#141E32";
@@ -424,6 +552,8 @@ public static class Servicos
 <tr>{Th(L.Servico)}{Th(L.Obs)}{Th(L.ValorTotal, "right")}</tr>
 {linhasAdic}
 </table>")}
+
+{notas}
 
 <p style='margin:26px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Faturamento}</p>
 <p style='margin:0;color:{corpo}'><b style='color:{navy}'>{E(fat.Razao)}</b><br/>{E(fat.Endereco)}{(string.IsNullOrWhiteSpace(fat.Registro) ? "" : $"<br/><span style='color:{sec}'>{E(fat.Registro)}</span>")}</p>

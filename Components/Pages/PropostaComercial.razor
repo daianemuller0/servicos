@@ -274,6 +274,9 @@
         </table>
     }
 
+    @* ---------- notas (incluso / excluso / gerais) — automáticas pelo custo ---------- *@
+    @((MarkupString)Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA))
+
     @* ---------- faturamento ---------- *@
     <h2>DADOS PARA FATURAMENTO</h2>
     <div>
@@ -399,7 +402,7 @@
 
 </div> @* /no-print *@
 
-<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, DocA, _logo, Fat, RepInfo()))</div>
+<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, DocA, _logo, Fat, RepInfo(), Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA)))</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
@@ -539,7 +542,7 @@
 
     private async Task GerarWord()
     {
-        var html = Servicos.DocHtml(P, DocA, _logo, Fat, RepInfo());
+        var html = Servicos.DocHtml(P, DocA, _logo, Fat, RepInfo(), Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA));
         var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
         var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };
         var nome = $"{prefixo}-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.doc";
