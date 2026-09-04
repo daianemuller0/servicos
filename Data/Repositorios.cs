@@ -18,7 +18,7 @@ public class PropostaRepository
             "assinaNome, assinaCargo, assinaEmail, assinaFones, " +
             "itensMoJson, itensDespesaJson, pricingJson, custoTotal, total, criadaEm, status, modoApresentacao";
 
-        Proposta Mapear(System.Data.IDataReader r, bool comEscopo) => new()
+        Proposta Mapear(System.Data.IDataReader r, bool comEscopo, bool comEscopoDetalhado) => new()
         {
             Id = S(r, 0), Cliente = S(r, 1), Cidade = S(r, 2), ContatoNome = S(r, 3),
             ContatoEmail = S(r, 4), ContatoTelefone = S(r, 5), Projeto = S(r, 6), Referencia = S(r, 7),
@@ -32,19 +32,29 @@ public class PropostaRepository
             CustoTotal = S(r, 33), Total = S(r, 34), CriadaEm = S(r, 35), Status = S(r, 36),
             ModoApresentacao = S(r, 37) == "" ? "ComDespesas" : S(r, 37),
             EscopoServico = comEscopo ? S(r, 38) : "",
+            EscopoDetalhado = comEscopoDetalhado ? S(r, 39) : "",
         };
 
-        // Bancos gravados antes da coluna "escopoServico" não a têm — fallback
-        // lê sem ela; a primeira gravação nova cria a coluna (union_by_name).
+        // Bancos gravados antes das colunas "escopoServico"/"escopoDetalhado"
+        // não as têm — os fallbacks leem sem elas; a primeira gravação nova
+        // cria as colunas (union_by_name).
         try
         {
-            return _store.ReadLatest(Entidade, colunas + ", escopoServico",
-                r => Mapear(r, comEscopo: true), "criadaEm DESC");
+            return _store.ReadLatest(Entidade, colunas + ", escopoServico, escopoDetalhado",
+                r => Mapear(r, comEscopo: true, comEscopoDetalhado: true), "criadaEm DESC");
         }
         catch
         {
-            return _store.ReadLatest(Entidade, colunas,
-                r => Mapear(r, comEscopo: false), "criadaEm DESC");
+            try
+            {
+                return _store.ReadLatest(Entidade, colunas + ", escopoServico",
+                    r => Mapear(r, comEscopo: true, comEscopoDetalhado: false), "criadaEm DESC");
+            }
+            catch
+            {
+                return _store.ReadLatest(Entidade, colunas,
+                    r => Mapear(r, comEscopo: false, comEscopoDetalhado: false), "criadaEm DESC");
+            }
         }
     }
 
@@ -65,7 +75,7 @@ public class PropostaRepository
         new("itensDespesaJson", p.ItensDespesaJson), new("pricingJson", p.PricingJson),
         new("custoTotal", p.CustoTotal), new("total", p.Total), new("criadaEm", p.CriadaEm),
         new("status", p.Status), new("modoApresentacao", p.ModoApresentacao),
-        new("escopoServico", p.EscopoServico),
+        new("escopoServico", p.EscopoServico), new("escopoDetalhado", p.EscopoDetalhado),
     });
 
     public void Delete(string id) => _store.WriteRow(Entidade,

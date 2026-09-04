@@ -37,6 +37,11 @@ public class Proposta
     public string Estado { get; set; } = "SP";
     /// <summary>Escopo do serviço, impresso ao lado de "ASSESSORIA TÉCNICA -".</summary>
     public string EscopoServico { get; set; } = "";
+    /// <summary>
+    /// Escopo detalhado (texto livre, digitado à mão): sai na proposta antes
+    /// das notas — e só aparece se tiver algo escrito.
+    /// </summary>
+    public string EscopoDetalhado { get; set; } = "";
     public string Segmento { get; set; } = "Service";
     public string MarketSegment { get; set; } = "Mining";
     public string VendaPara { get; set; } = "Cliente Final";

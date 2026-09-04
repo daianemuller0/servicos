@@ -63,6 +63,11 @@
                         @foreach (var o in Servicos.EscoposServico) { <option value="@o"></option> }
                     </datalist>
                 </label>
+                <label style="grid-column:1 / -1">Escopo detalhado (opcional — em branco não sai na proposta)
+                    <textarea class="cell" rows="4" style="font-family:inherit; resize:vertical"
+                              placeholder="texto livre, impresso antes das notas da proposta"
+                              @bind="P.EscopoDetalhado"></textarea>
+                </label>
                 <label>Representante 1
                     <select class="cell" value="@P.Representante" @onchange="e => MudarRep(e, 1)">
                         <option value="-">— sem representante —</option>

@@ -464,6 +464,17 @@ public static class Servicos
             $"<td style='{bd};text-align:center;color:{corpo}'>{Pricing.Moeda0(c.Qtd)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{M(c.Valor)}</td></tr>"));
 
+        // Escopo detalhado (texto livre): só entra no documento se foi digitado.
+        var tituloEscopo = p.Idioma switch
+        {
+            "English" => "SCOPE OF SERVICES",
+            "Español" => "ALCANCE DEL SERVICIO",
+            _ => "ESCOPO DO SERVIÇO",
+        };
+        var escopoHtml = string.IsNullOrWhiteSpace(p.EscopoDetalhado) ? "" : $@"
+<p style='margin:18px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{tituloEscopo}</p>
+<p style='margin:0;color:{corpo};font-size:8.5pt'>{E(p.EscopoDetalhado.Trim()).Replace("\r\n", "\n").Replace("\n", "<br/>")}</p>";
+
         var fat = billing ?? FaturamentoPadrao(p.Bu);
         var bancoLinha = string.IsNullOrWhiteSpace(fat.BancoNome) ? "" :
             $"{L.Banco}: {E(fat.BancoNome)} – {L.Agencia}: {E(fat.Agencia)} {L.Conta}: {E(fat.Conta)}";
@@ -552,6 +563,8 @@ public static class Servicos
 <tr>{Th(L.Servico)}{Th(L.Obs)}{Th(L.ValorTotal, "right")}</tr>
 {linhasAdic}
 </table>")}
+
+{escopoHtml}
 
 {notas}
 
