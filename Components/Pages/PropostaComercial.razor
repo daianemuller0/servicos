@@ -121,7 +121,7 @@
         <input class="de" style="width:60%" placeholder="Suporte Engenharia de Ventilação" @bind="P.Referencia" />
     </div>
     <div style="margin-top:8px">
-        Prazo de entrega: <input class="de num" style="width:60px" placeholder="digite" @bind="P.PrazoEntregaDias" /> dias ·
+        Prazo de entrega: <input class="de" style="width:110px" placeholder="digite" @bind="P.PrazoEntregaDias" /> ·
         Qtd. de técnicos: <input class="de qtd" @bind="R.Params.QtdTecnicos" /> ·
         Moeda: <select class="de" @bind="P.Moeda">
             @foreach (var o in Servicos.Moedas) { <option value="@o">@o</option> }

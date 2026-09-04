@@ -165,17 +165,17 @@ public static class Servicos
         "English" => (
             "Quote {numero} - {cliente}",
             "Dear {contato},\r\n\r\nPlease find attached our quote {numero} (rev. {rev}) - {referencia}.\r\n\r\n" +
-            "Total amount (taxes included): {total}\r\nValidity: {validade}\r\nDelivery time: {prazo} days\r\n\r\n" +
+            "Total amount (taxes included): {total}\r\nValidity: {validade}\r\nDelivery time: {prazo}\r\n\r\n" +
             "We remain at your disposal.\r\n\r\nBest regards,\r\n{preparada_por}"),
         "Español" => (
             "Oferta {numero} - {cliente}",
             "Estimado(a) {contato}:\r\n\r\nAdjuntamos nuestra oferta {numero} (rev. {rev}) - {referencia}.\r\n\r\n" +
-            "Valor total (con impuestos): {total}\r\nValidez: {validade}\r\nPlazo de entrega: {prazo} días\r\n\r\n" +
+            "Valor total (con impuestos): {total}\r\nValidez: {validade}\r\nPlazo de entrega: {prazo}\r\n\r\n" +
             "Quedamos a su disposición.\r\n\r\nSaludos cordiales,\r\n{preparada_por}"),
         _ => (
             "Proposta {numero} - {cliente}",
             "Prezado(a) {contato},\r\n\r\nSegue em anexo a nossa proposta {numero} (rev. {rev}) - {referencia}.\r\n\r\n" +
-            "Valor total (com impostos): {total}\r\nValidade: {validade}\r\nPrazo de entrega: {prazo} dias\r\n\r\n" +
+            "Valor total (com impostos): {total}\r\nValidade: {validade}\r\nPrazo de entrega: {prazo}\r\n\r\n" +
             "Ficamos à disposição para qualquer esclarecimento.\r\n\r\nAtenciosamente,\r\n{preparada_por}"),
     };
 
@@ -389,7 +389,7 @@ public static class Servicos
 <td style='padding:0;width:30%'><b style='color:{navy}'>{L.Estado}</b><br/><span style='color:{corpo}'>{D(p.Estado)}</span></td>
 </tr></table>
 {(string.IsNullOrWhiteSpace(p.Referencia) ? "" : $"<p style='color:{corpo};margin:10px 0 0'><b style='color:{navy}'>Ref.:</b> {E(p.Referencia)}</p>")}
-<p style='color:{corpo};margin:10px 0 16px'>{L.PrazoEntrega} {D(p.PrazoEntregaDias)} {L.Dias}</p>
+<p style='color:{corpo};margin:10px 0 16px'>{L.PrazoEntrega} {D(p.PrazoEntregaDias)}</p>
 
 <p style='margin:0 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Assessoria}{(string.IsNullOrWhiteSpace(p.EscopoServico) ? "" : $" - {E(p.EscopoServico)}")}</p>
 <table style='width:100%;border-collapse:collapse;font-size:8.5pt'>

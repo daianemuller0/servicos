@@ -102,8 +102,8 @@
                 <label>Validade (dias)
                     <input class="cell num" @bind="P.ValidadeDias" />
                 </label>
-                <label>Prazo de entrega (dias)
-                    <input class="cell num" placeholder="digite" @bind="P.PrazoEntregaDias" />
+                <label>Prazo de entrega
+                    <input class="cell" placeholder="digite (ex.: 30 ou A combinar)" @bind="P.PrazoEntregaDias" />
                 </label>
                 <label>Segmento (margem)
                     <select class="cell" value="@P.Segmento" @onchange="MudarSegmento">
