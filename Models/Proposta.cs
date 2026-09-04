@@ -28,12 +28,15 @@ public class Proposta
     public string Idioma { get; set; } = "Português";
     public string Moeda { get; set; } = "BRL";
     public string ValidadeDias { get; set; } = "30";
-    public string PrazoEntregaDias { get; set; } = "30";
+    /// <summary>Sempre nasce em branco — quem monta a proposta digita o prazo.</summary>
+    public string PrazoEntregaDias { get; set; } = "";
     public string PreparadaPor { get; set; } = "";
     public string RevisadaPor { get; set; } = "";
     public string Representante { get; set; } = "-";
     public string Representante2 { get; set; } = "-";
     public string Estado { get; set; } = "SP";
+    /// <summary>Escopo do serviço, impresso ao lado de "ASSESSORIA TÉCNICA -".</summary>
+    public string EscopoServico { get; set; } = "";
     public string Segmento { get; set; } = "Service";
     public string MarketSegment { get; set; } = "Mining";
     public string VendaPara { get; set; } = "Cliente Final";

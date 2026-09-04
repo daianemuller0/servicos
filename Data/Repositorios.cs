@@ -9,13 +9,16 @@ public class PropostaRepository
     private readonly ParquetStore _store;
     public PropostaRepository(ParquetStore store) => _store = store;
 
-    public List<Proposta> All() => _store.ReadLatest(Entidade,
-        "id, cliente, cidade, contatoNome, contatoEmail, contatoTelefone, projeto, referencia, " +
-        "numero, revisao, ano, data, bu, idioma, moeda, validadeDias, prazoEntregaDias, " +
-        "preparadaPor, revisadaPor, representante, representante2, estado, segmento, marketSegment, vendaPara, destino, " +
-        "assinaNome, assinaCargo, assinaEmail, assinaFones, " +
-        "itensMoJson, itensDespesaJson, pricingJson, custoTotal, total, criadaEm, status, modoApresentacao",
-        r => new Proposta
+    public List<Proposta> All()
+    {
+        const string colunas =
+            "id, cliente, cidade, contatoNome, contatoEmail, contatoTelefone, projeto, referencia, " +
+            "numero, revisao, ano, data, bu, idioma, moeda, validadeDias, prazoEntregaDias, " +
+            "preparadaPor, revisadaPor, representante, representante2, estado, segmento, marketSegment, vendaPara, destino, " +
+            "assinaNome, assinaCargo, assinaEmail, assinaFones, " +
+            "itensMoJson, itensDespesaJson, pricingJson, custoTotal, total, criadaEm, status, modoApresentacao";
+
+        Proposta Mapear(System.Data.IDataReader r, bool comEscopo) => new()
         {
             Id = S(r, 0), Cliente = S(r, 1), Cidade = S(r, 2), ContatoNome = S(r, 3),
             ContatoEmail = S(r, 4), ContatoTelefone = S(r, 5), Projeto = S(r, 6), Referencia = S(r, 7),
@@ -28,7 +31,22 @@ public class PropostaRepository
             ItensMoJson = S(r, 30), ItensDespesaJson = S(r, 31), PricingJson = S(r, 32),
             CustoTotal = S(r, 33), Total = S(r, 34), CriadaEm = S(r, 35), Status = S(r, 36),
             ModoApresentacao = S(r, 37) == "" ? "ComDespesas" : S(r, 37),
-        }, "criadaEm DESC");
+            EscopoServico = comEscopo ? S(r, 38) : "",
+        };
+
+        // Bancos gravados antes da coluna "escopoServico" não a têm — fallback
+        // lê sem ela; a primeira gravação nova cria a coluna (union_by_name).
+        try
+        {
+            return _store.ReadLatest(Entidade, colunas + ", escopoServico",
+                r => Mapear(r, comEscopo: true), "criadaEm DESC");
+        }
+        catch
+        {
+            return _store.ReadLatest(Entidade, colunas,
+                r => Mapear(r, comEscopo: false), "criadaEm DESC");
+        }
+    }
 
     public void Save(Proposta p) => _store.WriteRow(Entidade, new KeyValuePair<string, object?>[]
     {
@@ -47,6 +65,7 @@ public class PropostaRepository
         new("itensDespesaJson", p.ItensDespesaJson), new("pricingJson", p.PricingJson),
         new("custoTotal", p.CustoTotal), new("total", p.Total), new("criadaEm", p.CriadaEm),
         new("status", p.Status), new("modoApresentacao", p.ModoApresentacao),
+        new("escopoServico", p.EscopoServico),
     });
 
     public void Delete(string id) => _store.WriteRow(Entidade,

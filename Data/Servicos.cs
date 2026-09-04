@@ -11,6 +11,20 @@ namespace HowdenServicos.Poc.Data;
 public static class Servicos
 {
     public static readonly string[] Bus = { "HSA-SP", "HSA-ES", "HCHL", "HPU" };
+
+    /// <summary>Escopos de serviço sugeridos (o campo também aceita digitação livre).</summary>
+    public static readonly string[] EscoposServico =
+    {
+        "Comissionamento e startup",
+        "Treinamento de princípios básicos de ventiladores",
+        "Treinamento para Operação e Manutenção de Ventiladores Centrífugos",
+        "Montagem, comissionamento e startup",
+        "Serviço de inspeção",
+        "Levantamento de campo",
+        "Estudo de ventilação",
+        "Supervisão técnica de especialista Howden",
+        "Levantamento dos pontos operacionais do equipamento",
+    };
     public static readonly string[] Idiomas = { "Português", "English", "Español" };
     public static readonly string[] Moedas = { "BRL", "USD", "EUR", "CLP", "PEN" };
     public static readonly string[] Segmentos = { "Service", "NB", "AFM", "Intercompany" };
@@ -377,7 +391,7 @@ public static class Servicos
 {(string.IsNullOrWhiteSpace(p.Referencia) ? "" : $"<p style='color:{corpo};margin:10px 0 0'><b style='color:{navy}'>Ref.:</b> {E(p.Referencia)}</p>")}
 <p style='color:{corpo};margin:10px 0 16px'>{L.PrazoEntrega} {D(p.PrazoEntregaDias)} {L.Dias}</p>
 
-<p style='margin:0 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Assessoria}</p>
+<p style='margin:0 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Assessoria}{(string.IsNullOrWhiteSpace(p.EscopoServico) ? "" : $" - {E(p.EscopoServico)}")}</p>
 <table style='width:100%;border-collapse:collapse;font-size:8.5pt'>
 <tr>{Th(L.Servico)}{Th(L.Obs)}{Th(L.Horas, "center")}{Th(L.ValorHora, "right")}{Th(L.ValorDiaria, "right")}{Th(L.QtdDiaria, "center")}{Th(L.ValorTotal, "right")}</tr>
 {linhasMO}
@@ -386,7 +400,7 @@ public static class Servicos
 </table>
 
 {(doc.Despesas.Count == 0 ? "" : $@"
-<p style='margin:18px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Despesas}</p>
+<p style='margin:18px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Despesas}{(doc.TaxaAdmPct <= 0 ? "" : $" <span style='font-weight:normal;font-size:8pt;color:{sec}'>({(p.Idioma == "English" ? $"includes {Pricing.Moeda0(doc.TaxaAdmPct)}% administrative fee" : p.Idioma == "Español" ? $"incluye {Pricing.Moeda0(doc.TaxaAdmPct)}% de tasa administrativa" : $"Incluso {Pricing.Moeda0(doc.TaxaAdmPct)}% de taxa administrativa")})</span>")}</p>
 <table style='width:100%;border-collapse:collapse;font-size:8.5pt'>
 <tr>{Th(L.Despesas)}{Th(L.Obs)}{Th(L.Qtd, "center")}{Th(L.ValorUnit, "right")}{Th(L.ValorTotal, "right")}</tr>
 {linhasDesp}

@@ -121,7 +121,7 @@
         <input class="de" style="width:60%" placeholder="Suporte Engenharia de Ventilação" @bind="P.Referencia" />
     </div>
     <div style="margin-top:8px">
-        Prazo de entrega: <input class="de num" style="width:44px" @bind="P.PrazoEntregaDias" /> dias ·
+        Prazo de entrega: <input class="de num" style="width:60px" placeholder="digite" @bind="P.PrazoEntregaDias" /> dias ·
         Qtd. de técnicos: <input class="de qtd" @bind="R.Params.QtdTecnicos" /> ·
         Moeda: <select class="de" @bind="P.Moeda">
             @foreach (var o in Servicos.Moedas) { <option value="@o">@o</option> }
@@ -132,7 +132,14 @@
     </div>
 
     @* ---------- assessoria técnica ---------- *@
-    <h2>ASSESSORIA TÉCNICA</h2>
+    <h2 style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap">
+        ASSESSORIA TÉCNICA @(string.IsNullOrWhiteSpace(P.EscopoServico) ? "" : "-")
+        <input class="de" style="min-width:340px; font-size:13px; font-weight:600" list="escopos"
+               placeholder="— escopo do serviço (escolha ou digite) —" @bind="P.EscopoServico" />
+        <datalist id="escopos">
+            @foreach (var e in Servicos.EscoposServico) { <option value="@e"></option> }
+        </datalist>
+    </h2>
     <table class="doc-tbl">
         <thead>
             <tr>
@@ -175,7 +182,13 @@
             os valores das despesas estão embutidos nas diárias da assessoria.
         </div>
     }
-    <h2>DESPESAS @(P.ModoApresentacao == "SemDespesas" ? "(interno)" : "")</h2>
+    <h2>
+        DESPESAS @(P.ModoApresentacao == "SemDespesas" ? "(interno)" : "")
+        @if (P.ModoApresentacao != "SemDespesas" && Pricing.Num(R.Params.TaxaAdmPct) > 0)
+        {
+            <span class="doc-muted" style="font-weight:400; font-size:11.5px">(Incluso @Pricing.Moeda0(Pricing.Num(R.Params.TaxaAdmPct))% de taxa administrativa)</span>
+        }
+    </h2>
     <table class="doc-tbl">
         <thead>
             <tr>

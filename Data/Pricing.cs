@@ -261,7 +261,8 @@ public static class Pricing
         List<LinhaMO> MO, List<LinhaDespesa> Despesas, List<Complementar> Complementares,
         double TotalMO, double TotalDespesas, double Total, Resultado Calculo,
         double Deslocamento = 0,
-        double DescontoDia = 0);   // modo aberto: despesas do dia descontadas da diária
+        double DescontoDia = 0,    // modo aberto: despesas do dia descontadas da diária
+        double TaxaAdmPct = 0);    // taxa adm usada na apresentação (p/ rótulos)
 
     /// <summary>
     /// Distribui o preço de venda entre os itens (proporcional ao custo) e monta
@@ -492,7 +493,7 @@ public static class Pricing
         }
 
         return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp,
-            totalGeral, doc.Calculo, deslocamento, descontoDia);
+            totalGeral, doc.Calculo, deslocamento, descontoDia, taxaAdmPct);
     }
 
     /// <summary>
@@ -527,14 +528,22 @@ public static class Pricing
         var d = Math.Round(DiariaNormalApresentada(apresentado) + apresentado.DescontoDia, 2);
         if (d <= 0) return new();
         var hora = Math.Round(d / 8.0, 2);
-        return new()
+
+        // A linha do 2º turno só aparece se a proposta tiver diária de noite.
+        var tem2Turno = apresentado.MO.Any(l => l.QtdDiaria > 0 && l.Horas >= 2 &&
+            l.Mult is > 1.4 and < 1.6 &&
+            (l.Servico + " " + l.Obs).ToUpperInvariant().Contains("TURNO"));
+
+        var lista = new List<DiariaAdicional>
         {
             new("DIARIA ADICIONAL", "1o. TURNO — 8 HORAS (DIAS UTEIS DE SEG. A SEX.)", d),
-            new("DIARIA ADICIONAL: 2o. TURNO NOITE", "", Math.Round(1.5 * d, 2)),
-            new("DIARIA EXTRA SAB, DOM E FER", "", Math.Round(2 * d, 2)),
-            new("HORA EXTRA SUP. 8h/DIA", "", Math.Round(1.5 * hora, 2)),
-            new("HORA EXTRA SAB, DOM E FER", "", Math.Round(2 * hora, 2)),
         };
+        if (tem2Turno)
+            lista.Add(new("DIARIA ADICIONAL: 2o. TURNO NOITE", "", Math.Round(1.5 * d, 2)));
+        lista.Add(new("DIARIA EXTRA SAB, DOM E FER", "", Math.Round(2 * d, 2)));
+        lista.Add(new("HORA EXTRA SUP. 8h/DIA", "", Math.Round(1.5 * hora, 2)));
+        lista.Add(new("HORA EXTRA SAB, DOM E FER", "", Math.Round(2 * hora, 2)));
+        return lista;
     }
 
     /// <summary>Diária normal (1×, com impostos) como sai na proposta apresentada.</summary>

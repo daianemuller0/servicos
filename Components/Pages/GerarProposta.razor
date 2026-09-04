@@ -57,6 +57,12 @@
                 <label>Referência / escopo
                     <input class="cell" placeholder="Suporte Engenharia de Ventilação" @bind="P.Referencia" />
                 </label>
+                <label>Escopo do serviço (título da assessoria)
+                    <input class="cell" list="escopos-gp" placeholder="escolha ou digite" @bind="P.EscopoServico" />
+                    <datalist id="escopos-gp">
+                        @foreach (var o in Servicos.EscoposServico) { <option value="@o"></option> }
+                    </datalist>
+                </label>
                 <label>Representante 1
                     <select class="cell" value="@P.Representante" @onchange="e => MudarRep(e, 1)">
                         <option value="-">— sem representante —</option>
@@ -97,7 +103,7 @@
                     <input class="cell num" @bind="P.ValidadeDias" />
                 </label>
                 <label>Prazo de entrega (dias)
-                    <input class="cell num" @bind="P.PrazoEntregaDias" />
+                    <input class="cell num" placeholder="digite" @bind="P.PrazoEntregaDias" />
                 </label>
                 <label>Segmento (margem)
                     <select class="cell" value="@P.Segmento" @onchange="MudarSegmento">
