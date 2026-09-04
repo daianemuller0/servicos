@@ -124,6 +124,34 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
                 d.Qtd = (d.Despesa ?? "").ToUpperInvariant().Contains("HOSPEDAGEM") ? noites : texto;
     }
 
+    // ================= tic das notas =================
+
+    /// <summary>Mensagem do botão "salvar seleção como padrão".</summary>
+    protected string MsgNotas { get; private set; } = "";
+
+    /// <summary>Liga/desliga o tic de uma nota (desligada = não sai no documento).</summary>
+    protected void AlternarNota(string chave, bool marcada)
+    {
+        var fora = Data.Servicos.NotasDesmarcadas(R.Proposta);
+        if (marcada) fora.Remove(chave); else fora.Add(chave);
+        R.Proposta.NotasDesmarcadas = string.Join(";", fora.OrderBy(x => x));
+        MsgNotas = "";
+    }
+
+    /// <summary>
+    /// Grava a seleção atual dos tics como padrão: toda proposta nova já nasce
+    /// com as mesmas notas desmarcadas.
+    /// </summary>
+    protected void SalvarNotasPadrao()
+    {
+        Config.Set("notas.padrao.desmarcadas", R.Proposta.NotasDesmarcadas);
+        if (string.IsNullOrWhiteSpace(R.Proposta.NotasDesmarcadas))
+            Cfg.Remove("notas.padrao.desmarcadas");
+        else
+            Cfg["notas.padrao.desmarcadas"] = R.Proposta.NotasDesmarcadas;
+        MsgNotas = "Padrão salvo ✓ — propostas novas já nascem com esta seleção.";
+    }
+
     // ================= ferramentas de preço =================
 
     /// <summary>O documento como apresentado ao cliente (para ler a diária normal).</summary>

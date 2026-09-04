@@ -65,6 +65,7 @@ public class Rascunho
         Proposta.ValidadeDias = V("padrao.validade") ?? Proposta.ValidadeDias;
         Proposta.PrazoEntregaDias = V("padrao.prazo") ?? Proposta.PrazoEntregaDias;
         Proposta.ModoApresentacao = V("padrao.modo") ?? Proposta.ModoApresentacao;
+        Proposta.NotasDesmarcadas = V("notas.padrao.desmarcadas") ?? "";
         Params.TaxaAdmPct = V("padrao.taxaAdm") ?? Params.TaxaAdmPct;
         Params.RiscoPct = V("padrao.risco") ?? Params.RiscoPct;
         Params.FiancaTipo = V("padrao.fiancaTipo") ?? Params.FiancaTipo;

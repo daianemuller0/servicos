@@ -281,8 +281,46 @@
               placeholder="— digite o escopo detalhado (opcional: em branco, esta seção não sai na proposta) —"
               @bind="P.EscopoDetalhado"></textarea>
 
-    @* ---------- notas (incluso / excluso / gerais) — automáticas pelo custo ---------- *@
-    @((MarkupString)Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA))
+    @* ---------- notas (incluso / excluso / gerais) — tic escolhe o que sai ---------- *@
+    @{
+        var todasNotas = Servicos.NotasDaProposta(P, R.ItensMO, R.ItensDespesa, R.Params, DocA);
+        var notasFora = Servicos.NotasDesmarcadas(P);
+    }
+    @if (todasNotas.Count > 0)
+    {
+        <div style="margin:20px 0 4px; padding:7px 10px; background:#f0f4fa; border:1px dashed #b9c6dd; border-radius:6px; font-size:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+            <span>Notas com tic ✓ saem na proposta — desmarque as que não quer.</span>
+            <button class="btn-ghost" style="font-size:12px; padding:3px 10px" @onclick="SalvarNotasPadrao">Salvar seleção como padrão</button>
+            @if (!string.IsNullOrEmpty(MsgNotas))
+            {
+                <span style="color:#0a7a41; font-weight:600">@MsgNotas</span>
+            }
+        </div>
+        foreach (var (secao, titulo, cor) in new[]
+        {
+            ("incluso", "INCLUSO NO FORNECIMENTO DA HOWDEN:", "#004785"),
+            ("excluso", "EXCLUSOS DO FORNECIMENTO DA HOWDEN:", "#004785"),
+            ("gerais", "Notas Gerais:", "#141E32"),
+        })
+        {
+            var itens = todasNotas.Where(n => n.Secao == secao).ToList();
+            if (itens.Count == 0) { continue; }
+            <p style="margin:14px 0 2px; font-weight:bold; font-size:13px; color:@cor; text-decoration:underline">@titulo</p>
+            <ul style="margin:4px 0 0; padding-left:4px; list-style:none">
+                @foreach (var nota in itens)
+                {
+                    var marcada = !notasFora.Contains(nota.Chave);
+                    <li style="margin:3px 0; font-size:12px; color:#3C465A; @(marcada ? "" : "opacity:.42; text-decoration:line-through")">
+                        <label style="display:flex; gap:7px; align-items:flex-start; cursor:pointer">
+                            <input type="checkbox" style="margin-top:2px; flex:none" checked="@marcada"
+                                   @onchange="e => AlternarNota(nota.Chave, (bool)e.Value!)" />
+                            <span>@((MarkupString)nota.Texto)</span>
+                        </label>
+                    </li>
+                }
+            </ul>
+        }
+    }
 
     @* ---------- faturamento ---------- *@
     <h2>DADOS PARA FATURAMENTO</h2>

@@ -42,6 +42,11 @@ public class Proposta
     /// das notas — e só aparece se tiver algo escrito.
     /// </summary>
     public string EscopoDetalhado { get; set; } = "";
+    /// <summary>
+    /// Chaves das notas DESMARCADAS no tic (separadas por ";"): essas não saem
+    /// no documento. Vazio = todas as notas automáticas saem.
+    /// </summary>
+    public string NotasDesmarcadas { get; set; } = "";
     public string Segmento { get; set; } = "Service";
     public string MarketSegment { get; set; } = "Mining";
     public string VendaPara { get; set; } = "Cliente Final";

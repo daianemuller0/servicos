@@ -18,7 +18,7 @@ public class PropostaRepository
             "assinaNome, assinaCargo, assinaEmail, assinaFones, " +
             "itensMoJson, itensDespesaJson, pricingJson, custoTotal, total, criadaEm, status, modoApresentacao";
 
-        Proposta Mapear(System.Data.IDataReader r, bool comEscopo, bool comEscopoDetalhado) => new()
+        Proposta Mapear(System.Data.IDataReader r, int extras) => new()
         {
             Id = S(r, 0), Cliente = S(r, 1), Cidade = S(r, 2), ContatoNome = S(r, 3),
             ContatoEmail = S(r, 4), ContatoTelefone = S(r, 5), Projeto = S(r, 6), Referencia = S(r, 7),
@@ -31,30 +31,25 @@ public class PropostaRepository
             ItensMoJson = S(r, 30), ItensDespesaJson = S(r, 31), PricingJson = S(r, 32),
             CustoTotal = S(r, 33), Total = S(r, 34), CriadaEm = S(r, 35), Status = S(r, 36),
             ModoApresentacao = S(r, 37) == "" ? "ComDespesas" : S(r, 37),
-            EscopoServico = comEscopo ? S(r, 38) : "",
-            EscopoDetalhado = comEscopoDetalhado ? S(r, 39) : "",
+            EscopoServico = extras >= 1 ? S(r, 38) : "",
+            EscopoDetalhado = extras >= 2 ? S(r, 39) : "",
+            NotasDesmarcadas = extras >= 3 ? S(r, 40) : "",
         };
 
-        // Bancos gravados antes das colunas "escopoServico"/"escopoDetalhado"
-        // não as têm — os fallbacks leem sem elas; a primeira gravação nova
-        // cria as colunas (union_by_name).
-        try
+        // Bancos antigos não têm as colunas mais novas — tenta com todas e vai
+        // tirando da direita até a leitura passar; a primeira gravação nova
+        // cria as que faltarem (union_by_name).
+        var novas = new[] { "escopoServico", "escopoDetalhado", "notasDesmarcadas" };
+        for (var n = novas.Length; ; n--)
         {
-            return _store.ReadLatest(Entidade, colunas + ", escopoServico, escopoDetalhado",
-                r => Mapear(r, comEscopo: true, comEscopoDetalhado: true), "criadaEm DESC");
-        }
-        catch
-        {
+            var extras = string.Concat(novas.Take(n).Select(c => ", " + c));
             try
             {
-                return _store.ReadLatest(Entidade, colunas + ", escopoServico",
-                    r => Mapear(r, comEscopo: true, comEscopoDetalhado: false), "criadaEm DESC");
+                var qtd = n;
+                return _store.ReadLatest(Entidade, colunas + extras,
+                    r => Mapear(r, qtd), "criadaEm DESC");
             }
-            catch
-            {
-                return _store.ReadLatest(Entidade, colunas,
-                    r => Mapear(r, comEscopo: false, comEscopoDetalhado: false), "criadaEm DESC");
-            }
+            catch when (n > 0) { }
         }
     }
 
@@ -76,6 +71,7 @@ public class PropostaRepository
         new("custoTotal", p.CustoTotal), new("total", p.Total), new("criadaEm", p.CriadaEm),
         new("status", p.Status), new("modoApresentacao", p.ModoApresentacao),
         new("escopoServico", p.EscopoServico), new("escopoDetalhado", p.EscopoDetalhado),
+        new("notasDesmarcadas", p.NotasDesmarcadas),
     });
 
     public void Delete(string id) => _store.WriteRow(Entidade,
