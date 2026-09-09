@@ -101,6 +101,23 @@ public static class Pricing
         (servico ?? "").TrimStart().ToUpperInvariant().StartsWith("HORAS EXTRAS");
 
     /// <summary>
+    /// Multiplicador obrigatório re-identificado pelo NOME do serviço — para
+    /// bases e propostas gravadas ANTES da coluna de multiplicador existir:
+    /// 2º turno = 1,5×; sáb/dom/fer = 2×; HE semana = 1,5×; HE sáb/dom = 2×.
+    /// Vazio = linha sem multiplicador (equipamentos, treinamentos…).
+    /// </summary>
+    public static string MultPeloNome(string? servico, string? obs)
+    {
+        var s = (servico ?? "").TrimStart().ToUpperInvariant();
+        var o = (obs ?? "").ToUpperInvariant();
+        var fds = s.Contains("SAB") || s.Contains("DOM") || s.Contains("FER");
+        if (s.StartsWith("DIARIAS NORMAIS")) return o.Contains("2O") || o.Contains("2°") ? "1.5" : "1";
+        if (s.Contains("DIARIAS EXTRAS") && fds) return "2";
+        if (s.Contains("HORAS EXTRAS")) return fds ? "2" : "1.5";
+        return "";
+    }
+
+    /// <summary>
     /// Margem (Project Margin) que resulta se o valor final com impostos for
     /// exatamente a meta informada — a função "chegar no valor".
     /// </summary>
@@ -566,7 +583,18 @@ public static class Pricing
         var normal = apresentado.MO.FirstOrDefault(l => l.Mult is > 0.99 and < 1.01 && l.QtdDiaria > 0);
         if (normal is not null) return normal.ValorDiaria;
         var outra = apresentado.MO.FirstOrDefault(l => l.Mult > 0 && l.QtdDiaria > 0);
-        return outra is null ? 0 : Math.Round(outra.ValorDiaria / outra.Mult, 2);
+        if (outra is not null) return Math.Round(outra.ValorDiaria / outra.Mult, 2);
+
+        // Proposta antiga sem multiplicadores gravados: re-identifica pelo
+        // nome do serviço (senão a diária normal "sumiria" — e com ela a
+        // tabela de diárias adicionais no modo sem despesas).
+        foreach (var l in apresentado.MO)
+        {
+            if (l.QtdDiaria <= 0) continue;
+            var m = Num(MultPeloNome(l.Servico, l.Obs));
+            if (m > 0) return Math.Round(l.ValorDiaria / m, 2);
+        }
+        return 0;
     }
 
     /// <summary>

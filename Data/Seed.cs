@@ -176,5 +176,22 @@ public static class DbInitializer
                 if (!todos.Any(p => p.Pais == pais))
                     foreach (var x in Seed.ParametrosPais(pais)) repo.Save(x);
         }
+
+        // Bases antigas: a coluna de multiplicador não existia — sem ela os
+        // multiplicadores obrigatórios (2º turno 1,5×; sáb/dom 2×; HE 1,5×/2×)
+        // não se aplicam e a diária normal "some" (ex.: tabela de diárias
+        // adicionais vazia no modo sem despesas). Re-identifica pelo nome e
+        // grava de volta, uma única vez por linha.
+        {
+            var repo = new ParametroRepository(store);
+            foreach (var p in repo.All())
+            {
+                if (p.Tipo != "MO" || Pricing.Num(p.Mult) > 0) continue;
+                var m = Pricing.MultPeloNome(p.Descricao, p.Obs);
+                if (m == "") continue;
+                p.Mult = m;
+                repo.Save(p);
+            }
+        }
     }
 }

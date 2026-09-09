@@ -95,6 +95,10 @@ public class Rascunho
             Despesa = p.Descricao, Obs = p.Obs, Qtd = "0",
             CustoUnitario = p.Valor, PorTecnico = p.PorTecnico == "Sim",
         }).ToList();
+
+        // Tabela de custos antiga (sem a coluna de multiplicador): os
+        // multiplicadores obrigatórios são re-identificados pelo nome.
+        MigrarMultiplicadores();
     }
 
     /// <summary>
@@ -126,6 +130,7 @@ public class Rascunho
             ItensDespesa[i].CustoUnitario = desp[i].Valor;
             ItensDespesa[i].PorTecnico = desp[i].PorTecnico == "Sim";
         }
+        MigrarMultiplicadores();
     }
 
     /// <summary>Carrega uma proposta gravada de volta para edição.</summary>
@@ -149,16 +154,8 @@ public class Rascunho
         foreach (var i in ItensMO)
         {
             if (Pricing.Num(i.Mult) > 0) continue;
-            var servico = (i.Servico ?? "").ToUpperInvariant();
-            var obs = (i.Obs ?? "").ToUpperInvariant();
-            var fimDeSemana = servico.Contains("SAB") || servico.Contains("DOM") || servico.Contains("FER");
-
-            if (servico.StartsWith("DIARIAS NORMAIS"))
-                i.Mult = obs.Contains("2O") || obs.Contains("2°") ? "1.5" : "1";
-            else if (servico.Contains("DIARIAS EXTRAS") && fimDeSemana)
-                i.Mult = "2";
-            else if (servico.Contains("HORAS EXTRAS"))
-                i.Mult = fimDeSemana ? "2" : "1.5";   // HE semana 1,5× · HE sáb/dom/fer 2×
+            var m = Pricing.MultPeloNome(i.Servico, i.Obs);
+            if (m != "") i.Mult = m;
         }
     }
 
