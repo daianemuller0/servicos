@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>HowdenServicos.Poc</RootNamespace>
+    <!-- Os projetos desktop e launcher moram em subpastas deste repositório —
+         não fazem parte deste projeto web. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);desktop/**;launcher/**;out/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

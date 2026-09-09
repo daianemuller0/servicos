@@ -218,3 +218,6 @@ publish/
 
 # Base local de dados (Parquet) quando Data:Folder não aponta para a rede
 /data/
+
+# Saida de publicacao local (publicar.ps1)
+/out/
