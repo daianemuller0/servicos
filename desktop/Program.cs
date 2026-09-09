@@ -11,6 +11,9 @@ internal static class Program
         // Ambiente "Desktop": o servidor lê o appsettings.json principal (o
         // mesmo do site — pasta de dados, login) + appsettings.Desktop.json.
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Desktop");
+        // Raiz do app = pasta do .exe (wwwroot e appsettings ficam ao lado),
+        // não importa de onde o programa foi aberto.
+        Environment.SetEnvironmentVariable("ASPNETCORE_CONTENTROOT", AppContext.BaseDirectory);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);

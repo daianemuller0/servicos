@@ -24,6 +24,12 @@ public static class BackendHost
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // Fora do ambiente "Development" (ex.: modo desktop) o dotnet run não
+        // carrega sozinho o manifesto de assets estáticos (wwwroot) — sem isso
+        // o sistema abre sem CSS/JS. No publicado o wwwroot é físico e esta
+        // chamada não faz nada.
+        builder.WebHost.UseStaticWebAssets();
+
         if (urls is { Length: > 0 })
         {
             builder.WebHost.UseUrls(urls);
