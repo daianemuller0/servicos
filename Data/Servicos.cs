@@ -142,7 +142,7 @@ public static class Servicos
         public string DiariasAdicionais { get; init; } = "DIÁRIAS ADICIONAIS";
         /// <summary>Observação sob o título da tabela de diárias adicionais.</summary>
         public string DiariasAdicionaisObs { get; init; } =
-            "Valores para dias e horas além do contratado — não incluem despesas de translado (táxi e passagem aérea): o técnico já está na planta";
+            "Valores para dias e horas além do contratado — não incluem despesas de deslocamento (táxi e passagem aérea): o técnico já está na planta";
     }
 
     public static DocLabels Labels(string idioma) => idioma switch
@@ -169,8 +169,8 @@ public static class Servicos
             "VALOR CON PIS Y COFINS", "VALOR CON PIS, COFINS E ISS",
             "INFORMACIONES COMPLEMENTARIAS — NO INCLUIDO", "DESCRIPCIÓN", "DATOS PARA FACTURACIÓN",
             "Banco", "Sucursal", "Cuenta", "Preparado por:", "Revisado por:",
-            "GASTOS DE TRASLADO", "Taxi + pasaje aéreo, tasa administrativa incluida")
-        { DiariasAdicionais = "DÍAS ADICIONALES", DiariasAdicionaisObs = "Valores para días y horas además de lo contratado — no incluyen gastos de traslado (taxi y pasaje aéreo): el técnico ya está en la planta" },
+            "GASTOS DE DESPLAZAMIENTO", "Taxi + pasaje aéreo, tasa administrativa incluida")
+        { DiariasAdicionais = "DÍAS ADICIONALES", DiariasAdicionaisObs = "Valores para días y horas además de lo contratado — no incluyen gastos de desplazamiento (taxi y pasaje aéreo): el técnico ya está en la planta" },
         _ => new DocLabels(
             "DADOS DO CLIENTE", "Cliente:", "Aos cuidados de:", "E-mail:", "Telefone:",
             "Proposta", "DATA", "VALIDADE", "PROJETO", "CIDADE", "ESTADO",
@@ -181,7 +181,7 @@ public static class Servicos
             "VALOR C/ PIS E COFINS", "VALOR C/ PIS, COFINS E ISS",
             "INFORMAÇÕES COMPLEMENTARES — NÃO INCLUSO", "DESCRIÇÃO", "DADOS PARA FATURAMENTO",
             "Banco", "Agência", "Conta", "Preparada por:", "Revisada por:",
-            "DESPESAS DE TRANSLADO", "Táxi + passagem aérea, taxa administrativa inclusa"),
+            "DESPESAS DE DESLOCAMENTO", "Táxi + passagem aérea, taxa administrativa inclusa"),
     };
 
     // ---- e-mails prontos (substituem as macros de Outlook da planilha) ----
