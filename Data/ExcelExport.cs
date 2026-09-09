@@ -139,7 +139,7 @@ public static class ExcelExport
 
         if (doc.Deslocamento > 0)
         {
-            ws.Cell(r, 1).Value = "DESPESAS DE DESLOCAMENTO (táxi + passagem aérea, taxa adm. inclusa)";
+            ws.Cell(r, 1).Value = "DESPESAS DE TRANSLADO (táxi + passagem aérea, taxa adm. inclusa)";
             Num(ws, r, 7, doc.Deslocamento);
             LinhaTotal(ws, r, 1, 7);
             r++;

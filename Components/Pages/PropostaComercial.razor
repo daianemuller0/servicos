@@ -231,8 +231,8 @@
         <table class="doc-tbl" style="margin-top:10px">
             <tr>
                 <td>
-                    <span class="doc-navy">DESPESAS DE DESLOCAMENTO</span>
-                    <span class="doc-muted" style="font-size:11px"> — táxi + passagem aérea, taxa adm. inclusa</span>
+                    <span class="doc-navy">DESPESAS DE TRANSLADO</span>
+                    <span class="doc-muted" style="font-size:11px"> — táxi + passagem aérea: custo + @Pricing.Moeda0(DocA.TaxaAdmPct > 0 ? DocA.TaxaAdmPct : Pricing.Num(R.Params.TaxaAdmPct))% de taxa adm.; a diferença fica embutida nas diárias</span>
                 </td>
                 <td class="right doc-navy" style="width:170px; font-weight:700">
                     @Cifrao @Pricing.Moeda(DocA.Deslocamento)
@@ -262,7 +262,7 @@
     @if (Pricing.DiariasAdicionais(DocA) is { Count: > 0 } adicionais)
     {
         <h2 style="margin-top:18px">DIÁRIAS ADICIONAIS</h2>
-        <div class="doc-muted" style="font-size:11.5px; margin-bottom:4px">Valores para dias e horas além do contratado</div>
+        <div class="doc-muted" style="font-size:11.5px; margin-bottom:4px">Valores para dias e horas além do contratado — não incluem despesas de translado (táxi e passagem aérea): o técnico já está na planta</div>
         <table class="doc-tbl">
             <thead>
                 <tr><th>SERVIÇOS</th><th>OBS</th><th class="right" style="width:170px">VALOR</th></tr>

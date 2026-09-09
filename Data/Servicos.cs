@@ -141,7 +141,8 @@ public static class Servicos
         /// <summary>Título da tabela de diárias adicionais (fim da proposta).</summary>
         public string DiariasAdicionais { get; init; } = "DIÁRIAS ADICIONAIS";
         /// <summary>Observação sob o título da tabela de diárias adicionais.</summary>
-        public string DiariasAdicionaisObs { get; init; } = "Valores para dias e horas além do contratado";
+        public string DiariasAdicionaisObs { get; init; } =
+            "Valores para dias e horas além do contratado — não incluem despesas de translado (táxi e passagem aérea): o técnico já está na planta";
     }
 
     public static DocLabels Labels(string idioma) => idioma switch
@@ -157,7 +158,7 @@ public static class Servicos
             "ADDITIONAL INFORMATION — NOT INCLUDED", "DESCRIPTION", "INVOICING INFORMATION",
             "Bank", "Branch", "Account", "Prepared by:", "Reviewed by:",
             "TRAVEL EXPENSES", "Taxi + airfare, administrative fee included")
-        { DiariasAdicionais = "ADDITIONAL DAILY RATES", DiariasAdicionaisObs = "Rates for days and hours beyond the contracted scope" },
+        { DiariasAdicionais = "ADDITIONAL DAILY RATES", DiariasAdicionaisObs = "Rates for days and hours beyond the contracted scope — travel expenses (taxi and airfare) not included: the technician is already on site" },
         "Español" => new DocLabels(
             "DATOS DEL CLIENTE", "Cliente:", "Al cuidado de:", "E-mail:", "Fono:",
             "OFERTA COMERCIAL", "FECHA", "VALIDEZ", "PROYECTO", "CIUDAD", "ESTADO / PROVINCIA",
@@ -168,8 +169,8 @@ public static class Servicos
             "VALOR CON PIS Y COFINS", "VALOR CON PIS, COFINS E ISS",
             "INFORMACIONES COMPLEMENTARIAS — NO INCLUIDO", "DESCRIPCIÓN", "DATOS PARA FACTURACIÓN",
             "Banco", "Sucursal", "Cuenta", "Preparado por:", "Revisado por:",
-            "GASTOS DE DESPLAZAMIENTO", "Taxi + pasaje aéreo, tasa administrativa incluida")
-        { DiariasAdicionais = "DÍAS ADICIONALES", DiariasAdicionaisObs = "Valores para días y horas además de lo contratado" },
+            "GASTOS DE TRASLADO", "Taxi + pasaje aéreo, tasa administrativa incluida")
+        { DiariasAdicionais = "DÍAS ADICIONALES", DiariasAdicionaisObs = "Valores para días y horas además de lo contratado — no incluyen gastos de traslado (taxi y pasaje aéreo): el técnico ya está en la planta" },
         _ => new DocLabels(
             "DADOS DO CLIENTE", "Cliente:", "Aos cuidados de:", "E-mail:", "Telefone:",
             "Proposta", "DATA", "VALIDADE", "PROJETO", "CIDADE", "ESTADO",
@@ -180,7 +181,7 @@ public static class Servicos
             "VALOR C/ PIS E COFINS", "VALOR C/ PIS, COFINS E ISS",
             "INFORMAÇÕES COMPLEMENTARES — NÃO INCLUSO", "DESCRIÇÃO", "DADOS PARA FATURAMENTO",
             "Banco", "Agência", "Conta", "Preparada por:", "Revisada por:",
-            "DESPESAS DE DESLOCAMENTO", "Táxi + passagem aérea, taxa administrativa inclusa"),
+            "DESPESAS DE TRANSLADO", "Táxi + passagem aérea, taxa administrativa inclusa"),
     };
 
     // ---- e-mails prontos (substituem as macros de Outlook da planilha) ----
@@ -547,9 +548,17 @@ public static class Servicos
         var bancoLinha = string.IsNullOrWhiteSpace(fat.BancoNome) ? "" :
             $"{L.Banco}: {E(fat.BancoNome)} – {L.Agencia}: {E(fat.Agencia)} {L.Conta}: {E(fat.Conta)}";
 
+        // Observação da linha de translado com a taxa da proposta (custo + %).
+        var obsTranslado = doc.TaxaAdmPct <= 0 ? L.DeslocamentoObs : p.Idioma switch
+        {
+            "English" => $"Taxi + airfare — cost + {Pricing.Moeda0(doc.TaxaAdmPct)}% administrative fee",
+            "Español" => $"Taxi + pasaje aéreo — costo + {Pricing.Moeda0(doc.TaxaAdmPct)}% de tasa administrativa",
+            _ => $"Táxi + passagem aérea — custo + {Pricing.Moeda0(doc.TaxaAdmPct)}% de taxa administrativa",
+        };
+
         var totalTabela = (doc.Deslocamento <= 0 ? "" : $@"
 <table style='width:100%;border-collapse:collapse;margin-top:10px;font-size:8.5pt'><tr>
-<td style='{bd}'><b style='color:{navy}'>{L.Deslocamento}</b> <span style='color:{rod};font-size:8pt'>— {L.DeslocamentoObs}</span></td>
+<td style='{bd}'><b style='color:{navy}'>{L.Deslocamento}</b> <span style='color:{rod};font-size:8pt'>— {obsTranslado}</span></td>
 <td style='width:150px;{bd};text-align:right;font-weight:bold;color:{navy}'>{M(doc.Deslocamento)}</td>
 </tr></table>") + $@"
 <table style='width:100%;border-collapse:collapse;margin-top:10px'><tr>
