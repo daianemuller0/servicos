@@ -21,19 +21,35 @@ $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $MyInvocation.MyCommand.Path
 $versao = 'v' + (Get-Date -Format 'yyyy-MM-dd_HHmm')
 
+# Tudo o que aparecer na tela tambem fica gravado em publicar.log —
+# se algo falhar, e so enviar esse arquivo.
+try { Stop-Transcript | Out-Null } catch { }
+Start-Transcript -Path "$raiz\publicar.log" -Force | Out-Null
+
+if (-not (Test-Path "$raiz\desktop\HowdenServicos.Desktop.csproj")) {
+    Stop-Transcript | Out-Null
+    throw "A pasta 'desktop' nao existe aqui — rode 'git pull' para baixar a versao mais nova do projeto e tente de novo."
+}
+
 Write-Host "== SV: publicando versao $versao em $Destino ==" -ForegroundColor Cyan
 
 # 1) Compila o app desktop (auto-contido: as maquinas nao precisam ter .NET)
 Write-Host "`n[1/5] Compilando o aplicativo..." -ForegroundColor Yellow
 dotnet publish "$raiz\desktop\HowdenServicos.Desktop.csproj" -c Release -r win-x64 `
     --self-contained true -o "$raiz\out\app\$versao"
-if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar o aplicativo desktop.' }
+if ($LASTEXITCODE -ne 0) {
+    Stop-Transcript | Out-Null
+    throw 'Falha ao compilar o aplicativo desktop — os detalhes estao acima e em publicar.log.'
+}
 
 # 2) Compila o lancador (um .exe unico e pequeno)
 Write-Host "`n[2/5] Compilando o lancador..." -ForegroundColor Yellow
 dotnet publish "$raiz\launcher\HowdenServicos.Launcher.csproj" -c Release -r win-x64 `
     --self-contained true -p:PublishSingleFile=true -o "$raiz\out\launcher"
-if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar o lancador.' }
+if ($LASTEXITCODE -ne 0) {
+    Stop-Transcript | Out-Null
+    throw 'Falha ao compilar o lancador — os detalhes estao acima e em publicar.log.'
+}
 
 # 3) Estrutura da pasta de rede + copia da versao nova
 Write-Host "`n[3/5] Copiando a versao para a rede..." -ForegroundColor Yellow
@@ -66,3 +82,4 @@ Get-ChildItem "$Destino\app" -Directory -Filter 'v*' |
 Write-Host "`n== Pronto! Versao $versao publicada. ==" -ForegroundColor Green
 Write-Host "Atalho para os usuarios: $Destino\SV.exe"
 Write-Host 'Quem estiver com o programa aberto recebe a atualizacao na proxima vez que abrir.'
+Stop-Transcript | Out-Null

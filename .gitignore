@@ -221,3 +221,6 @@ publish/
 
 # Saida de publicacao local (publicar.ps1)
 /out/
+
+# Log da publicacao
+publicar.log
