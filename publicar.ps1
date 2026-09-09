@@ -36,7 +36,7 @@ Write-Host "== SV: publicando versao $versao em $Destino ==" -ForegroundColor Cy
 # 1) Compila o app desktop (auto-contido: as maquinas nao precisam ter .NET)
 Write-Host "`n[1/5] Compilando o aplicativo..." -ForegroundColor Yellow
 dotnet publish "$raiz\desktop\HowdenServicos.Desktop.csproj" -c Release -r win-x64 `
-    --self-contained true -o "$raiz\out\app\$versao"
+    --self-contained true -p:PublishReadyToRun=true -o "$raiz\out\app\$versao"
 if ($LASTEXITCODE -ne 0) {
     Stop-Transcript | Out-Null
     throw 'Falha ao compilar o aplicativo desktop - os detalhes estao acima e em publicar.log.'
@@ -45,7 +45,8 @@ if ($LASTEXITCODE -ne 0) {
 # 2) Compila o lancador (um .exe unico e pequeno)
 Write-Host "`n[2/5] Compilando o lancador..." -ForegroundColor Yellow
 dotnet publish "$raiz\launcher\HowdenServicos.Launcher.csproj" -c Release -r win-x64 `
-    --self-contained true -p:PublishSingleFile=true -o "$raiz\out\launcher"
+    --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true `
+    -p:EnableCompressionInSingleFile=false -o "$raiz\out\launcher"
 if ($LASTEXITCODE -ne 0) {
     Stop-Transcript | Out-Null
     throw 'Falha ao compilar o lancador - os detalhes estao acima e em publicar.log.'

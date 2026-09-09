@@ -16,16 +16,17 @@ internal static class Program
 
 /// <summary>
 /// Fluxo de publicação dinâmica:
-///  - na REDE (pasta deste .exe): app\versao.txt aponta a versão atual, e
-///    app\&lt;versão&gt;\ tem os arquivos publicados (imutáveis);
-///  - na MÁQUINA: %LOCALAPPDATA%\HowdenSV\&lt;versão&gt;\ guarda a cópia local.
-/// Ao abrir: versão local já existe → abre na hora; versão nova na rede →
-/// copia com barra de % e abre. Ou seja: publicou na rede, todo mundo
-/// recebe na próxima vez que abrir o programa.
+///  - na REDE (\\...\SV\): SV.exe + app\versao.txt + app\&lt;versão&gt;\ (imutável);
+///  - na MÁQUINA (%LOCALAPPDATA%\HowdenSV\): cópia local do app E do próprio
+///    SV.exe — na primeira abertura pela rede, o lançador SE INSTALA aqui e
+///    cria um atalho na área de trabalho apontando para a cópia local.
+/// As aberturas seguintes rodam tudo do disco local (rápido): só o
+/// versao.txt é lido da rede para saber se tem atualização.
 /// </summary>
 public sealed class FormAtualizacao : Form
 {
     private const string ExeDoApp = "HowdenServicos.exe";
+    private const string NomeAtalho = "SV - Propostas Howden.lnk";
 
     private readonly ProgressBar _barra = new() { Style = ProgressBarStyle.Continuous, Minimum = 0, Maximum = 100 };
     private readonly Label _status = new() { Text = "Verificando a versão…", ForeColor = Color.FromArgb(70, 80, 110) };
@@ -78,17 +79,48 @@ public sealed class FormAtualizacao : Form
     {
         try
         {
-            Reportar(5, "Verificando a versão…");
-
-            var raizRede = AppContext.BaseDirectory;                    // \\servidor\...\SV\
-            var appRede = Path.Combine(raizRede, "app");
+            var meuExe = Environment.ProcessPath ?? Application.ExecutablePath;
             var raizLocal = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HowdenSV");
             Directory.CreateDirectory(raizLocal);
+            var svLocal = Path.Combine(raizLocal, "SV.exe");
+            var arquivoOrigem = Path.Combine(raizLocal, "origem.txt");
 
+            var rodandoLocal = string.Equals(Path.GetFullPath(meuExe), Path.GetFullPath(svLocal),
+                StringComparison.OrdinalIgnoreCase);
+
+            // Descobre a pasta da REDE: rodando de lá, é a pasta deste exe;
+            // rodando da cópia local, é o que ficou anotado na instalação.
+            string? raizRede = rodandoLocal
+                ? (File.Exists(arquivoOrigem) ? File.ReadAllText(arquivoOrigem).Trim() : null)
+                : AppContext.BaseDirectory;
+
+            // Lançador da rede mais novo que a cópia local? Passa a bola para
+            // ele (ele roda uma vez da rede e se reinstala aqui atualizado).
+            if (rodandoLocal && raizRede is not null)
+            {
+                var svRede = Path.Combine(raizRede, "SV.exe");
+                try
+                {
+                    if (File.Exists(svRede) &&
+                        File.GetLastWriteTimeUtc(svRede) > File.GetLastWriteTimeUtc(meuExe).AddMinutes(1))
+                    {
+                        Reportar(20, "Atualizando o iniciador…");
+                        Process.Start(new ProcessStartInfo(svRede) { UseShellExecute = true });
+                        Close();
+                        return;
+                    }
+                }
+                catch { /* rede fora: segue com o local */ }
+            }
+
+            Reportar(5, "Verificando a versão…");
             string? versao = null;
-            try { versao = File.ReadAllText(Path.Combine(appRede, "versao.txt")).Trim(); }
-            catch { /* rede fora do ar: cai no plano B abaixo */ }
+            if (raizRede is not null)
+            {
+                try { versao = File.ReadAllText(Path.Combine(raizRede, "app", "versao.txt")).Trim(); }
+                catch { /* rede fora do ar: plano B abaixo */ }
+            }
 
             string exe;
             if (string.IsNullOrWhiteSpace(versao))
@@ -110,14 +142,28 @@ public sealed class FormAtualizacao : Form
                 exe = Path.Combine(destino, ExeDoApp);
                 if (!File.Exists(exe))
                 {
-                    Reportar(8, $"Atualizando para a versão {versao}…");
-                    await Task.Run(() => CopiarComProgresso(Path.Combine(appRede, versao), destino));
-                    LimparVersoesAntigas(raizLocal, versao);
+                    Reportar(8, $"Baixando a versão {versao} da rede…");
+                    await Task.Run(() => CopiarComProgresso(Path.Combine(raizRede!, "app", versao!), destino));
+                    LimparVersoesAntigas(raizLocal, versao!);
                 }
                 else
                 {
-                    Reportar(85, "Versão em dia — abrindo…");
+                    Reportar(80, "Versão em dia — abrindo…");
                 }
+            }
+
+            // Primeira vez pela rede: instala o lançador local + atalho na
+            // área de trabalho (as próximas aberturas ficam rápidas).
+            if (!rodandoLocal && raizRede is not null)
+            {
+                Reportar(90, "Criando o atalho rápido na área de trabalho…");
+                try
+                {
+                    File.WriteAllText(arquivoOrigem, raizRede);
+                    File.Copy(meuExe, svLocal, overwrite: true);
+                    CriarAtalho(svLocal, raizLocal);
+                }
+                catch { /* sem atalho ainda funciona — só fica mais lento */ }
             }
 
             Reportar(95, "Abrindo o SV…");
@@ -135,6 +181,22 @@ public sealed class FormAtualizacao : Form
                 "SV", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         Close();
+    }
+
+    /// <summary>Atalho "SV - Propostas Howden" na área de trabalho, apontando para o SV.exe LOCAL.</summary>
+    private static void CriarAtalho(string alvo, string pastaTrabalho)
+    {
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var caminhoLnk = Path.Combine(desktop, NomeAtalho);
+
+        var tipoShell = Type.GetTypeFromProgID("WScript.Shell");
+        if (tipoShell is null) return;
+        dynamic shell = Activator.CreateInstance(tipoShell)!;
+        dynamic atalho = shell.CreateShortcut(caminhoLnk);
+        atalho.TargetPath = alvo;
+        atalho.WorkingDirectory = pastaTrabalho;
+        atalho.Description = "SV · Propostas de Serviço — Howden";
+        atalho.Save();
     }
 
     /// <summary>
@@ -161,7 +223,7 @@ public sealed class FormAtualizacao : Form
             File.Copy(arq, alvo, overwrite: true);
             copiados += new FileInfo(arq).Length;
             var pct = 10 + (int)(copiados * 80 / Math.Max(totalBytes, 1));
-            Reportar(pct, $"Atualizando… {copiados / 1048576} de {totalBytes / 1048576} MB");
+            Reportar(pct, $"Baixando a versão… {copiados / 1048576} de {totalBytes / 1048576} MB");
         }
 
         if (Directory.Exists(destino)) Directory.Delete(destino, recursive: true);
