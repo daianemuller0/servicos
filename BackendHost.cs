@@ -85,6 +85,23 @@ public static class BackendHost
             app.UseExceptionHandler("/Error", createScopeForErrors: true);
         }
 
+        // Rodando dentro de OUTRO executável (modo desktop), os arquivos do
+        // wwwroot deste projeto são expostos em /_content/HowdenServicos.Poc/…
+        // (regra do SDK para projetos referenciados). As páginas pedem /app.css
+        // — então, quando o arquivo não existe na raiz, atende de lá.
+        var webRoot = app.Environment.WebRootFileProvider;
+        app.Use((ctx, next) =>
+        {
+            var caminho = ctx.Request.Path.Value;
+            if (!string.IsNullOrEmpty(caminho) && caminho.Contains('.') &&
+                !caminho.StartsWith("/_") && !webRoot.GetFileInfo(caminho).Exists)
+            {
+                var alternativo = "/_content/HowdenServicos.Poc" + caminho;
+                if (webRoot.GetFileInfo(alternativo).Exists)
+                    ctx.Request.Path = alternativo;
+            }
+            return next(ctx);
+        });
         app.UseStaticFiles();
         app.UseAntiforgery();
         app.UseAuthentication();
