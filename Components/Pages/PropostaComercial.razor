@@ -572,7 +572,8 @@
         if (string.IsNullOrWhiteSpace(P.Cliente)) { _erro = "Informe o cliente antes de cadastrar."; return; }
         if (Doc.MO.Count == 0 && Doc.Despesas.Count == 0) { _erro = "A proposta não tem nenhum item com valor."; return; }
 
-        if (string.IsNullOrWhiteSpace(P.Id)) P.Id = $"prop-{Guid.NewGuid():N}"[..17];
+        var virouNova = NovoCadastroSeMudouNumeroOuRevisao(Propostas.All());
+        if (string.IsNullOrWhiteSpace(P.Id)) P.Id = Servicos.NovoIdProposta();
         if (string.IsNullOrWhiteSpace(P.Numero))
             P.Numero = $"SRV-{P.Ano}-{Propostas.All().Count + 1:D3}";
         if (string.IsNullOrWhiteSpace(P.CriadaEm))
@@ -580,7 +581,9 @@
         if (string.IsNullOrWhiteSpace(P.Status)) P.Status = "Rascunho";
 
         Propostas.Save(R.ParaGravar());
-        _msg = $"Proposta {P.Numero} cadastrada.";
+        _msg = virouNova
+            ? $"Número/revisão mudou → cadastro NOVO criado ({Servicos.NumeroCompleto(P)}). O registro antigo continua no banco."
+            : $"Proposta {P.Numero} cadastrada.";
     }
 
     private async Task Imprimir() => await JS.InvokeVoidAsync("appPrint");

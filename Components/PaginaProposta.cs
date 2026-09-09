@@ -124,6 +124,24 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
                 d.Qtd = (d.Despesa ?? "").ToUpperInvariant().Contains("HOSPEDAGEM") ? noites : texto;
     }
 
+    /// <summary>
+    /// Proposta aberta do banco que teve o NÚMERO (CRM) ou a REVISÃO alterados
+    /// vira cadastro NOVO ao gravar: ganha id e data próprios, e o registro
+    /// antigo fica intacto no banco. Retorna true quando isso aconteceu.
+    /// </summary>
+    protected bool NovoCadastroSeMudouNumeroOuRevisao(List<Models.Proposta> gravadas)
+    {
+        var p = R.Proposta;
+        if (string.IsNullOrWhiteSpace(p.Id)) return false;
+        var antiga = gravadas.FirstOrDefault(x => x.Id == p.Id);
+        if (antiga is null) return false;
+        if (antiga.Numero == p.Numero && antiga.Revisao == p.Revisao) return false;
+
+        p.Id = Data.Servicos.NovoIdProposta();
+        p.CriadaEm = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        return true;
+    }
+
     // ================= tic das notas =================
 
     /// <summary>Mensagem do botão "salvar seleção como padrão".</summary>

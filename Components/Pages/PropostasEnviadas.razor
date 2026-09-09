@@ -43,14 +43,16 @@
     <thead>
         <tr>
             <th>Número</th><th>Data</th><th>Cliente</th><th>Projeto</th>
-            <th>BU</th><th class="right">Custo</th><th class="right">Total c/ impostos</th>
+            <th>BU</th><th>Feita por</th><th>KAM</th>
+            <th class="right">Diária normal</th>
+            <th class="right">Custo</th><th class="right">Total c/ impostos</th>
             <th>Status</th><th></th>
         </tr>
     </thead>
     <tbody>
         @if (_filtradas.Count == 0)
         {
-            <tr><td colspan="9" class="empty">Nenhuma proposta cadastrada ainda.</td></tr>
+            <tr><td colspan="12" class="empty">Nenhuma proposta cadastrada ainda.</td></tr>
         }
         @foreach (var p in _filtradas)
         {
@@ -58,13 +60,17 @@
                 <td class="nowrap"><strong>@p.Numero</strong> <span style="color:var(--muted)">rev. @p.Revisao</span></td>
                 <td class="nowrap">@Servicos.FmtData(p.Data)</td>
                 <td>@p.Cliente<div class="score">@p.Cidade</div></td>
-                <td class="truncate" style="max-width:220px">@p.Projeto</td>
+                <td class="truncate" style="max-width:180px">@p.Projeto</td>
                 <td>@p.Bu</td>
+                <td class="nowrap">@(string.IsNullOrWhiteSpace(p.PreparadaPor) ? "—" : p.PreparadaPor)</td>
+                <td class="nowrap">@(string.IsNullOrWhiteSpace(p.AssinaNome) ? "—" : p.AssinaNome)</td>
+                <td class="right nowrap">@Servicos.Simbolo(p.Moeda) @Pricing.Moeda(Diaria(p))</td>
                 <td class="right nowrap">@Servicos.Simbolo(p.Moeda) @Pricing.Moeda(Pricing.Num(p.CustoTotal))</td>
                 <td class="right nowrap"><strong>@Servicos.Simbolo(p.Moeda) @Pricing.Moeda(Pricing.Num(p.Total))</strong></td>
                 <td><span class="badge @Cor(p.Status)">@p.Status</span></td>
                 <td class="nowrap">
                     <button class="btn-link" @onclick="() => Abrir(p)">Abrir</button>
+                    <button class="btn-link" @onclick="() => Duplicar(p)">Duplicar</button>
                     <button class="btn-link" @onclick="() => Excluir(p)">Excluir</button>
                 </td>
             </tr>
@@ -75,14 +81,25 @@
 @code {
     private List<Proposta> _todas = new();
     private string _busca = "";
+    private readonly Dictionary<string, double> _diarias = new();
 
     private List<Proposta> _filtradas => _todas
         .Where(p => string.IsNullOrWhiteSpace(_busca) ||
-                    $"{p.Numero} {p.Cliente} {p.Projeto} {p.Cidade} {p.Referencia}"
+                    $"{p.Numero} {p.Cliente} {p.Projeto} {p.Cidade} {p.Referencia} {p.PreparadaPor} {p.AssinaNome}"
                         .Contains(_busca, StringComparison.OrdinalIgnoreCase))
         .ToList();
 
-    protected override void OnInitialized() => _todas = Propostas.All();
+    protected override void OnInitialized() => Recarregar();
+
+    private void Recarregar()
+    {
+        _todas = Propostas.All();
+        // diária normal recalculada dos itens salvos — uma vez por proposta
+        _diarias.Clear();
+        foreach (var p in _todas) _diarias[p.Id] = Servicos.DiariaNormalGravada(p);
+    }
+
+    private double Diaria(Proposta p) => _diarias.GetValueOrDefault(p.Id);
 
     private static string Cor(string status) => status switch
     {
@@ -94,9 +111,21 @@
 
     private void Abrir(Proposta p) => Nav.NavigateTo($"/servicos/documento?id={p.Id}");
 
+    /// <summary>
+    /// Duplica a oportunidade: cadastro NOVO com os mesmos dados (id e data
+    /// próprios, status Rascunho) e já abre a cópia para editar — a original
+    /// fica intacta no banco.
+    /// </summary>
+    private void Duplicar(Proposta p)
+    {
+        var copia = Servicos.DuplicarProposta(p);
+        Propostas.Save(copia);
+        Nav.NavigateTo($"/servicos/documento?id={copia.Id}");
+    }
+
     private void Excluir(Proposta p)
     {
         Propostas.Delete(p.Id);
-        _todas = Propostas.All();
+        Recarregar();
     }
 }

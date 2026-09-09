@@ -91,6 +91,42 @@ public static class Servicos
     public static BillingInfo FaturamentoPadrao(string bu) =>
         Seed.Faturamento().FirstOrDefault(b => b.Id == bu) ?? new BillingInfo { Id = bu };
 
+    /// <summary>Id novo para um cadastro de proposta (mesmo formato do "Cadastrar").</summary>
+    public static string NovoIdProposta() => $"prop-{Guid.NewGuid():N}"[..17];
+
+    /// <summary>
+    /// Diária normal (com impostos) de uma proposta GRAVADA, exatamente como
+    /// apresentada ao cliente — recalculada a partir dos itens salvos.
+    /// </summary>
+    public static double DiariaNormalGravada(Proposta p)
+    {
+        try
+        {
+            var mo = System.Text.Json.JsonSerializer.Deserialize<List<ItemMO>>(p.ItensMoJson) ?? new();
+            var desp = System.Text.Json.JsonSerializer.Deserialize<List<ItemDespesa>>(p.ItensDespesaJson) ?? new();
+            var par = System.Text.Json.JsonSerializer.Deserialize<PricingParams>(p.PricingJson) ?? new PricingParams();
+            var doc = Pricing.Montar(mo, desp, par, Pricing.Num(p.PrazoEntregaDias));
+            var docA = Pricing.Apresentar(doc, p.ModoApresentacao, Pricing.Num(par.TaxaAdmPct),
+                Pricing.Num(par.DiariaTravada), Pricing.Num(par.TotalTravado));
+            return Pricing.DiariaNormalApresentada(docA);
+        }
+        catch { return 0; }
+    }
+
+    /// <summary>
+    /// Cópia fiel de uma proposta gravada como cadastro NOVO: id e data de
+    /// criação próprios, status Rascunho — a original não é tocada.
+    /// </summary>
+    public static Proposta DuplicarProposta(Proposta p)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(p);
+        var copia = System.Text.Json.JsonSerializer.Deserialize<Proposta>(json)!;
+        copia.Id = NovoIdProposta();
+        copia.CriadaEm = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        copia.Status = "Rascunho";
+        return copia;
+    }
+
     // ---- rótulos traduzidos (PT/EN/ES) ----
     public sealed record DocLabels(
         string DadosCliente, string Cliente, string AosCuidados, string Email, string Telefone,
