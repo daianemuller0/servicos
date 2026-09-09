@@ -506,7 +506,7 @@ public static class Servicos
             $"<td style='{bd};color:{corpo}'>{E(i.Obs)}</td>" +
             $"<td style='{bd};text-align:center;color:{corpo}'>{Pricing.Moeda0(i.Horas)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{Pricing.Moeda(i.ValorHora)}</td>" +
-            $"<td style='{bd};text-align:right;color:{corpo}'>{Pricing.Moeda(i.ValorDiaria)}</td>" +
+            $"<td style='{bd};text-align:right;color:{corpo}'>{(i.ValorDiaria <= 0 ? "—" : Pricing.Moeda(i.ValorDiaria))}</td>" +
             $"<td style='{bd};text-align:center;color:{corpo}'>{Pricing.Moeda0(i.QtdDiaria)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{M(i.ValorTotal)}</td></tr>"));
 

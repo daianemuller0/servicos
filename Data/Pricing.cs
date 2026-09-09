@@ -96,6 +96,10 @@ public static class Pricing
     private static bool EhLinhaDiaria(LinhaMO l) =>
         l.QtdDiaria > 0 && (l.Servico ?? "").TrimStart().ToUpperInvariant().StartsWith("DIARIAS");
 
+    /// <summary>Linha de HORA EXTRA: o lançamento é em HORAS, não em diárias.</summary>
+    public static bool EhHoraExtra(string? servico) =>
+        (servico ?? "").TrimStart().ToUpperInvariant().StartsWith("HORAS EXTRAS");
+
     /// <summary>
     /// Margem (Project Margin) que resulta se o valor final com impostos for
     /// exatamente a meta informada — a função "chegar no valor".
@@ -490,6 +494,16 @@ public static class Pricing
                 // com as linhas arredondadas para cima em reais inteiros.
                 totalGeral = alvoTotal;
             }
+        }
+
+        // HORA EXTRA é lançada em HORAS: para o cliente, a linha mostra o total
+        // de horas na coluna HORAS e ZERO em QTD. DIARIA (5 horas extras =
+        // 5 horas e 0 dias) — sem "valor 1 diária". O valor total não muda.
+        for (var i = 0; i < mo.Count; i++)
+        {
+            var l = mo[i];
+            if (!EhHoraExtra(l.Servico) || l.QtdDiaria <= 0) continue;
+            mo[i] = l with { Horas = l.Horas * l.QtdDiaria, QtdDiaria = 0, ValorDiaria = 0 };
         }
 
         return new Documento(mo, desp, Complementares(mo, desp), totalMO, totalDesp,

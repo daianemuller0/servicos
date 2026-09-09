@@ -162,8 +162,14 @@
                     <td class="center"><input class="de num" style="width:40px; text-align:center" @bind="i.Horas" /></td>
                     <td class="right doc-interno"><input class="de num" style="width:64px" @bind="i.CustoHora" /></td>
                     <td class="right">@(linha is null ? "—" : Pricing.Moeda(linha.ValorHora))</td>
-                    <td class="right">@(linha is null ? "—" : Pricing.Moeda(linha.ValorDiaria))</td>
-                    <td class="center"><input class="de qtd" @bind="i.QtdDiaria" @bind:after="SincronizarDiarias" /></td>
+                    <td class="right">@(linha is null || linha.ValorDiaria <= 0 ? "—" : Pricing.Moeda(linha.ValorDiaria))</td>
+                    <td class="center">
+                        <input class="de qtd" @bind="i.QtdDiaria" @bind:after="SincronizarDiarias" />
+                        @if (Pricing.EhHoraExtra(i.Servico))
+                        {
+                            <div class="doc-muted no-print" style="font-size:10px">= horas</div>
+                        }
+                    </td>
                     <td class="right">@(linha is null ? "—" : $"{Cifrao} {Pricing.Moeda(linha.ValorTotal)}")</td>
                 </tr>
             }
