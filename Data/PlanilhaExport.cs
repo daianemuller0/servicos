@@ -34,6 +34,8 @@ public static class PlanilhaExport
         {
             var sheets = MapearSheets(zip);
             var tec = Math.Max(Pricing.Inteiro(par.QtdTecnicos), 1);
+            var moedaCusto = Servicos.MoedaDosCustos(p, par);
+            var converte = Servicos.PrecisaConverter(p, par);
 
             // ================= CUSTO =================
             Editar(zip, sheets["CUSTO"], ws =>
@@ -59,6 +61,35 @@ public static class PlanilhaExport
                     Num(ws, $"F{r}", Pricing.Num(item.Qtd));
                     Num(ws, $"G{r}", Pricing.Num(item.CustoUnitario));
                     Formula(ws, $"H{r}", item.PorTecnico ? $"G{r}*F{r}*$H$6" : $"G{r}*F{r}");
+                }
+
+                // ---- conversão de moeda (área livre, abaixo da guia) ----
+                // A planilha inteira calcula na moeda dos custos; este bloco
+                // registra a moeda de venda, a taxa, a segurança e o valor
+                // convertido, para conferência de quem abrir o arquivo.
+                if (converte)
+                {
+                    var taxa = Pricing.Num(par.TaxaCambio);
+                    var seguranca = Pricing.Num(par.SegurancaCambioPct);
+                    var efetiva = Pricing.CambioEfetivo(taxa, seguranca);
+
+                    Txt(ws, "B66", "CONVERSÃO DE MOEDA (preenchido pelo sistema)");
+                    Txt(ws, "B67", "Moeda dos custos (a desta planilha)");
+                    Txt(ws, "C67", moedaCusto);
+                    Txt(ws, "B68", "Moeda de venda da proposta");
+                    Txt(ws, "C68", p.Moeda);
+                    Txt(ws, "B69", $"Taxa informada (1 {p.Moeda} em {moedaCusto})");
+                    Num(ws, "C69", taxa);
+                    Txt(ws, "B70", "Segurança da moeda (% a menos na taxa)");
+                    Num(ws, "C70", seguranca);
+                    Txt(ws, "B71", "Taxa efetiva usada na conversão");
+                    Formula(ws, "C71", "C69*(1-C70/100)");
+                    Txt(ws, "B72", $"Diária normal apresentada ({p.Moeda})");
+                    Num(ws, "C72", Pricing.DiariaNormalApresentada(apresentado));
+                    Txt(ws, "B73", $"TOTAL da proposta ({p.Moeda})");
+                    Num(ws, "C73", apresentado.Total);
+                    Txt(ws, "B74", $"TOTAL equivalente ({moedaCusto})");
+                    Formula(ws, "C74", "C73*C71");
                 }
             });
 
@@ -90,7 +121,11 @@ public static class PlanilhaExport
             Editar(zip, sheets["PROPOSTA"], ws =>
             {
                 Txt(ws, "C5", p.Cliente);
-                Txt(ws, "C6", string.IsNullOrWhiteSpace(p.Cidade) ? p.Estado : $"{p.Cidade} - {p.Estado}");
+                // Proposta internacional: o campo é o PAÍS, sem UF brasileira.
+                var local = p.Moeda == "BRL"
+                    ? (string.IsNullOrWhiteSpace(p.Cidade) ? p.Estado : $"{p.Cidade} - {p.Estado}")
+                    : (string.IsNullOrWhiteSpace(p.Cidade) ? p.Estado : p.Cidade);
+                Txt(ws, "C6", local);
                 Txt(ws, "C7", p.ContatoNome);
                 Txt(ws, "C8", p.ContatoEmail);
                 Txt(ws, "C9", p.ContatoTelefone);
@@ -101,7 +136,10 @@ public static class PlanilhaExport
                 Txt(ws, "C15", p.PreparadaPor);
                 if (!string.IsNullOrWhiteSpace(p.AssinaNome)) Txt(ws, "C16", p.AssinaNome);
                 Txt(ws, "C17", string.IsNullOrWhiteSpace(p.Representante) ? "-" : p.Representante);
-                Txt(ws, "L14", p.Moeda);
+                // A planilha calcula tudo na moeda em que os CUSTOS estão (é ela
+                // que alimenta as guias CUSTO e PRICING). A moeda de venda e a
+                // conversão ficam registradas no bloco ao fim da guia CUSTO.
+                Txt(ws, "L14", moedaCusto);
 
                 // Limpa as linhas de exemplo do modelo (cliente antigo) — a tabela
                 // da proposta é gerada pelos botões/macros da própria planilha.
