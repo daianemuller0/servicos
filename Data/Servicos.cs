@@ -69,6 +69,16 @@ public static class Servicos
         "HCHL" => "CLP", "HPU" => "USD", _ => "BRL",
     };
 
+    /// <summary>
+    /// Moeda em que está a TABELA DE CUSTOS da BU (Brasil em R$; Chile em CLP;
+    /// Peru em USD). Quando a proposta sai em outra moeda, é dela que se
+    /// converte — com a taxa e a segurança informadas na proposta.
+    /// </summary>
+    public static string MoedaDosCustos(string bu) => MoedaPadrao(bu);
+
+    /// <summary>Verdadeiro quando a proposta precisa de conversão de moeda.</summary>
+    public static bool PrecisaConverter(Proposta p) => p.Moeda != MoedaDosCustos(p.Bu);
+
     /// <summary>Símbolo da moeda usado no documento.</summary>
     public static string Simbolo(string moeda) => moeda switch
     {
@@ -108,7 +118,7 @@ public static class Servicos
             var doc = Pricing.Montar(mo, desp, par, Pricing.Num(p.PrazoEntregaDias));
             var docA = Pricing.Apresentar(doc, p.ModoApresentacao, Pricing.Num(par.TaxaAdmPct),
                 Pricing.Num(par.DiariaTravada), Pricing.Num(par.TotalTravado),
-                p.Moeda == "BRL" ? 0 : Pricing.Num(par.TaxaCambio),
+                PrecisaConverter(p) ? Pricing.Num(par.TaxaCambio) : 0,
                 Pricing.Num(par.SegurancaCambioPct));
             return Pricing.DiariaNormalApresentada(docA);
         }

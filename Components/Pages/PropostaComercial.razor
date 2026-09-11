@@ -134,23 +134,46 @@
         </select>
     </div>
 
-    @* ---------- conversão de moeda (proposta internacional, custos em R$) ---------- *@
-    @if (Internacional && Servicos.PaisDaBu(P.Bu) == "Brasil")
+    @* ---------- conversão de moeda (proposta em moeda diferente da dos custos) ---------- *@
+    @if (Servicos.PrecisaConverter(P))
     {
-        <div class="no-print" style="margin-top:8px; padding:8px 10px; background:#f0f4fa; border:1px dashed #b9c6dd; border-radius:6px; font-size:12.5px">
-            💱 <b>Conversão da moeda</b> — os custos são em R$; a proposta sai em <b>@P.Moeda</b>:
-            &nbsp;1 @P.Moeda = R$ <input class="de num" style="width:64px" placeholder="5,40" @bind="R.Params.TaxaCambio" />
-            &nbsp;·&nbsp; Segurança da moeda:
-            <input class="de num" style="width:44px" placeholder="0" @bind="R.Params.SegurancaCambioPct" />% a menos
+        var moedaCusto = Servicos.MoedaDosCustos(P.Bu);
+        var cifraoCusto = Servicos.Simbolo(moedaCusto);
+        <div class="no-print" style="margin-top:10px; padding:10px 12px; background:#FFF6E5; border:2px solid #E9A23B; border-radius:8px; font-size:13px">
+            <div style="font-weight:700; color:#7A4E06; margin-bottom:6px">
+                💱 CONVERSÃO DA MOEDA — a proposta sai em @P.Moeda e os custos estão em @moedaCusto
+            </div>
+            <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap">
+                <span>
+                    <b>Taxa de conversão:</b> 1 @P.Moeda = @cifraoCusto
+                    <input class="de num" style="width:70px" placeholder="5,40" @bind="R.Params.TaxaCambio" />
+                </span>
+                <span>
+                    <b>Segurança da moeda:</b>
+                    <input class="de num" style="width:50px" placeholder="0" @bind="R.Params.SegurancaCambioPct" />%
+                    a menos na taxa
+                </span>
+            </div>
             @if (Pricing.Num(R.Params.TaxaCambio) > 0)
             {
-                <span class="doc-muted"> → convertendo por R$ @Pricing.Moeda(FxEfetivo)
-                    (se a moeda cair até a segurança, o valor em R$ não perde)</span>
+                <div style="margin-top:6px; color:#5C6272">
+                    → convertendo por @cifraoCusto @Pricing.Moeda(FxEfetivo) por @P.Moeda —
+                    se a moeda cair até @Pricing.Moeda0(Pricing.Num(R.Params.SegurancaCambioPct))%,
+                    o valor em @moedaCusto não perde.
+                </div>
             }
             else
             {
-                <span style="color:#b3261e; font-weight:600"> ⚠ informe a taxa — sem ela os valores saem como se fossem R$</span>
+                <div style="margin-top:6px; color:#b3261e; font-weight:600">
+                    ⚠ Informe a taxa de conversão — sem ela os valores saem como se já fossem @P.Moeda.
+                </div>
             }
+        </div>
+    }
+    else if (Internacional)
+    {
+        <div class="no-print doc-muted" style="margin-top:8px; font-size:12px">
+            💱 A tabela de custos desta BU (@P.Bu) já está em @P.Moeda — não há conversão de moeda.
         </div>
     }
 
@@ -421,7 +444,7 @@
         <div class="ferr-bloco">
             <h3 class="dash-title">Proposta anterior</h3>
             <div class="ferr-linha">
-                <label>Diária anterior (R$, c/ imp.)
+                <label>Diária anterior (@Cifrao, c/ imp.)
                     <input class="cell num" style="width:120px" @bind="R.Params.PropAnteriorValor" />
                 </label>
                 <label>% a mais
@@ -442,7 +465,7 @@
         <div class="ferr-bloco">
             <h3 class="dash-title">Chegar no valor (meta)</h3>
             <div class="ferr-linha">
-                <label>Valor final desejado (R$)
+                <label>Valor final desejado (@Cifrao)
                     <input class="cell num" style="width:130px" @bind="R.Params.MetaValor" />
                 </label>
                 <button class="btn-ghost" @onclick="AcaoFecharTotal">🔒 Fechar o valor</button>

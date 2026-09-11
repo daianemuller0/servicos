@@ -179,9 +179,15 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
             Data.Pricing.Num(R.Params.TotalTravado),
             CambioDaProposta, Data.Pricing.Num(R.Params.SegurancaCambioPct));
 
-    /// <summary>Taxa de câmbio da proposta — só vale com moeda estrangeira (BRL = sem conversão).</summary>
+    /// <summary>
+    /// Taxa de câmbio da proposta — só vale quando a moeda da proposta é
+    /// diferente da moeda da tabela de custos da BU (senão não há o que converter).
+    /// </summary>
     protected double CambioDaProposta =>
-        R.Proposta.Moeda == "BRL" ? 0 : Data.Pricing.Num(R.Params.TaxaCambio);
+        Data.Servicos.PrecisaConverter(R.Proposta) ? Data.Pricing.Num(R.Params.TaxaCambio) : 0;
+
+    /// <summary>Símbolo da moeda da proposta (as mensagens saem na moeda apresentada).</summary>
+    private string Cif => Data.Servicos.Simbolo(R.Proposta.Moeda);
 
     /// <summary>Taxa de câmbio efetiva da proposta (1 = sem conversão).</summary>
     protected double FxEfetivo => Data.Pricing.CambioEfetivo(
@@ -326,7 +332,7 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         var escala = doc.Total - fixo;
         var totalNecessario = escala / dia * diaAlvo + fixo;
         var diariaPossivel = escala > 0 ? (totalAlvo - fixo) * dia / escala : 0;
-        return $" ⚠ Com os multiplicadores fixos (2º turno 1,5× · sáb/dom 2×) o total é consequência da diária: para diária R$ {Data.Pricing.Moeda(diaAlvo)} o total fecha em R$ {Data.Pricing.Moeda(totalNecessario)}; para total R$ {Data.Pricing.Moeda(totalAlvo)} a diária fecha em R$ {Data.Pricing.Moeda(diariaPossivel)}. Use um desses pares.";
+        return $" ⚠ Com os multiplicadores fixos (2º turno 1,5× · sáb/dom 2×) o total é consequência da diária: para diária {Cif} {Data.Pricing.Moeda(diaAlvo)} o total fecha em {Cif} {Data.Pricing.Moeda(totalNecessario)}; para total {Cif} {Data.Pricing.Moeda(totalAlvo)} a diária fecha em {Cif} {Data.Pricing.Moeda(diariaPossivel)}. Use um desses pares.";
     }
 
     /// <summary>
@@ -357,15 +363,15 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         }
 
         if (Math.Abs(diaFinal - alvo) > 0.05)
-            return $"Diária ficou em R$ {Data.Pricing.Moeda(diaFinal)} (meta R$ {Data.Pricing.Moeda(alvo)}) — não foi possível cravar nem pela margem.";
+            return $"Diária ficou em {Cif} {Data.Pricing.Moeda(diaFinal)} (meta {Cif} {Data.Pricing.Moeda(alvo)}) — não foi possível cravar nem pela margem.";
 
         var variacao = (Data.Pricing.Num(outros.CustoUnitario) - unitInicial)
                      * Math.Max(Data.Pricing.Num(outros.Qtd), 1)
                      * (outros.PorTecnico ? Math.Max(Data.Pricing.Inteiro(R.Params.QtdTecnicos), 1) : 1);
         var como = margemMexeu
             ? $"Margem ajustada para {Data.Pricing.Porcento(R.Calculo().ProjectMargin)}"
-            : (variacao >= 0 ? $"OUTROS +R$ {Data.Pricing.Moeda(variacao)}" : $"OUTROS −R$ {Data.Pricing.Moeda(-variacao)}");
-        return $"{como} → diária normal CRAVADA em R$ {Data.Pricing.Moeda(diaFinal)} ✓ · total resultante R$ {Data.Pricing.Moeda(Apresentado().Total)}";
+            : (variacao >= 0 ? $"OUTROS +{Cif} {Data.Pricing.Moeda(variacao)}" : $"OUTROS −{Cif} {Data.Pricing.Moeda(-variacao)}");
+        return $"{como} → diária normal CRAVADA em {Cif} {Data.Pricing.Moeda(diaFinal)} ✓ · total resultante {Cif} {Data.Pricing.Moeda(Apresentado().Total)}";
     }
 
     /// <summary>Margem que resulta da meta de valor informada (função "chegar no valor").</summary>
@@ -388,8 +394,8 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         AplicarMargemParaTotal(meta);
 
         var margem = Data.Pricing.Porcento(R.Calculo().ProjectMargin);
-        return $"Margem ajustada para {margem} — total CRAVADO em R$ {Data.Pricing.Moeda(Apresentado().Total)} ✓" +
-               $" · diária resultante R$ {Data.Pricing.Moeda(DiariaAtual)}";
+        return $"Margem ajustada para {margem} — total CRAVADO em {Cif} {Data.Pricing.Moeda(Apresentado().Total)} ✓" +
+               $" · diária resultante {Cif} {Data.Pricing.Moeda(DiariaAtual)}";
     }
 
     /// <summary>
@@ -424,12 +430,12 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
                 Math.Abs(Data.Pricing.DiariaNormalApresentada(doc) - diaAlvo) <= 0.005)
             {
                 var margem = Data.Pricing.Porcento(R.Calculo().ProjectMargin);
-                return $"Diária CRAVADA em R$ {Data.Pricing.Moeda(diaAlvo)} e total CRAVADO em R$ {Data.Pricing.Moeda(doc.Total)} ✓ (margem {margem})";
+                return $"Diária CRAVADA em {Cif} {Data.Pricing.Moeda(diaAlvo)} e total CRAVADO em {Cif} {Data.Pricing.Moeda(doc.Total)} ✓ (margem {margem})";
             }
             R.Params.DiariaTravada = "";
         }
 
-        return $"Total CRAVADO em R$ {Data.Pricing.Moeda(Apresentado().Total)}, mas a diária resultante é R$ {Data.Pricing.Moeda(dia)} (meta R$ {Data.Pricing.Moeda(diaAlvo)})." +
+        return $"Total CRAVADO em {Cif} {Data.Pricing.Moeda(Apresentado().Total)}, mas a diária resultante é {Cif} {Data.Pricing.Moeda(dia)} (meta {Cif} {Data.Pricing.Moeda(diaAlvo)})." +
                AvisoConflito(diaAlvo, meta);
     }
 
