@@ -145,6 +145,12 @@ public class PricingParams
     /// <summary>Taxa administrativa mostrada sobre as despesas na apresentação ao cliente.</summary>
     public string TaxaAdmPct { get; set; } = "40";
 
+    // ---- conversão de moeda (proposta internacional com custos em R$) ----
+    /// <summary>Quanto vale 1 unidade da moeda da proposta em R$ (ex.: 1 USD = 5,40). Vazio/0 = sem conversão.</summary>
+    public string TaxaCambio { get; set; } = "";
+    /// <summary>Segurança da moeda: % tirada da taxa ao converter — se a moeda cair até isso, o valor em R$ não perde.</summary>
+    public string SegurancaCambioPct { get; set; } = "0";
+
     // ---- ferramentas de preço ----
     /// <summary>Valor total da proposta anterior (renovação/recotação).</summary>
     public string PropAnteriorValor { get; set; } = "";

@@ -339,9 +339,48 @@ public static class Pricing
     ///
     /// O TOTAL C/ IMPOSTOS é exatamente o mesmo nas duas formas.
     /// </summary>
-    public static Documento Apresentar(Documento doc, string modo, double taxaAdmPct,
-        double diariaTravada = 0, double totalTravado = 0)
+    /// <summary>
+    /// Taxa de câmbio EFETIVA: a taxa informada menos a segurança da moeda.
+    /// Ex.: 1 USD = R$ 5,40 com 5% de segurança → converte por 5,13 — o preço
+    /// em USD sobe, e se o dólar cair até 5% o valor em R$ não perde.
+    /// </summary>
+    public static double CambioEfetivo(double taxaCambio, double segurancaPct) =>
+        taxaCambio <= 0 ? 1 : taxaCambio * Math.Max(1 - segurancaPct / 100.0, 0.01);
+
+    /// <summary>Converte os valores de venda do documento de R$ para a moeda da proposta.</summary>
+    private static Documento Converter(Documento doc, double fx)
     {
+        if (Math.Abs(fx - 1) < 1e-9) return doc;
+        double C(double v) => Math.Round(v / fx, 2);
+        var mo = doc.MO.Select(l => l with
+        {
+            Custo = C(l.Custo), ValorTotal = C(l.ValorTotal),
+            ValorDiaria = C(l.ValorDiaria), ValorHora = C(l.ValorHora),
+        }).ToList();
+        var desp = doc.Despesas.Select(d => d with
+        {
+            Custo = C(d.Custo), ValorUnitario = C(d.ValorUnitario), ValorTotal = C(d.ValorTotal),
+        }).ToList();
+        return doc with
+        {
+            MO = mo, Despesas = desp, Complementares = Complementares(mo, desp),
+            TotalMO = C(doc.TotalMO), TotalDespesas = C(doc.TotalDespesas),
+            Total = C(doc.Total), Deslocamento = C(doc.Deslocamento),
+            DescontoDia = C(doc.DescontoDia),
+        };
+    }
+
+    public static Documento Apresentar(Documento doc, string modo, double taxaAdmPct,
+        double diariaTravada = 0, double totalTravado = 0,
+        double taxaCambio = 0, double segurancaCambioPct = 0)
+    {
+        // Proposta internacional (custos em R$, venda em USD/EUR/CLP…): tudo
+        // daqui pra frente acontece já na moeda da proposta — inclusive as
+        // travas de diária/total, que a pessoa digita na moeda apresentada.
+        var fx = CambioEfetivo(taxaCambio, segurancaCambioPct);
+        doc = Converter(doc, fx);
+        var comImpostosApresentado = Math.Round(doc.Calculo.ComImpostos / fx, 2);
+
         // Sem linhas de assessoria não há onde embutir — mantém como está.
         if (doc.MO.Count == 0) return doc;
 
@@ -476,7 +515,7 @@ public static class Pricing
         // dos arredondamentos por linha (até R$ 10) NUNCA mexe nas linhas da
         // assessoria — os multiplicadores são lei. Ele é aparado no
         // deslocamento (quando houver) ou na maior despesa mostrada.
-        var alvoTotal = totalTravado > 0 ? totalTravado : Math.Round(doc.Calculo.ComImpostos, 2);
+        var alvoTotal = totalTravado > 0 ? totalTravado : comImpostosApresentado;
         if (alvoTotal > 0)
         {
             var diff = Math.Round(alvoTotal - totalGeral, 2);

@@ -108,12 +108,15 @@
         <tr>
             <td style="width:38%"><span class="doc-navy">PROJETO</span><br />
                 <input class="de" style="width:95%" placeholder="—" @bind="P.Projeto" /></td>
-            <td style="width:32%"><span class="doc-navy">CIDADE</span><br />
-                <input class="de" style="width:90%" placeholder="Jaguarari - BA" @bind="P.Cidade" /></td>
-            <td style="width:30%"><span class="doc-navy">ESTADO</span><br />
-                <select class="de" @bind="P.Estado">
-                    @foreach (var o in Servicos.Estados) { <option value="@o">@o</option> }
-                </select></td>
+            <td style="width:32%"><span class="doc-navy">@(Internacional ? "PAÍS" : "CIDADE")</span><br />
+                <input class="de" style="width:90%" placeholder="@(Internacional ? "Peru" : "Jaguarari - BA")" @bind="P.Cidade" /></td>
+            @if (!Internacional)
+            {
+                <td style="width:30%"><span class="doc-navy">ESTADO</span><br />
+                    <select class="de" @bind="P.Estado">
+                        @foreach (var o in Servicos.Estados) { <option value="@o">@o</option> }
+                    </select></td>
+            }
         </tr>
     </table>
     <div style="margin-top:10px">
@@ -130,6 +133,26 @@
             @foreach (var o in Servicos.Idiomas) { <option value="@o">@o</option> }
         </select>
     </div>
+
+    @* ---------- conversão de moeda (proposta internacional, custos em R$) ---------- *@
+    @if (Internacional && Servicos.PaisDaBu(P.Bu) == "Brasil")
+    {
+        <div class="no-print" style="margin-top:8px; padding:8px 10px; background:#f0f4fa; border:1px dashed #b9c6dd; border-radius:6px; font-size:12.5px">
+            💱 <b>Conversão da moeda</b> — os custos são em R$; a proposta sai em <b>@P.Moeda</b>:
+            &nbsp;1 @P.Moeda = R$ <input class="de num" style="width:64px" placeholder="5,40" @bind="R.Params.TaxaCambio" />
+            &nbsp;·&nbsp; Segurança da moeda:
+            <input class="de num" style="width:44px" placeholder="0" @bind="R.Params.SegurancaCambioPct" />% a menos
+            @if (Pricing.Num(R.Params.TaxaCambio) > 0)
+            {
+                <span class="doc-muted"> → convertendo por R$ @Pricing.Moeda(FxEfetivo)
+                    (se a moeda cair até a segurança, o valor em R$ não perde)</span>
+            }
+            else
+            {
+                <span style="color:#b3261e; font-weight:600"> ⚠ informe a taxa — sem ela os valores saem como se fossem R$</span>
+            }
+        </div>
+    }
 
     @* ---------- assessoria técnica ---------- *@
     <h2 style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap">
@@ -464,11 +487,13 @@
     private List<Vendedor> _vendedores = new();
 
     private Proposta P => R.Proposta;
+    private bool Internacional => P.Moeda != "BRL";
     private bool SemImpostos => Doc.Calculo.Pis + Doc.Calculo.Cofins + Doc.Calculo.Iss <= 0.005;
     private Pricing.Documento Doc => R.Documento();
     private Pricing.Documento DocA =>
         Pricing.Apresentar(Doc, P.ModoApresentacao, Pricing.Num(R.Params.TaxaAdmPct),
-            Pricing.Num(R.Params.DiariaTravada), Pricing.Num(R.Params.TotalTravado));
+            Pricing.Num(R.Params.DiariaTravada), Pricing.Num(R.Params.TotalTravado),
+            CambioDaProposta, Pricing.Num(R.Params.SegurancaCambioPct));
     private string Cifrao => Servicos.Simbolo(P.Moeda);
 
     private DateTime DataProposta

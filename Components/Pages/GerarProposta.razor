@@ -34,8 +34,8 @@
                 <label>Cliente
                     <input class="cell" placeholder="Empresa cliente" @bind="P.Cliente" />
                 </label>
-                <label>Cidade / UF do serviço
-                    <input class="cell" placeholder="Jaguarari - BA" @bind="P.Cidade" />
+                <label>@(P.Moeda != "BRL" ? "País do serviço" : "Cidade / UF do serviço")
+                    <input class="cell" placeholder="@(P.Moeda != "BRL" ? "Peru" : "Jaguarari - BA")" @bind="P.Cidade" />
                 </label>
                 <label>Estado
                     <select class="cell" @bind="P.Estado">
@@ -104,6 +104,15 @@
                         @foreach (var o in Servicos.Moedas) { <option value="@o">@o</option> }
                     </select>
                 </label>
+                @if (P.Moeda != "BRL" && Servicos.PaisDaBu(P.Bu) == "Brasil")
+                {
+                    <label>Taxa de conversão (1 @P.Moeda em R$)
+                        <input class="cell num" placeholder="5,40" @bind="R.Params.TaxaCambio" />
+                    </label>
+                    <label>Segurança da moeda (% a menos na taxa)
+                        <input class="cell num" placeholder="0" @bind="R.Params.SegurancaCambioPct" />
+                    </label>
+                }
                 <label>Validade (dias)
                     <input class="cell num" @bind="P.ValidadeDias" />
                 </label>
@@ -584,7 +593,8 @@
     private Pricing.Documento Doc => R.Documento();
     private Pricing.Documento DocA =>
         Pricing.Apresentar(Doc, P.ModoApresentacao, Pricing.Num(R.Params.TaxaAdmPct),
-            Pricing.Num(R.Params.DiariaTravada), Pricing.Num(R.Params.TotalTravado));
+            Pricing.Num(R.Params.DiariaTravada), Pricing.Num(R.Params.TotalTravado),
+            CambioDaProposta, Pricing.Num(R.Params.SegurancaCambioPct));
     private Pricing.Resultado Calc => R.Calculo();
     private string Cifrao => Servicos.Simbolo(P.Moeda);
     private int Tec => Math.Max(Pricing.Inteiro(R.Params.QtdTecnicos), 1);

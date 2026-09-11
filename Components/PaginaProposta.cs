@@ -176,7 +176,16 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     private Data.Pricing.Documento Apresentado() =>
         Data.Pricing.Apresentar(R.Documento(), R.Proposta.ModoApresentacao,
             Data.Pricing.Num(R.Params.TaxaAdmPct), Data.Pricing.Num(R.Params.DiariaTravada),
-            Data.Pricing.Num(R.Params.TotalTravado));
+            Data.Pricing.Num(R.Params.TotalTravado),
+            CambioDaProposta, Data.Pricing.Num(R.Params.SegurancaCambioPct));
+
+    /// <summary>Taxa de câmbio da proposta — só vale com moeda estrangeira (BRL = sem conversão).</summary>
+    protected double CambioDaProposta =>
+        R.Proposta.Moeda == "BRL" ? 0 : Data.Pricing.Num(R.Params.TaxaCambio);
+
+    /// <summary>Taxa de câmbio efetiva da proposta (1 = sem conversão).</summary>
+    protected double FxEfetivo => Data.Pricing.CambioEfetivo(
+        CambioDaProposta, Data.Pricing.Num(R.Params.SegurancaCambioPct));
 
     /// <summary>Diária normal (com impostos) da proposta atual, como sai para o cliente.</summary>
     protected double DiariaAtual => Data.Pricing.DiariaNormalApresentada(Apresentado());
@@ -249,11 +258,15 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         return DiariaAtual;
     }
 
-    /// <summary>Grava a margem que fecha o total na meta e a trava do total.</summary>
+    /// <summary>
+    /// Grava a margem que fecha o total na meta e a trava do total. A meta é
+    /// digitada na MOEDA DA PROPOSTA; o cálculo da margem acontece em R$
+    /// (× taxa de câmbio efetiva) e a trava fica na moeda apresentada.
+    /// </summary>
     private void AplicarMargemParaTotal(double meta)
     {
         var inv = System.Globalization.CultureInfo.InvariantCulture;
-        var m = Data.Pricing.MargemParaMeta(R.Calculo(), R.Params, meta,
+        var m = Data.Pricing.MargemParaMeta(R.Calculo(), R.Params, meta * FxEfetivo,
             Data.Pricing.Num(R.Proposta.PrazoEntregaDias));
         R.Params.MargemAlvoPct = (m * 100).ToString("0.######", inv);
         R.Params.TotalTravado = meta.ToString("0.00", inv);
@@ -357,7 +370,8 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
 
     /// <summary>Margem que resulta da meta de valor informada (função "chegar no valor").</summary>
     protected double MargemDaMeta =>
-        Data.Pricing.MargemParaMeta(R.Calculo(), R.Params, Data.Pricing.Num(R.Params.MetaValor),
+        Data.Pricing.MargemParaMeta(R.Calculo(), R.Params,
+            Data.Pricing.Num(R.Params.MetaValor) * FxEfetivo,
             Data.Pricing.Num(R.Proposta.PrazoEntregaDias));
 
     /// <summary>

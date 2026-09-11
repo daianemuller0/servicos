@@ -107,7 +107,9 @@ public static class Servicos
             var par = System.Text.Json.JsonSerializer.Deserialize<PricingParams>(p.PricingJson) ?? new PricingParams();
             var doc = Pricing.Montar(mo, desp, par, Pricing.Num(p.PrazoEntregaDias));
             var docA = Pricing.Apresentar(doc, p.ModoApresentacao, Pricing.Num(par.TaxaAdmPct),
-                Pricing.Num(par.DiariaTravada), Pricing.Num(par.TotalTravado));
+                Pricing.Num(par.DiariaTravada), Pricing.Num(par.TotalTravado),
+                p.Moeda == "BRL" ? 0 : Pricing.Num(par.TaxaCambio),
+                Pricing.Num(par.SegurancaCambioPct));
             return Pricing.DiariaNormalApresentada(docA);
         }
         catch { return 0; }
@@ -601,8 +603,8 @@ public static class Servicos
 
 <table style='width:100%;border-collapse:collapse'><tr>
 <td style='padding:0;width:40%'><b style='color:{navy}'>{L.Projeto}</b><br/><span style='color:{corpo}'>{D(p.Projeto)}</span></td>
-<td style='padding:0;width:30%'><b style='color:{navy}'>{L.Cidade}</b><br/><span style='color:{corpo}'>{D(p.Cidade)}</span></td>
-<td style='padding:0;width:30%'><b style='color:{navy}'>{L.Estado}</b><br/><span style='color:{corpo}'>{D(p.Estado)}</span></td>
+<td style='padding:0;width:30%'><b style='color:{navy}'>{(p.Moeda == "BRL" ? L.Cidade : p.Idioma == "English" ? "COUNTRY" : "PAÍS")}</b><br/><span style='color:{corpo}'>{D(p.Cidade)}</span></td>
+{(p.Moeda == "BRL" ? $"<td style='padding:0;width:30%'><b style='color:{navy}'>{L.Estado}</b><br/><span style='color:{corpo}'>{D(p.Estado)}</span></td>" : "<td style='padding:0;width:30%'></td>")}
 </tr></table>
 {(string.IsNullOrWhiteSpace(p.Referencia) ? "" : $"<p style='color:{corpo};margin:10px 0 0'><b style='color:{navy}'>Ref.:</b> {E(p.Referencia)}</p>")}
 <p style='color:{corpo};margin:10px 0 16px'>{L.PrazoEntrega} {D(p.PrazoEntregaDias)}</p>
