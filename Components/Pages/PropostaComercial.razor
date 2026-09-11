@@ -360,11 +360,12 @@
                 <span style="color:#0a7a41; font-weight:600">@MsgNotas</span>
             }
         </div>
+        var (tInc, tExc, tGer) = Traducoes.TitulosNotas(P.Idioma);
         foreach (var (secao, titulo, cor) in new[]
         {
-            ("incluso", "INCLUSO NO FORNECIMENTO DA HOWDEN:", "#004785"),
-            ("excluso", "EXCLUSOS DO FORNECIMENTO DA HOWDEN:", "#004785"),
-            ("gerais", "Notas Gerais:", "#141E32"),
+            ("incluso", tInc, "#004785"),
+            ("excluso", tExc, "#004785"),
+            ("gerais", tGer, "#141E32"),
         })
         {
             var itens = todasNotas.Where(n => n.Secao == secao).ToList();

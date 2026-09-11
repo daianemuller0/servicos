@@ -396,8 +396,7 @@ public static class Servicos
         PricingParams par, Pricing.Documento apresentado)
     {
         var notas = new List<NotaProposta>();
-        if (p.Idioma != "Português") return notas;   // notas padrão em português (traduções sob demanda)
-
+        var idioma = p.Idioma;
         var tec = Math.Max(Pricing.Inteiro(par.QtdTecnicos), 1);
 
         bool Desp(Func<string, bool> m) => itensDespesa.Any(d =>
@@ -433,15 +432,28 @@ public static class Servicos
             (temRefei, "var.alimentacao", "Alimentação;"),
             (temTransporte, "var.transporte", "Transporte (Carro, Pedágios, Combustível, etc.);"),
         };
-        void Inc(string chave, string texto) => notas.Add(new(chave, "incluso", texto));
-        void Exc(string chave, string texto) => notas.Add(new(chave, "excluso", texto));
-        void Ger(string chave, string texto) => notas.Add(new(chave, "gerais", texto));
+        // Cada nota sai no idioma da proposta (o texto em português é o padrão
+        // quando ainda não há tradução para aquela chave).
+        void Add(string chave, string secao, string textoPt) =>
+            notas.Add(new(chave, secao, Traducoes.Nota(chave, idioma) ?? textoPt));
+        void Inc(string chave, string texto) => Add(chave, "incluso", texto);
+        void Exc(string chave, string texto) => Add(chave, "excluso", texto);
+        void Ger(string chave, string texto) => Add(chave, "gerais", texto);
 
         foreach (var v in variaveis.Where(v => v.Incluso))
             Inc(v.Chave, v.Texto);
-        Inc("inc.mobilizacao", "Proposta está considerando todos os serviços, Mobilização e Desmobilização" +
-            (temFds ? "" : " durante semana (Segunda a Sexta, exceto feriados)") +
-            (tem2Turno ? "" : " no período diurno das 08h00 às 17h00 incluindo 01 hora de descanso") + ";");
+        Inc("inc.mobilizacao", idioma switch
+        {
+            "English" => "This quotation covers all services, mobilization and demobilization" +
+                (temFds ? "" : " on weekdays (Monday to Friday, except holidays)") +
+                (tem2Turno ? "" : " during daytime, from 08:00 to 17:00, including 01 hour of rest") + ";",
+            "Español" => "La oferta considera todos los servicios, movilización y desmovilización" +
+                (temFds ? "" : " durante la semana (lunes a viernes, excepto feriados)") +
+                (tem2Turno ? "" : " en el período diurno de 08h00 a 17h00, incluyendo 01 hora de descanso") + ";",
+            _ => "Proposta está considerando todos os serviços, Mobilização e Desmobilização" +
+                (temFds ? "" : " durante semana (Segunda a Sexta, exceto feriados)") +
+                (tem2Turno ? "" : " no período diurno das 08h00 às 17h00 incluindo 01 hora de descanso") + ";",
+        });
         Inc("inc.tempo-viagem", "O tempo de viagem e/ou de locomoção na origem e no destino e horas de integração será apurado como período trabalhado;");
         Inc("inc.20dias", "É facultado ao Cliente, dentro do prazo mínimo de 20 dias acionar a Howden para que a mesma proceda com a execução do Serviço. O não manifesto do Cliente no prazo e a execução do Serviço por conta própria ou por terceiros cessa automaticamente a garantia contratual concedida inicialmente;");
         Inc("inc.prazo-tecnico", "As partes devem estabelecer o prazo técnico razoável para execução do Serviço, sendo que, a partir do comunicado do Cliente, a Howden definirá o(s) Técnico(s) responsável(eis) e providenciará a documentação necessária para integração do(s) mesmo(s), de acordo com as exigências do Cliente;");
@@ -474,7 +486,12 @@ public static class Servicos
         Exc("exc.nao-consta", "Excluso de nosso fornecimento qualquer item ou acessórios que não conste claramente em nossa proposta;");
         Exc("exc.quantidade-total", "Os valores aqui apresentados são válidos somente se adquiridos na quantidade total ofertada; caso esta quantidade seja alterada, os valores citados deverão ser recalculados e apresentados em uma revisão da proposta;");
         Exc("exc.lucros-cessantes", "<b>Exclusão de Lucros Cessantes.</b> A Howden não será, em nenhuma hipótese, responsável por lucros cessantes e/ou danos indiretos de qualquer tipo incluindo, mas não se limitando a perda de negócio, lucro ou produtividade, <b>conforme item 12 das condições de fornecimento</b>;");
-        Exc("exc.taxa-adm", $"Outros recursos eventualmente necessários devem ser providenciados e custeados pelo CONTRATANTE. Caso contrário, as despesas serão acrescidas de taxa administrativa de {taxaAdm}% somadas ao valor dos serviços e cobradas via Nota de Débito usada para reembolso de despesas.");
+        Exc("exc.taxa-adm", idioma switch
+        {
+            "English" => $"Any other resources eventually required must be arranged and paid by the CUSTOMER. Otherwise, the expenses will be increased by an administrative fee of {taxaAdm}%, added to the value of the services and charged through a Debit Note used for expense reimbursement.",
+            "Español" => $"Otros recursos eventualmente necesarios deben ser provistos y costeados por el CONTRATANTE. De lo contrario, los gastos se incrementarán con una tasa administrativa del {taxaAdm}%, sumados al valor de los servicios y cobrados mediante Nota de Débito utilizada para el reembolso de gastos.",
+            _ => $"Outros recursos eventualmente necessários devem ser providenciados e custeados pelo CONTRATANTE. Caso contrário, as despesas serão acrescidas de taxa administrativa de {taxaAdm}% somadas ao valor dos serviços e cobradas via Nota de Débito usada para reembolso de despesas.",
+        });
 
         Ger("ger.adicional-noturno", "(*) Acréscimo - adicional noturno (22h00min às 05h00min) de 50% sobre os preços informados acima;");
         if (!semImpostos)
@@ -483,9 +500,18 @@ public static class Servicos
         Ger("ger.valor-minimo", "O valor mínimo é o correspondente a 01 (um) dia normal de trabalho, ou seja, 08 horas;");
         Ger("ger.carga-horaria", "Carga horária máxima por dia de 08 horas; casos especiais serão cobradas horas adicionais (50% semana, 100% Sábado, Domingos e Feriados);");
         Ger("ger.reajuste-180", "Os valores poderão ser reajustados após 180 dias do aceite da ordem de compra;");
-        Ger("ger.periodo-diarias", tem2Turno
-            ? "Período das diárias do 1º turno: das 08h00 às 17h00 incluindo 01 hora de descanso;"
-            : "Período das diárias: das 08h00 às 17h00 incluindo 01 hora de descanso;");
+        Ger("ger.periodo-diarias", idioma switch
+        {
+            "English" => tem2Turno
+                ? "1st shift working hours: from 08:00 to 17:00, including 01 hour of rest;"
+                : "Daily working hours: from 08:00 to 17:00, including 01 hour of rest;",
+            "Español" => tem2Turno
+                ? "Período de los días del 1er turno: de 08h00 a 17h00, incluyendo 01 hora de descanso;"
+                : "Período de los días: de 08h00 a 17h00, incluyendo 01 hora de descanso;",
+            _ => tem2Turno
+                ? "Período das diárias do 1º turno: das 08h00 às 17h00 incluindo 01 hora de descanso;"
+                : "Período das diárias: das 08h00 às 17h00 incluindo 01 hora de descanso;",
+        });
         if (temQualquerDespesa)
             Ger("ger.despesas-howden", "Passagens, translado, locomoções, hospedagens, estadias, lanches, alimentação devem ser providenciados e custeados pela Howden exclusivamente para esta proposta;");
         Ger("ger.materia-prima", "A Howden não está considerando fornecimento de matéria prima e/ou acessórios;");
@@ -524,9 +550,10 @@ public static class Servicos
                 Lista(itens, marcador);
         }
 
-        return Secao("incluso", "INCLUSO NO FORNECIMENTO DA HOWDEN:", "#004785", "•", "20px") +
-               Secao("excluso", "EXCLUSOS DO FORNECIMENTO DA HOWDEN:", "#004785", "•", "14px") +
-               Secao("gerais", "Notas Gerais:", navy, "✓", "14px");
+        var (tIncluso, tExcluso, tGerais) = Traducoes.TitulosNotas(p.Idioma);
+        return Secao("incluso", tIncluso, "#004785", "•", "20px") +
+               Secao("excluso", tExcluso, "#004785", "•", "14px") +
+               Secao("gerais", tGerais, navy, "✓", "14px");
     }
 
     public static string DocHtml(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? fat, string? repInfo = null, string? notas = null) =>
@@ -581,10 +608,14 @@ public static class Servicos
         string Th(string t, string align = "left") =>
             $"<th style='background:{azul};color:#fff;padding:6px 8px;text-align:{align};font-size:8pt'>{t}</th>";
 
+        // Os nomes vêm da tabela de custos (em português) — no documento saem
+        // no idioma da proposta.
+        string T(string? texto) => E(Traducoes.Item(texto, p.Idioma));
+
         var linhasMO = string.Join("", doc.MO.Select(i =>
             "<tr>" +
-            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{E(i.Servico)}</b></td>" +
-            $"<td style='{bd};color:{corpo}'>{E(i.Obs)}</td>" +
+            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{T(i.Servico)}</b></td>" +
+            $"<td style='{bd};color:{corpo}'>{T(i.Obs)}</td>" +
             $"<td style='{bd};text-align:center;color:{corpo}'>{Pricing.Moeda0(i.Horas)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{Pricing.Moeda(i.ValorHora)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{(i.ValorDiaria <= 0 ? "—" : Pricing.Moeda(i.ValorDiaria))}</td>" +
@@ -594,22 +625,22 @@ public static class Servicos
         var adicionais = Pricing.DiariasAdicionais(doc);
         var linhasAdic = string.Join("", adicionais.Select(a =>
             "<tr>" +
-            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{E(a.Servico)}</b></td>" +
-            $"<td style='{bd};color:{corpo}'>{E(a.Obs)}</td>" +
+            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{T(a.Servico)}</b></td>" +
+            $"<td style='{bd};color:{corpo}'>{T(a.Obs)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{M(a.Valor)}</td></tr>"));
 
         var linhasDesp = string.Join("", doc.Despesas.Select(i =>
             "<tr>" +
-            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{E(i.Despesa)}</b></td>" +
-            $"<td style='{bd};color:{corpo}'>{E(i.Obs)}</td>" +
+            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{T(i.Despesa)}</b></td>" +
+            $"<td style='{bd};color:{corpo}'>{T(i.Obs)}</td>" +
             $"<td style='{bd};text-align:center;color:{corpo}'>{Pricing.Moeda0(i.Qtd)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{Pricing.Moeda(i.ValorUnitario)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{M(i.ValorTotal)}</td></tr>"));
 
         var linhasComp = string.Join("", doc.Complementares.Select(c =>
             "<tr>" +
-            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{E(c.Descricao)}</b></td>" +
-            $"<td style='{bd};color:{corpo}'>{E(c.Obs)}</td>" +
+            $"<td style='{bd};color:{corpo}'><b style='color:{navy}'>{T(c.Descricao)}</b></td>" +
+            $"<td style='{bd};color:{corpo}'>{T(c.Obs)}</td>" +
             $"<td style='{bd};text-align:center;color:{corpo}'>{Pricing.Moeda0(c.Qtd)}</td>" +
             $"<td style='{bd};text-align:right;color:{corpo}'>{M(c.Valor)}</td></tr>"));
 
@@ -687,7 +718,7 @@ public static class Servicos
 {(string.IsNullOrWhiteSpace(p.Referencia) ? "" : $"<p style='color:{corpo};margin:10px 0 0'><b style='color:{navy}'>Ref.:</b> {E(p.Referencia)}</p>")}
 <p style='color:{corpo};margin:10px 0 16px'>{L.PrazoEntrega} {D(p.PrazoEntregaDias)}</p>
 
-<p style='margin:0 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Assessoria}{(string.IsNullOrWhiteSpace(p.EscopoServico) ? "" : $" - {E(p.EscopoServico)}")}</p>
+<p style='margin:0 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Assessoria}{(string.IsNullOrWhiteSpace(p.EscopoServico) ? "" : $" - {T(p.EscopoServico)}")}</p>
 <table style='width:100%;border-collapse:collapse;font-size:8.5pt'>
 <tr>{Th(L.Servico)}{Th(L.Obs)}{Th(L.Horas, "center")}{Th(L.ValorHora, "right")}{Th(L.ValorDiaria, "right")}{Th(L.QtdDiaria, "center")}{Th(L.ValorTotal, "right")}</tr>
 {linhasMO}
