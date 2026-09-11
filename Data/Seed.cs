@@ -35,18 +35,19 @@ public static class Seed
     };
 
     /// <summary>
-    /// Tabela de custos do Chile ou do Peru: mesma estrutura da do Brasil
-    /// (os nomes precisam ser mantidos — as regras de diárias/despesas os
-    /// reconhecem), com os valores a preencher na Tabela de Custos.
+    /// Tabela de custos do Chile ou do Peru, numa das moedas em que a BU
+    /// trabalha (Chile: CLP e USD; Peru: USD e PEN). Mesma estrutura da do
+    /// Brasil — os nomes precisam ser mantidos, porque as regras de diárias e
+    /// despesas os reconhecem —, com os valores a preencher na Tabela de Custos.
     /// </summary>
-    public static List<Parametro> ParametrosPais(string pais)
+    public static List<Parametro> ParametrosPais(string pais, string moeda)
     {
-        var prefixo = pais == "Chile" ? "cl-" : "pe-";
+        var prefixo = (pais == "Chile" ? "cl" : "pe") + "-" + moeda.ToLowerInvariant() + "-";
         return Parametros().Select(p => new Parametro
         {
             Id = prefixo + p.Id, Tipo = p.Tipo, Descricao = p.Descricao, Obs = p.Obs,
-            Horas = p.Horas, Valor = p.Valor, PorTecnico = p.PorTecnico,
-            Ordem = p.Ordem, Mult = p.Mult, Pais = pais,
+            Horas = p.Horas, Valor = "0", PorTecnico = p.PorTecnico,
+            Ordem = p.Ordem, Mult = p.Mult, Pais = pais, Moeda = moeda,
         }).ToList();
     }
 
@@ -167,14 +168,27 @@ public static class DbInitializer
             foreach (var x in Seed.Vendedores()) repo.Save(x);
         }
 
-        // Tabelas de custo do Chile e do Peru: semeadas uma única vez, também
-        // em bancos que já existiam antes delas.
+        // Tabelas de custo do Chile e do Peru, uma por moeda em que a BU
+        // trabalha (Chile: CLP e USD; Peru: USD e PEN). Semeadas uma única
+        // vez cada, também em bancos que já existiam antes delas.
         {
             var repo = new ParametroRepository(store);
             var todos = repo.All();
+
+            // Linhas gravadas antes da coluna "moeda": recebem a moeda padrão
+            // do seu país, para não ficarem órfãs de tabela.
+            foreach (var p in todos)
+            {
+                if (!string.IsNullOrWhiteSpace(p.Moeda)) continue;
+                p.Moeda = Servicos.MoedasDoPais(string.IsNullOrWhiteSpace(p.Pais) ? "Brasil" : p.Pais)[0];
+                repo.Save(p);
+            }
+
+            todos = repo.All();
             foreach (var pais in new[] { "Chile", "Peru" })
-                if (!todos.Any(p => p.Pais == pais))
-                    foreach (var x in Seed.ParametrosPais(pais)) repo.Save(x);
+                foreach (var moeda in Servicos.MoedasDoPais(pais))
+                    if (!todos.Any(p => p.Pais == pais && p.Moeda == moeda))
+                        foreach (var x in Seed.ParametrosPais(pais, moeda)) repo.Save(x);
         }
 
         // Bases antigas: a coluna de multiplicador não existia — sem ela os

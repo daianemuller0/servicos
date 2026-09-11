@@ -25,7 +25,13 @@
     @foreach (var pais in new[] { "Brasil", "Chile", "Peru" })
     {
         var x = pais;
-        <button class="view @(_pais == x ? "active" : "")" @onclick="@(() => _pais = x)">@x</button>
+        <button class="view @(_pais == x ? "active" : "")" @onclick="@(() => TrocarPais(x))">@x</button>
+    }
+    <span style="width:18px"></span>
+    @foreach (var m in Servicos.MoedasDoPais(_pais))
+    {
+        var y = m;
+        <button class="view @(_moeda == y ? "active" : "")" @onclick="@(() => _moeda = y)">@y</button>
     }
     <span style="width:18px"></span>
     <button class="view @(_aba == "MO" ? "active" : "")" @onclick="@(() => _aba = "MO")">Mão de obra</button>
@@ -46,7 +52,8 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var p in _itens.Where(x => x.Tipo == _aba && PaisDe(x) == _pais))
+        @foreach (var p in _itens.Where(x => x.Tipo == _aba && PaisDe(x) == _pais && MoedaDe(x) == _moeda)
+                                 .OrderBy(x => x.Ordem))
         {
             <tr>
                 <td><input class="cell" @bind="p.Descricao" @bind:after="() => Salvar(p)" /></td>
@@ -74,9 +81,12 @@
 </table>
 
 <div class="side-note" style="margin-top:14px; max-width:760px">
-    Cada país tem a sua tabela: <strong>Brasil</strong> (BU HSA-SP/HSA-ES, em R$),
-    <strong>Chile</strong> (BU HCHL, em CLP) e <strong>Peru</strong> (BU HPU, em USD) —
-    ao escolher a BU na proposta, a tabela do país entra sozinha, sem impostos para Chile/Peru.
+    Cada BU tem a sua tabela, e algumas em mais de uma moeda:
+    <strong>Brasil</strong> (HSA-SP/HSA-ES) em <strong>BRL</strong>;
+    <strong>Chile</strong> (HCHL) em <strong>CLP</strong> e <strong>USD</strong>;
+    <strong>Peru</strong> (HPU) em <strong>USD</strong> e <strong>PEN</strong>.
+    Na proposta você escolhe a BU e a moeda do custo — se a venda for na mesma
+    moeda, não há conversão; se for em outra, aparece a caixinha de câmbio.
     Alterar a tabela não mexe nas propostas já cadastradas — ela vale para as próximas.
     "× técnicos" indica se o item é multiplicado pela quantidade de técnicos em campo;
     "× hora-base" é o multiplicador sobre a hora do 1º turno (1,5 = HE/2º turno; 2 = sáb/dom/fer;
@@ -87,10 +97,19 @@
     private List<Parametro> _itens = new();
     private string _aba = "MO";
     private string _pais = "Brasil";
+    private string _moeda = "BRL";
     private bool _salvo;
 
     private static string PaisDe(Parametro p) => string.IsNullOrWhiteSpace(p.Pais) ? "Brasil" : p.Pais;
-    private string MoedaAba => _pais switch { "Chile" => "CLP", "Peru" => "USD", _ => "R$" };
+    private static string MoedaDe(Parametro p) =>
+        string.IsNullOrWhiteSpace(p.Moeda) ? Servicos.MoedasDoPais(PaisDe(p))[0] : p.Moeda;
+    private string MoedaAba => Servicos.Simbolo(_moeda);
+
+    private void TrocarPais(string pais)
+    {
+        _pais = pais;
+        _moeda = Servicos.MoedasDoPais(pais)[0];
+    }
 
     protected override void OnInitialized() => _itens = Repo.All();
 
@@ -112,6 +131,7 @@
             PorTecnico = "Sim",
             Ordem = (_itens.Count + 1).ToString("D3"),
             Pais = _pais,
+            Moeda = _moeda,
         };
         Repo.Save(novo);
         _itens = Repo.All();

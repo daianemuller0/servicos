@@ -70,11 +70,36 @@ public static class Servicos
     };
 
     /// <summary>
-    /// Moeda em que está a TABELA DE CUSTOS da BU (Brasil em R$; Chile em CLP;
-    /// Peru em USD). Quando a proposta sai em outra moeda, é dela que se
-    /// converte — com a taxa e a segurança informadas na proposta.
+    /// Moedas em que a tabela de custos da BU pode estar cadastrada:
+    /// Brasil (HSA) em BRL; Chile (HCHL) em CLP e USD; Peru (HPU) em USD e PEN.
+    /// A primeira é a padrão da BU.
     /// </summary>
-    public static string MoedaDosCustos(string bu) => MoedaPadrao(bu);
+    public static string[] MoedasDaBu(string bu) => PaisDaBu(bu) switch
+    {
+        "Chile" => new[] { "CLP", "USD" },
+        "Peru" => new[] { "USD", "PEN" },
+        _ => new[] { "BRL" },
+    };
+
+    /// <summary>Moedas da tabela de custos de um país (mesma lista de <see cref="MoedasDaBu"/>).</summary>
+    public static string[] MoedasDoPais(string pais) => pais switch
+    {
+        "Chile" => new[] { "CLP", "USD" },
+        "Peru" => new[] { "USD", "PEN" },
+        _ => new[] { "BRL" },
+    };
+
+    /// <summary>
+    /// Moeda da TABELA DE CUSTOS escolhida na proposta. Quando a proposta é
+    /// vendida em outra moeda, é dela que se converte — com a taxa e a
+    /// segurança informadas na proposta.
+    /// </summary>
+    public static string MoedaDosCustos(Proposta p, PricingParams par)
+    {
+        var moedas = MoedasDaBu(p.Bu);
+        var escolhida = par.MoedaCusto;
+        return moedas.Contains(escolhida) ? escolhida : moedas[0];
+    }
 
     /// <summary>
     /// Países de destino do serviço e a moeda em que a proposta costuma sair.
@@ -118,8 +143,9 @@ public static class Servicos
         return sb.ToString();
     }
 
-    /// <summary>Verdadeiro quando a proposta precisa de conversão de moeda.</summary>
-    public static bool PrecisaConverter(Proposta p) => p.Moeda != MoedaDosCustos(p.Bu);
+    /// <summary>Verdadeiro quando a proposta é vendida numa moeda diferente da dos custos.</summary>
+    public static bool PrecisaConverter(Proposta p, PricingParams par) =>
+        p.Moeda != MoedaDosCustos(p, par);
 
     /// <summary>Símbolo da moeda usado no documento.</summary>
     public static string Simbolo(string moeda) => moeda switch
@@ -160,7 +186,7 @@ public static class Servicos
             var doc = Pricing.Montar(mo, desp, par, Pricing.Num(p.PrazoEntregaDias));
             var docA = Pricing.Apresentar(doc, p.ModoApresentacao, Pricing.Num(par.TaxaAdmPct),
                 Pricing.Num(par.DiariaTravada), Pricing.Num(par.TotalTravado),
-                PrecisaConverter(p) ? Pricing.Num(par.TaxaCambio) : 0,
+                PrecisaConverter(p, par) ? Pricing.Num(par.TaxaCambio) : 0,
                 Pricing.Num(par.SegurancaCambioPct));
             return Pricing.DiariaNormalApresentada(docA);
         }

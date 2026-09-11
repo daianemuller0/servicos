@@ -145,7 +145,14 @@ public class PricingParams
     /// <summary>Taxa administrativa mostrada sobre as despesas na apresentação ao cliente.</summary>
     public string TaxaAdmPct { get; set; } = "40";
 
-    // ---- conversão de moeda (proposta internacional com custos em R$) ----
+    /// <summary>
+    /// Moeda da TABELA DE CUSTOS usada nesta proposta (a BU pode ter mais de
+    /// uma: Chile em CLP ou USD; Peru em USD ou PEN). Venda na mesma moeda =
+    /// sem conversão.
+    /// </summary>
+    public string MoedaCusto { get; set; } = "BRL";
+
+    // ---- conversão de moeda (custos numa moeda, venda em outra) ----
     /// <summary>Quanto vale 1 unidade da moeda da proposta em R$ (ex.: 1 USD = 5,40). Vazio/0 = sem conversão.</summary>
     public string TaxaCambio { get; set; } = "";
     /// <summary>Segurança da moeda: % tirada da taxa ao converter — se a moeda cair até isso, o valor em R$ não perde.</summary>

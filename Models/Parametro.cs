@@ -20,4 +20,9 @@ public class Parametro
     public string Mult { get; set; } = "0";
     /// <summary>Tabela de custos do país: "Brasil" (padrão), "Chile" ou "Peru".</summary>
     public string Pais { get; set; } = "Brasil";
+    /// <summary>
+    /// Moeda em que este custo está cadastrado. Cada BU pode ter mais de uma
+    /// tabela: Brasil em BRL; Chile em CLP e USD; Peru em USD e PEN.
+    /// </summary>
+    public string Moeda { get; set; } = "BRL";
 }

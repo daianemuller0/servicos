@@ -131,7 +131,13 @@
     <div style="margin-top:8px">
         Prazo de entrega: <input class="de" style="width:110px" placeholder="digite" @bind="P.PrazoEntregaDias" /> ·
         Qtd. de técnicos: <input class="de qtd" @bind="R.Params.QtdTecnicos" /> ·
-        Moeda: <select class="de" @bind="P.Moeda">
+        BU: <select class="de" value="@P.Bu" @onchange="MudarBu">
+            @foreach (var o in Servicos.Bus) { <option value="@o">@o</option> }
+        </select> ·
+        Custo em: <select class="de" value="@Servicos.MoedaDosCustos(P, R.Params)" @onchange="MudarMoedaCusto">
+            @foreach (var o in Servicos.MoedasDaBu(P.Bu)) { <option value="@o">@o</option> }
+        </select> ·
+        Venda em: <select class="de" @bind="P.Moeda">
             @foreach (var o in Servicos.Moedas) { <option value="@o">@o</option> }
         </select> ·
         Idioma: <select class="de" @bind="P.Idioma">
@@ -140,9 +146,9 @@
     </div>
 
     @* ---------- conversão de moeda (proposta em moeda diferente da dos custos) ---------- *@
-    @if (Servicos.PrecisaConverter(P))
+    @if (Servicos.PrecisaConverter(P, R.Params))
     {
-        var moedaCusto = Servicos.MoedaDosCustos(P.Bu);
+        var moedaCusto = Servicos.MoedaDosCustos(P, R.Params);
         var cifraoCusto = Servicos.Simbolo(moedaCusto);
         <div class="no-print" style="margin-top:10px; padding:10px 12px; background:#FFF6E5; border:2px solid #E9A23B; border-radius:8px; font-size:13px">
             <div style="font-weight:700; color:#7A4E06; margin-bottom:6px">
@@ -176,10 +182,10 @@
             }
         </div>
     }
-    else if (Internacional)
+    else
     {
         <div class="no-print doc-muted" style="margin-top:8px; font-size:12px">
-            💱 A tabela de custos desta BU (@P.Bu) já está em @P.Moeda — não há conversão de moeda.
+            💱 Custo e venda na mesma moeda (@P.Moeda) — sem conversão.
         </div>
     }
 
@@ -398,9 +404,6 @@
 
     <div class="doc-muted" style="font-style:italic; margin-top:22px">
         Preparada por: <input class="de" style="width:170px" @bind="P.PreparadaPor" /> ·
-        BU: <select class="de" value="@P.Bu" @onchange="MudarBu">
-            @foreach (var o in Servicos.Bus) { <option value="@o">@o</option> }
-        </select> ·
         Margem: <strong>@Pricing.Porcento(Doc.Calculo.ProjectMargin)</strong> ·
         Situação: <select class="de" @bind="P.Status">
             <option value="Rascunho">Rascunho</option>

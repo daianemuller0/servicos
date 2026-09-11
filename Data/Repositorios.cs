@@ -89,30 +89,29 @@ public class ParametroRepository
 
     public List<Parametro> All()
     {
-        // Bancos gravados antes da coluna "pais" não a têm — fallback lê sem ela
-        // e a primeira gravação nova cria a coluna (union_by_name).
-        try
+        const string colunas = "id, tipo, descricao, obs, horas, valor, porTecnico, ordem, mult";
+
+        Parametro Mapear(System.Data.IDataReader r, int extras) => new()
         {
-            return _store.ReadLatest(Entidade,
-                "id, tipo, descricao, obs, horas, valor, porTecnico, ordem, mult, pais",
-                r => new Parametro
-                {
-                    Id = S(r, 0), Tipo = S(r, 1), Descricao = S(r, 2), Obs = S(r, 3),
-                    Horas = S(r, 4), Valor = S(r, 5), PorTecnico = S(r, 6), Ordem = S(r, 7),
-                    Mult = S(r, 8) == "" ? "0" : S(r, 8),
-                    Pais = S(r, 9) == "" ? "Brasil" : S(r, 9),
-                }, "ordem");
-        }
-        catch
+            Id = S(r, 0), Tipo = S(r, 1), Descricao = S(r, 2), Obs = S(r, 3),
+            Horas = S(r, 4), Valor = S(r, 5), PorTecnico = S(r, 6), Ordem = S(r, 7),
+            Mult = S(r, 8) == "" ? "0" : S(r, 8),
+            Pais = extras >= 1 && S(r, 9) != "" ? S(r, 9) : "Brasil",
+            Moeda = extras >= 2 ? S(r, 10) : "",
+        };
+
+        // Bancos antigos não têm as colunas "pais"/"moeda" — tenta com todas e
+        // vai tirando da direita; a primeira gravação nova cria as que faltarem.
+        var novas = new[] { "pais", "moeda" };
+        for (var n = novas.Length; ; n--)
         {
-            return _store.ReadLatest(Entidade,
-                "id, tipo, descricao, obs, horas, valor, porTecnico, ordem, mult",
-                r => new Parametro
-                {
-                    Id = S(r, 0), Tipo = S(r, 1), Descricao = S(r, 2), Obs = S(r, 3),
-                    Horas = S(r, 4), Valor = S(r, 5), PorTecnico = S(r, 6), Ordem = S(r, 7),
-                    Mult = S(r, 8) == "" ? "0" : S(r, 8),
-                }, "ordem");
+            var extras = string.Concat(novas.Take(n).Select(c => ", " + c));
+            try
+            {
+                var qtd = n;
+                return _store.ReadLatest(Entidade, colunas + extras, r => Mapear(r, qtd), "ordem");
+            }
+            catch when (n > 0) { }
         }
     }
 
@@ -121,6 +120,7 @@ public class ParametroRepository
         new("id", p.Id), new("tipo", p.Tipo), new("descricao", p.Descricao), new("obs", p.Obs),
         new("horas", p.Horas), new("valor", p.Valor), new("porTecnico", p.PorTecnico),
         new("ordem", p.Ordem), new("mult", p.Mult), new("pais", p.Pais),
+        new("moeda", p.Moeda),
     });
 
     public void Delete(string id) => _store.WriteRow(Entidade,

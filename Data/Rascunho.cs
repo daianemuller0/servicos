@@ -83,7 +83,8 @@ public class Rascunho
             Proposta.Moeda = Servicos.MoedaPadrao(Proposta.Bu);
             Params.PisPct = "0"; Params.CofinsPct = "0"; Params.IssPct = "0";
         }
-        parametros = parametros.Where(p => (string.IsNullOrWhiteSpace(p.Pais) ? "Brasil" : p.Pais) == pais).ToList();
+        Params.MoedaCusto = Servicos.MoedasDaBu(Proposta.Bu)[0];
+        parametros = DoPaisEMoeda(parametros, pais, Params.MoedaCusto);
         ItensMO = parametros.Where(p => p.Tipo == "MO").Select(p => new ItemMO
         {
             Servico = p.Descricao, Obs = p.Obs, Horas = p.Horas,
@@ -106,11 +107,9 @@ public class Rascunho
     /// preservando as quantidades já lançadas: os itens são casados por
     /// posição, já que as três tabelas têm a mesma estrutura.
     /// </summary>
-    public void TrocarTabela(List<Parametro> parametros, string pais)
+    public void TrocarTabela(List<Parametro> parametros, string pais, string moeda)
     {
-        var doPais = parametros
-            .Where(p => (string.IsNullOrWhiteSpace(p.Pais) ? "Brasil" : p.Pais) == pais)
-            .OrderBy(p => p.Ordem).ToList();
+        var doPais = DoPaisEMoeda(parametros, pais, moeda);
 
         var mo = doPais.Where(p => p.Tipo == "MO").ToList();
         for (var i = 0; i < ItensMO.Count && i < mo.Count; i++)
@@ -131,6 +130,26 @@ public class Rascunho
             ItensDespesa[i].PorTecnico = desp[i].PorTecnico == "Sim";
         }
         MigrarMultiplicadores();
+    }
+
+    /// <summary>
+    /// Linhas da tabela de custos de um país numa moeda (ex.: Peru em USD).
+    /// Cai para a moeda padrão do país quando a combinação ainda não existe —
+    /// bases antigas, gravadas antes das tabelas por moeda.
+    /// </summary>
+    private static List<Parametro> DoPaisEMoeda(List<Parametro> parametros, string pais, string moeda)
+    {
+        var doPais = parametros
+            .Where(p => (string.IsNullOrWhiteSpace(p.Pais) ? "Brasil" : p.Pais) == pais)
+            .ToList();
+        var naMoeda = doPais.Where(p => p.Moeda == moeda).ToList();
+        if (naMoeda.Count == 0)
+        {
+            var padrao = Servicos.MoedasDoPais(pais)[0];
+            naMoeda = doPais.Where(p => p.Moeda == padrao || string.IsNullOrWhiteSpace(p.Moeda)).ToList();
+        }
+        if (naMoeda.Count == 0) naMoeda = doPais;
+        return naMoeda.OrderBy(p => p.Ordem).ToList();
     }
 
     /// <summary>Carrega uma proposta gravada de volta para edição.</summary>

@@ -95,7 +95,21 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
             R.Proposta.Moeda = Data.Servicos.MoedaPadrao(bu);
         }
 
-        if (pais != paisAntes) R.TrocarTabela(Parametros.All(), pais);
+        // Moeda do custo: a padrão da BU nova (Chile CLP, Peru USD, Brasil BRL).
+        R.Params.MoedaCusto = Data.Servicos.MoedasDaBu(bu)[0];
+        if (pais != paisAntes) R.TrocarTabela(Parametros.All(), pais, R.Params.MoedaCusto);
+    }
+
+    /// <summary>
+    /// Troca a MOEDA DA TABELA DE CUSTOS da BU (Chile: CLP ou USD; Peru: USD
+    /// ou PEN): recarrega os custos daquela tabela preservando as quantidades.
+    /// </summary>
+    protected void MudarMoedaCusto(ChangeEventArgs e)
+    {
+        var moeda = e.Value?.ToString() ?? "";
+        if (string.IsNullOrWhiteSpace(moeda)) return;
+        R.Params.MoedaCusto = moeda;
+        R.TrocarTabela(Parametros.All(), Data.Servicos.PaisDaBu(R.Proposta.Bu), moeda);
     }
 
     /// <summary>
@@ -198,7 +212,7 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     /// diferente da moeda da tabela de custos da BU (senão não há o que converter).
     /// </summary>
     protected double CambioDaProposta =>
-        Data.Servicos.PrecisaConverter(R.Proposta) ? Data.Pricing.Num(R.Params.TaxaCambio) : 0;
+        Data.Servicos.PrecisaConverter(R.Proposta, R.Params) ? Data.Pricing.Num(R.Params.TaxaCambio) : 0;
 
     /// <summary>Símbolo da moeda da proposta (as mensagens saem na moeda apresentada).</summary>
     private string Cif => Data.Servicos.Simbolo(R.Proposta.Moeda);
