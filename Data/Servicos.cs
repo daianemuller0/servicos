@@ -76,6 +76,48 @@ public static class Servicos
     /// </summary>
     public static string MoedaDosCustos(string bu) => MoedaPadrao(bu);
 
+    /// <summary>
+    /// Países de destino do serviço e a moeda em que a proposta costuma sair.
+    /// O técnico sai do Brasil (custos em R$) — é o PAÍS que manda na moeda.
+    /// </summary>
+    public static readonly (string Pais, string Moeda)[] PaisesDestino =
+    {
+        ("Brasil", "BRL"),
+        ("Argentina", "USD"), ("Bolívia", "USD"), ("Chile", "CLP"), ("Colômbia", "USD"),
+        ("Equador", "USD"), ("Paraguai", "USD"), ("Peru", "USD"), ("Uruguai", "USD"),
+        ("Venezuela", "USD"), ("México", "USD"), ("Estados Unidos", "USD"), ("Canadá", "USD"),
+        ("Alemanha", "EUR"), ("Espanha", "EUR"), ("França", "EUR"), ("Itália", "EUR"),
+        ("Portugal", "EUR"), ("Holanda", "EUR"), ("Bélgica", "EUR"),
+        ("África do Sul", "USD"), ("Angola", "USD"), ("Moçambique", "USD"),
+        ("Austrália", "USD"), ("China", "USD"), ("Índia", "USD"),
+    };
+
+    /// <summary>
+    /// Moeda sugerida para o país digitado (ignora maiúsculas e acentos).
+    /// Devolve null quando o texto não é um país conhecido — aí a moeda
+    /// escolhida na proposta é mantida (ex.: "Jaguarari - BA").
+    /// </summary>
+    public static string? MoedaDoPais(string? pais)
+    {
+        var alvo = Simplificar(pais);
+        if (alvo.Length == 0) return null;
+        foreach (var (nome, moeda) in PaisesDestino)
+            if (Simplificar(nome) == alvo) return moeda;
+        return null;
+    }
+
+    private static string Simplificar(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return "";
+        var normal = texto.Trim().ToUpperInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in normal)
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+                != System.Globalization.UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+        return sb.ToString();
+    }
+
     /// <summary>Verdadeiro quando a proposta precisa de conversão de moeda.</summary>
     public static bool PrecisaConverter(Proposta p) => p.Moeda != MoedaDosCustos(p.Bu);
 

@@ -34,8 +34,13 @@
                 <label>Cliente
                     <input class="cell" placeholder="Empresa cliente" @bind="P.Cliente" />
                 </label>
-                <label>@(P.Moeda != "BRL" ? "País do serviço" : "Cidade / UF do serviço")
-                    <input class="cell" placeholder="@(P.Moeda != "BRL" ? "Peru" : "Jaguarari - BA")" @bind="P.Cidade" />
+                <label>@(P.Moeda != "BRL" ? "País do serviço" : "Cidade / UF (ou país)")
+                    <input class="cell" list="paises-destino-gp"
+                           placeholder="@(P.Moeda != "BRL" ? "Peru" : "Jaguarari - BA")"
+                           @bind="P.Cidade" @bind:after="PaisDestinoMudou" />
+                    <datalist id="paises-destino-gp">
+                        @foreach (var (pais, moeda) in Servicos.PaisesDestino) { <option value="@pais">@moeda</option> }
+                    </datalist>
                 </label>
                 <label>Estado
                     <select class="cell" @bind="P.Estado">

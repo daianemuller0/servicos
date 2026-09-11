@@ -98,6 +98,20 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         if (pais != paisAntes) R.TrocarTabela(Parametros.All(), pais);
     }
 
+    /// <summary>
+    /// O técnico sai do Brasil (custos em R$) — quem manda na moeda é o PAÍS
+    /// de destino. Digitou/escolheu um país conhecido, a moeda da proposta
+    /// acompanha (Peru → USD, Chile → CLP, Espanha → EUR, Brasil → BRL) e a
+    /// caixinha de conversão aparece. Texto que não é país (uma cidade, por
+    /// exemplo) não mexe em nada — e a moeda continua editável à mão.
+    /// </summary>
+    protected void PaisDestinoMudou()
+    {
+        var moeda = Data.Servicos.MoedaDoPais(R.Proposta.Cidade);
+        if (moeda is null || moeda == R.Proposta.Moeda) return;
+        R.Proposta.Moeda = moeda;
+    }
+
     /// <summary>Grava o rascunho agora.</summary>
     protected async Task SalvarRascunho()
     {
