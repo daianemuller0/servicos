@@ -168,10 +168,14 @@ public static class Servicos
     public static bool PrecisaConverter(Proposta p, PricingParams par) =>
         p.Moeda != MoedaDosCustos(p, par);
 
-    /// <summary>Símbolo da moeda usado no documento.</summary>
+    /// <summary>
+    /// Como a moeda aparece nos valores. As estrangeiras saem pelo CÓDIGO
+    /// (USD, EUR, CLP, PEN) — sem ambiguidade para o cliente lá fora; o real
+    /// segue como R$.
+    /// </summary>
     public static string Simbolo(string moeda) => moeda switch
     {
-        "USD" => "US$", "EUR" => "€", "CLP" => "CLP$", "PEN" => "S/", _ => "R$",
+        "USD" => "USD", "EUR" => "EUR", "CLP" => "CLP", "PEN" => "PEN", _ => "R$",
     };
 
     public static string FmtData(string iso) =>
