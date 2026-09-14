@@ -208,6 +208,35 @@ public static class Servicos
         string.IsNullOrWhiteSpace(p.Numero) ? "—" : $"{p.Numero} · Rev. {p.Revisao}";
 
     /// <summary>
+    /// Alíquotas efetivas do documento (PIS, COFINS e ISS em %), deduzidas dos
+    /// próprios valores calculados — é o que sai escrito na frente do
+    /// detalhamento de impostos.
+    /// </summary>
+    public static (double Pis, double Cofins, double Iss) AliquotasDoc(Pricing.Documento doc)
+    {
+        var c = doc.Calculo;
+        if (c.ComImpostos <= 0.005) return (0, 0, 0);
+        return (c.Pis / c.ComImpostos * 100, c.Cofins / c.ComImpostos * 100, c.Iss / c.ComImpostos * 100);
+    }
+
+    /// <summary>% acumulado escrito na linha "VALOR C/ PIS E COFINS".</summary>
+    public static string PctPisCofins(Pricing.Documento doc)
+    {
+        var a = AliquotasDoc(doc);
+        return $"PIS {Pct2(a.Pis)} + COFINS {Pct2(a.Cofins)} = {Pct2(a.Pis + a.Cofins)}";
+    }
+
+    /// <summary>% acumulado escrito na linha "VALOR C/ PIS, COFINS E ISS".</summary>
+    public static string PctPisCofinsIss(Pricing.Documento doc)
+    {
+        var a = AliquotasDoc(doc);
+        return $"+ ISS {Pct2(a.Iss)} = {Pct2(a.Pis + a.Cofins + a.Iss)}";
+    }
+
+    private static string Pct2(double v) =>
+        v.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")) + "%";
+
+    /// <summary>
     /// Nome do arquivo da planilha, no padrão que ela usa na rede:
     /// "R_HSAJOM.AFM.000427-0.xlsm" (R_ + número da proposta + "-" + revisão).
     /// </summary>
@@ -844,8 +873,8 @@ public static class Servicos
 {(semImp ? "" : $@"
 <table style='width:100%;border-collapse:collapse;margin-top:16px;font-size:8.5pt'>
 <tr><td style='{bd};color:{corpo}'>{L.SemImpostos}</td><td style='{bd};text-align:right;color:{corpo}'>{M(resumo.SemImpostos)}</td></tr>
-<tr><td style='{bd};color:{corpo}'>{L.ComPisCofins}</td><td style='{bd};text-align:right;color:{corpo}'>{M(resumo.ComPisCofins)}</td></tr>
-<tr><td style='{bd};color:{navy};font-weight:bold'>{L.ComPisCofinsIss}</td><td style='{bd};text-align:right;color:{navy};font-weight:bold'>{M(doc.Total)}</td></tr>
+<tr><td style='{bd};color:{corpo}'>{L.ComPisCofins} <span style='font-size:7.5pt;color:{sec}'>({PctPisCofins(doc)})</span></td><td style='{bd};text-align:right;color:{corpo}'>{M(resumo.ComPisCofins)}</td></tr>
+<tr><td style='{bd};color:{navy};font-weight:bold'>{L.ComPisCofinsIss} <span style='font-size:7.5pt;font-weight:normal;color:{sec}'>({PctPisCofinsIss(doc)})</span></td><td style='{bd};text-align:right;color:{navy};font-weight:bold'>{M(doc.Total)}</td></tr>
 </table>")}
 
 {(adicionais.Count == 0 ? "" : $@"

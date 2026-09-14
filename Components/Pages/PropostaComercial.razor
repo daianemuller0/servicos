@@ -338,8 +338,14 @@
     <table class="doc-tbl" style="margin-top:14px; max-width:520px">
         @{ var resumo = Pricing.ResumoDoTotal(DocA); }
         <tr><td>VALOR SEM IMPOSTOS</td><td class="right">@Cifrao @Pricing.Moeda(resumo.SemImpostos)</td></tr>
-        <tr><td>VALOR C/ PIS E COFINS</td><td class="right">@Cifrao @Pricing.Moeda(resumo.ComPisCofins)</td></tr>
-        <tr class="total-row"><td>VALOR C/ PIS, COFINS E ISS</td><td class="right">@Cifrao @Pricing.Moeda(DocA.Total)</td></tr>
+        <tr>
+            <td>VALOR C/ PIS E COFINS <span class="doc-aliq">(@Servicos.PctPisCofins(DocA))</span></td>
+            <td class="right">@Cifrao @Pricing.Moeda(resumo.ComPisCofins)</td>
+        </tr>
+        <tr class="total-row">
+            <td>VALOR C/ PIS, COFINS E ISS <span class="doc-aliq">(@Servicos.PctPisCofinsIss(DocA))</span></td>
+            <td class="right">@Cifrao @Pricing.Moeda(DocA.Total)</td>
+        </tr>
     </table>
     }
 
