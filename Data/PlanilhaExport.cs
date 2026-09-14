@@ -37,6 +37,16 @@ public static class PlanilhaExport
             var moedaCusto = Servicos.MoedaDosCustos(p, par);
             var converte = Servicos.PrecisaConverter(p, par);
 
+            // Lista de moedas da planilha (BD_pricing A2:C5): a linha 1 é USD,
+            // ou PEN quando a BU é HPU. Null = moeda de venda que essa lista
+            // não contempla (aí a planilha fica como está).
+            var moedaPrincipalPlanilha = p.Bu == "HPU" ? "PEN" : "USD";
+            int? indiceMoedaPlanilha =
+                p.Moeda == moedaPrincipalPlanilha ? 1 :
+                p.Moeda == "EUR" ? 2 :
+                p.Moeda == "GBP" ? 3 :
+                p.Moeda == "CLP" ? 4 : null;
+
             // ================= CUSTO =================
             Editar(zip, sheets["CUSTO"], ws =>
             {
@@ -62,6 +72,49 @@ public static class PlanilhaExport
                     Num(ws, $"G{r}", Pricing.Num(item.CustoUnitario));
                     Formula(ws, $"H{r}", item.PorTecnico ? $"G{r}*F{r}*$H$6" : $"G{r}*F{r}");
                 }
+
+                // ---- bloco de conferência do fim da guia (linhas 42-63) ----
+                // Essas células vinham com os números do exemplo antigo do
+                // modelo — e a diária (C42) vinha zerada, o que zerava as
+                // "Diárias adicionais" em cascata (C43/C44/C45 derivam dela).
+                // Tudo aqui vai na MOEDA DOS CUSTOS, como o resto da planilha.
+                var fx = Pricing.CambioEfetivo(
+                    converte ? Pricing.Num(par.TaxaCambio) : 0,
+                    Pricing.Num(par.SegurancaCambioPct));
+                var admFator = 1 + Pricing.Num(par.TaxaAdmPct) / 100.0;
+
+                double CustoDe(Func<string, bool> nome) => itensDespesa
+                    .Where(d => nome((d.Despesa ?? "").ToUpperInvariant()))
+                    .Sum(d => Pricing.CustoDespesa(d, tec));
+                double UnitarioDe(Func<string, bool> nome) => itensDespesa
+                    .Where(d => nome((d.Despesa ?? "").ToUpperInvariant()))
+                    .Sum(d => Pricing.Num(d.CustoUnitario) * (d.PorTecnico ? tec : 1));
+
+                // "Diárias adicionais": parte da diária CHEIA — a mesma que o
+                // sistema imprime na tabela de diárias adicionais (no modo com
+                // despesas abertas, é a diária mostrada + as despesas do dia).
+                // Convertida de volta para a moeda dos custos.
+                var diariaCheia = Pricing.DiariasAdicionais(apresentado).FirstOrDefault()?.Valor
+                                  ?? Pricing.DiariaNormalApresentada(apresentado);
+                Num(ws, "C42", Math.Round(diariaCheia * fx, 2));
+
+                // despesas de deslocamento (passagem + táxi), a custo
+                Num(ws, "C48", CustoDe(n => n.Contains("PASSAGEM")));
+                Num(ws, "C49", CustoDe(n => n.Contains("TAXI") || n.Contains("TÁXI")));
+
+                // despesas por dia de trabalho, a custo
+                Num(ws, "C56", UnitarioDe(n => n.Contains("REFEI")));
+                Num(ws, "C57", UnitarioDe(n => n.Contains("HOSPEDAGEM")));
+                Num(ws, "C58", UnitarioDe(n => n.Contains("LOCA")));
+                Num(ws, "C59", UnitarioDe(n => n.Contains("COMBUST")));
+
+                // a taxa administrativa é a da proposta (o modelo tinha 40% fixo)
+                var taxaTxt = Pricing.Moeda0(Pricing.Num(par.TaxaAdmPct));
+                Txt(ws, "B51", $"Valor de {taxaTxt}% da taxa ADM");
+                Formula(ws, "C51", $"C50*{admFator.ToString("0.####", Inv)}");
+                Formula(ws, "C61", $"C60*{admFator.ToString("0.####", Inv)}");
+                Formula(ws, "C53", "ROUND(C52,0)");
+                Formula(ws, "C63", "ROUND(C62,0)");
 
                 // ---- conversão de moeda (área livre, abaixo da guia) ----
                 // A planilha inteira calcula na moeda dos custos; este bloco
@@ -106,7 +159,9 @@ public static class PlanilhaExport
                 // "Exportação" pede um país. BU do Chile/Peru é sempre
                 // exportação, e o país vai na J6.
                 var paisBu = Servicos.PaisDaBu(p.Bu);
-                var destino = paisBu != "Brasil" ? "Exportação" : p.Destino;
+                // A conversão da planilha (Q14) só entra quando o destino é
+                // exportação — e vender em moeda estrangeira é exatamente isso.
+                var destino = paisBu != "Brasil" || p.Moeda != "BRL" ? "Exportação" : p.Destino;
                 Txt(ws, "J5", destino);
                 Txt(ws, "J6", destino == "Nacional"
                     ? p.Estado
@@ -115,6 +170,21 @@ public static class PlanilhaExport
                 Txt(ws, "P5", string.IsNullOrWhiteSpace(p.Representante) ? "-" : p.Representante);
                 Txt(ws, "P6", string.IsNullOrWhiteSpace(p.Representante2) ? "-" : p.Representante2);
                 Num(ws, "P26", Pricing.Pct(par.MargemAlvoPct));
+
+                // ---- conversão de moeda da planilha (bloco G36:J50) ----
+                // A planilha converte com Q14 = venda ÷ PROCV(BD_pricing!A1;
+                // A2:C5;3), onde A1 escolhe a moeda (1 = USD ou PEN conforme a
+                // BU, 2 = EUR, 3 = GBP, 4 = CLP) e as taxas dessas linhas são
+                // exatamente as células I36..I39 daqui. Preenchemos a taxa
+                // EFETIVA do sistema (já com a segurança da moeda) na linha da
+                // moeda de venda, para a planilha converter igual ao sistema.
+                if (converte && indiceMoedaPlanilha is int idx)
+                {
+                    var efetivaPricing = Pricing.CambioEfetivo(
+                        Pricing.Num(par.TaxaCambio), Pricing.Num(par.SegurancaCambioPct));
+                    Num(ws, idx switch { 2 => "I37", 3 => "I38", 4 => "I39", _ => "I36" },
+                        Math.Round(efetivaPricing, 6));
+                }
 
                 var temFianca = par.FiancaTipo != "Não" && Pricing.TaxaGarantia(par.FiancaTipo) > 0;
                 Txt(ws, "P3", temFianca ? "Sim" : "Não");
@@ -157,6 +227,10 @@ public static class PlanilhaExport
                 Limpar(ws, "H27");
                 Limpar(ws, "H32");
             });
+
+            // ================= BD_pricing (moeda escolhida na lista) =================
+            if (converte && indiceMoedaPlanilha is int idxLista && sheets.ContainsKey("BD_pricing"))
+                Editar(zip, sheets["BD_pricing"], ws => Num(ws, "A1", idxLista));
 
             // Excel recalcula tudo ao abrir.
             AtivarRecalculo(zip);
