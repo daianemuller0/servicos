@@ -101,8 +101,16 @@ public static class PlanilhaExport
                 Txt(ws, "E8", p.Bu);
                 Txt(ws, "J3", p.Segmento);
                 Txt(ws, "J4", p.VendaPara);
-                Txt(ws, "J5", p.Destino);
-                Txt(ws, "J6", p.Estado);
+                // J5 (Destino) e J6 (Estado/País): a lista de J6 na planilha
+                // depende de J5 — "Nacional" pede um estado brasileiro e
+                // "Exportação" pede um país. BU do Chile/Peru é sempre
+                // exportação, e o país vai na J6.
+                var paisBu = Servicos.PaisDaBu(p.Bu);
+                var destino = paisBu != "Brasil" ? "Exportação" : p.Destino;
+                Txt(ws, "J5", destino);
+                Txt(ws, "J6", destino == "Nacional"
+                    ? p.Estado
+                    : Servicos.PaisDaPlanilha(paisBu != "Brasil" ? paisBu : p.Cidade));
                 Num(ws, "J8", Pricing.Num(p.PrazoEntregaDias));
                 Txt(ws, "P5", string.IsNullOrWhiteSpace(p.Representante) ? "-" : p.Representante);
                 Txt(ws, "P6", string.IsNullOrWhiteSpace(p.Representante2) ? "-" : p.Representante2);

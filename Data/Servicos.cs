@@ -143,6 +143,27 @@ public static class Servicos
         return sb.ToString();
     }
 
+    /// <summary>
+    /// País no formato aceito pela planilha (lista "Exportação_" da guia
+    /// BD_pricing, usada na célula J6 do PRICING quando o destino é
+    /// exportação). O que não estiver na lista vira "Outro País".
+    /// </summary>
+    public static string PaisDaPlanilha(string? pais)
+    {
+        var alvo = Simplificar(pais);
+        if (alvo.Length == 0) return "Outro País";
+        return alvo switch
+        {
+            "BRASIL" => "Brasil",
+            "CHILE" => "Chile",
+            "COLOMBIA" => "Colombia",
+            "PANAMA" => "Panama",
+            "PERU" => "Peru",
+            "REP DOMINICANA" or "REPUBLICA DOMINICANA" => "Rep Dominicana",
+            _ => "Outro País",
+        };
+    }
+
     /// <summary>Verdadeiro quando a proposta é vendida numa moeda diferente da dos custos.</summary>
     public static bool PrecisaConverter(Proposta p, PricingParams par) =>
         p.Moeda != MoedaDosCustos(p, par);
