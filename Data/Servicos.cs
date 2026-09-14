@@ -63,6 +63,22 @@ public static class Servicos
         "HCHL" => "Chile", "HPU" => "Peru", _ => "Brasil",
     };
 
+    /// <summary>Nome da empresa no alto da proposta, conforme a BU emissora.</summary>
+    public static string RazaoSocialBu(string bu) => bu switch
+    {
+        "HCHL" => "Howden Chile SpA",
+        "HPU" => "Howden Perú SRL",
+        _ => "Howden South America",
+    };
+
+    /// <summary>Nome curto da empresa, usado dentro dos textos das notas.</summary>
+    public static string NomeCurtoBu(string bu) => bu switch
+    {
+        "HCHL" => "Howden Chile",
+        "HPU" => "Howden Perú",
+        _ => "Howden South America",
+    };
+
     /// <summary>Moeda padrão da BU (como na planilha: HCHL em CLP, HPU em USD).</summary>
     public static string MoedaPadrao(string bu) => bu switch
     {
@@ -518,6 +534,52 @@ public static class Servicos
             _ => $"Outros recursos eventualmente necessários devem ser providenciados e custeados pelo CONTRATANTE. Caso contrário, as despesas serão acrescidas de taxa administrativa de {taxaAdm}% somadas ao valor dos serviços e cobradas via Nota de Débito usada para reembolso de despesas.",
         });
 
+        // BU do Chile / Peru: no lugar das Notas Gerais entram os
+        // "Comentarios/Observaciones" próprios dessas BUs.
+        if (Servicos.PaisDaBu(p.Bu) != "Brasil")
+        {
+            var empresa = NomeCurtoBu(p.Bu);
+            // horas de trabalho por diária (linha da diária normal do 1º turno)
+            var horasDia = itensMO
+                .Where(i => Pricing.Num(i.Mult) is > 0.99 and < 1.01 && Pricing.Num(i.QtdDiaria) > 0)
+                .Select(i => Pricing.Num(i.Horas))
+                .FirstOrDefault();
+            if (horasDia <= 0) horasDia = 8;
+            var horas = Pricing.Moeda0(horasDia);
+
+            Ger("com.sem-impostos", idioma switch
+            {
+                "English" => $"The quoted prices do not include any tax or withholding; they are the net amounts to be paid to {empresa}.",
+                "Português" => $"Os preços cotados não incluem nenhum tipo de imposto ou retenção; são os valores líquidos a serem pagos à {empresa}.",
+                _ => $"Los precios cotizados no incluyen ningún tipo de impuesto o retención, son los valores netos que deben ser pagados a {empresa}.",
+            });
+            Ger("com.referenciais", idioma switch
+            {
+                "English" => "Prices are for reference only, not a lump sum. At the end of the service an invoice will be issued with the final amount due.",
+                "Português" => "Os preços são referenciais, não são valor fechado. Ao fim do serviço será enviada uma fatura com o valor final a pagar.",
+                _ => "Los precios son referenciales, no es suma a mano alzada. Al final del servicio se enviará una factura con el monto final a pagar.",
+            });
+            Ger("com.documentacao", idioma switch
+            {
+                "English" => "Should any documentation not considered in this quotation be required, the customer must inform us and it will be charged in the invoice.",
+                "Português" => "Caso seja necessária alguma documentação não considerada nesta proposta, o cliente deve informar — ela será cobrada na fatura.",
+                _ => "De necesitarse algún tipo de documentación no considerada en la oferta, deberá ser informado por el cliente y será cobrada en la factura.",
+            });
+            Ger("com.horas-diarias", idioma switch
+            {
+                "English" => $"{horas} working hours per day are considered. Overtime and service extensions will be charged in the invoice, according to the prices above.",
+                "Português" => $"São consideradas {horas} horas diárias de trabalho. Horas extras e extensões do serviço serão cobradas no envio da fatura, conforme os preços acima.",
+                _ => $"Se consideran {horas} horas diarias de trabajo. Horas extras y extensiones del servicio se cobrarán con el envío de la factura, según los precios indicados arriba.",
+            });
+            Ger("com.sem-pecas", idioma switch
+            {
+                "English" => "This quotation does not include the supply of any spare parts or components for the service.",
+                "Português" => "Esta proposta não considera o fornecimento de nenhuma peça ou sobressalente para o serviço.",
+                _ => "Esta oferta no considera el suministro de ningún repuesto ni piezas para el servicio.",
+            });
+            return notas;
+        }
+
         Ger("ger.adicional-noturno", "(*) Acréscimo - adicional noturno (22h00min às 05h00min) de 50% sobre os preços informados acima;");
         if (!semImpostos)
             Ger("ger.iss", "Imposto: ISS incluso — \"ISS recolhido no município do prestador conforme lei 3667/2003.\";");
@@ -575,7 +637,8 @@ public static class Servicos
                 Lista(itens, marcador);
         }
 
-        var (tIncluso, tExcluso, tGerais) = Traducoes.TitulosNotas(p.Idioma);
+        var (tIncluso, tExcluso, tGerais) =
+            Traducoes.TitulosNotas(p.Idioma, PaisDaBu(p.Bu) != "Brasil");
         return Secao("incluso", tIncluso, "#004785", "•", "20px") +
                Secao("excluso", tExcluso, "#004785", "•", "14px") +
                Secao("gerais", tGerais, navy, "✓", "14px");
@@ -707,7 +770,7 @@ public static class Servicos
 <div style='{ft};color:{corpo};font-size:9pt'>
 <table style='width:100%;border-collapse:collapse'><tr>
 <td style='vertical-align:top;padding:0'>
-  <p style='margin:0;{ft};font-weight:bold;font-size:12pt;color:{navy}'>Howden South America</p>
+  <p style='margin:0;{ft};font-weight:bold;font-size:12pt;color:{navy}'>{E(RazaoSocialBu(p.Bu))}</p>
   <p style='margin:10px 0 0;{ft};font-weight:bold;font-size:8.5pt;color:{sec}'>{D(p.AssinaNome)}</p>
   <p style='margin:0;{ft};font-size:8.5pt;color:{sec}'>{E(p.AssinaCargo)}<br/>
   <a href='mailto:{E(p.AssinaEmail)}' style='color:{sec}'>{E(p.AssinaEmail)}</a><br/>{E(p.AssinaFones)}</p>

@@ -40,7 +40,7 @@
     <table style="width:100%; border-collapse:collapse">
         <tr>
             <td style="vertical-align:top">
-                <div style="font-weight:bold; font-size:17px; color:#141E32">Howden South America</div>
+                <div style="font-weight:bold; font-size:17px; color:#141E32">@Servicos.RazaoSocialBu(P.Bu)</div>
                 <div style="margin-top:10px">
                     <select class="de" style="font-weight:bold; width:240px" value="@P.AssinaNome" @onchange="MudarVendedor">
                         <option value="">— quem assina (vendedor) —</option>
@@ -371,7 +371,7 @@
                 <span style="color:#0a7a41; font-weight:600">@MsgNotas</span>
             }
         </div>
-        var (tInc, tExc, tGer) = Traducoes.TitulosNotas(P.Idioma);
+        var (tInc, tExc, tGer) = Traducoes.TitulosNotas(P.Idioma, Servicos.PaisDaBu(P.Bu) != "Brasil");
         foreach (var (secao, titulo, cor) in new[]
         {
             ("incluso", tInc, "#004785"),

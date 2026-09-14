@@ -143,11 +143,27 @@ public static partial class Traducoes
         return idioma == "English" ? t.En : t.Es;
     }
 
-    /// <summary>Títulos das seções de notas no idioma da proposta.</summary>
-    public static (string Incluso, string Excluso, string Gerais) TitulosNotas(string idioma) => idioma switch
+    /// <summary>
+    /// Títulos das seções de notas no idioma da proposta. Nas BUs do Chile e
+    /// do Peru a última seção não é "Notas Gerais", e sim
+    /// "Comentarios/Observaciones".
+    /// </summary>
+    public static (string Incluso, string Excluso, string Gerais) TitulosNotas(
+        string idioma, bool comentarios = false)
     {
-        "English" => ("INCLUDED IN HOWDEN'S SUPPLY:", "EXCLUDED FROM HOWDEN'S SUPPLY:", "General notes:"),
-        "Español" => ("INCLUIDO EN EL SUMINISTRO DE HOWDEN:", "EXCLUIDO DEL SUMINISTRO DE HOWDEN:", "Notas generales:"),
-        _ => ("INCLUSO NO FORNECIMENTO DA HOWDEN:", "EXCLUSOS DO FORNECIMENTO DA HOWDEN:", "Notas Gerais:"),
-    };
+        var t = idioma switch
+        {
+            "English" => ("INCLUDED IN HOWDEN'S SUPPLY:", "EXCLUDED FROM HOWDEN'S SUPPLY:", "General notes:"),
+            "Español" => ("INCLUIDO EN EL SUMINISTRO DE HOWDEN:", "EXCLUIDO DEL SUMINISTRO DE HOWDEN:", "Notas generales:"),
+            _ => ("INCLUSO NO FORNECIMENTO DA HOWDEN:", "EXCLUSOS DO FORNECIMENTO DA HOWDEN:", "Notas Gerais:"),
+        };
+        if (!comentarios) return t;
+        var titulo = idioma switch
+        {
+            "English" => "Comments/Remarks:",
+            "Português" => "Comentários/Observações:",
+            _ => "Comentarios/Observaciones:",
+        };
+        return (t.Item1, t.Item2, titulo);
+    }
 }
