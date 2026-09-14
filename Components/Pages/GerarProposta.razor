@@ -588,6 +588,21 @@
         <button class="btn-primary btn-block" @onclick="Imprimir">🖨 Gerar proposta (PDF)</button>
         <button class="btn-ghost btn-block" @onclick="GerarWord">📄 Gerar proposta (Word)</button>
         <button class="btn-ghost btn-block" @onclick="GerarExcel">📊 Gerar Excel (registro p/ pasta)</button>
+        @if (_avisoExcel is not null)
+        {
+            <div class="aviso-excel">
+                <div class="aviso-excel-icone">📊</div>
+                <div class="aviso-excel-texto">
+                    <div class="aviso-excel-titulo">Planilha gerada: <strong>@_avisoExcel</strong></div>
+                    <div class="aviso-excel-passo">
+                        Ao abrir o arquivo, vá na guia <strong>PRICING</strong> e aperte o botão
+                        <strong>“Calcular Preço”</strong> <em>antes de salvar</em> — é ele que atualiza
+                        os valores da planilha.
+                    </div>
+                </div>
+                <button class="aviso-excel-x" title="Fechar aviso" @onclick="() => _avisoExcel = null">✕</button>
+            </div>
+        }
         <a class="btn-ghost btn-block" href="@Servicos.MailtoEnvio(P, DocA, Cfg)">✉ E-mail de envio ao cliente</a>
         <a class="btn-ghost btn-block" href="@Servicos.MailtoAprovacao(P, Doc, Cfg)">✅ E-mail de aprovação (interno)</a>
         <div class="side-caption">Os e-mails abrem já preenchidos no seu cliente de e-mail — anexe o PDF/Word gerado.</div>
@@ -602,6 +617,8 @@
     [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
 
     private string? _msg, _erro, _logo;
+    /// <summary>Nome da última planilha gerada — mostra o aviso do "Calcular Preço".</summary>
+    private string? _avisoExcel;
     private List<BillingInfo> _faturamentos = new();
     private List<Representante> _reps = new();
 
@@ -734,14 +751,16 @@
         try
         {
             var bytes = PlanilhaExport.Gerar(P, R.ItensMO, R.ItensDespesa, R.Params, DocA);
-            var nome = $"{(string.IsNullOrWhiteSpace(P.Numero) ? "Proposta-rascunho" : Servicos.NumeroCompleto(P))} - {P.Cliente}.xlsm".Trim(' ', '-');
+            var nome = Servicos.NomeArquivoPlanilha(P);
             await JS.InvokeVoidAsync("appDownload", nome,
                 "application/vnd.ms-excel.sheet.macroEnabled.12",
                 Convert.ToBase64String(bytes));
             _erro = null;
+            _avisoExcel = nome;
         }
         catch (Exception ex)
         {
+            _avisoExcel = null;
             _erro = "Não consegui gerar a planilha: " + ex.Message;
         }
     }

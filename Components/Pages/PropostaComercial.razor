@@ -32,6 +32,22 @@
     </div>
 </div>
 
+@if (_avisoExcel is not null)
+{
+    <div class="aviso-excel">
+        <div class="aviso-excel-icone">📊</div>
+        <div class="aviso-excel-texto">
+            <div class="aviso-excel-titulo">Planilha gerada: <strong>@_avisoExcel</strong></div>
+            <div class="aviso-excel-passo">
+                Ao abrir o arquivo, vá na guia <strong>PRICING</strong> e aperte o botão
+                <strong>“Calcular Preço”</strong> <em>antes de salvar</em> — é ele que atualiza os
+                valores da planilha.
+            </div>
+        </div>
+        <button class="aviso-excel-x" title="Fechar aviso" @onclick="() => _avisoExcel = null">✕</button>
+    </div>
+}
+
 <div class="doc-grid">
 <div class="doc-main">
 
@@ -526,6 +542,8 @@
     [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
 
     private string? _msg, _erro, _logo;
+    /// <summary>Nome da última planilha gerada — mostra o aviso do "Calcular Preço".</summary>
+    private string? _avisoExcel;
     private List<BillingInfo> _faturamentos = new();
     private List<Representante> _reps = new();
     private List<Vendedor> _vendedores = new();
@@ -678,14 +696,16 @@
         try
         {
             var bytes = PlanilhaExport.Gerar(P, R.ItensMO, R.ItensDespesa, R.Params, DocA);
-            var nome = $"{(string.IsNullOrWhiteSpace(P.Numero) ? "Proposta-rascunho" : Servicos.NumeroCompleto(P))} - {P.Cliente}.xlsm".Trim(' ', '-');
+            var nome = Servicos.NomeArquivoPlanilha(P);
             await JS.InvokeVoidAsync("appDownload", nome,
                 "application/vnd.ms-excel.sheet.macroEnabled.12",
                 Convert.ToBase64String(bytes));
             _erro = null;
+            _avisoExcel = nome;
         }
         catch (Exception ex)
         {
+            _avisoExcel = null;
             _erro = "Não consegui gerar a planilha: " + ex.Message;
         }
     }

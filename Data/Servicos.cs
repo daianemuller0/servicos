@@ -207,6 +207,22 @@ public static class Servicos
     public static string NumeroCompleto(Proposta p) =>
         string.IsNullOrWhiteSpace(p.Numero) ? "—" : $"{p.Numero} · Rev. {p.Revisao}";
 
+    /// <summary>
+    /// Nome do arquivo da planilha, no padrão que ela usa na rede:
+    /// "R_HSAJOM.AFM.000427-0.xlsm" (R_ + número da proposta + "-" + revisão).
+    /// </summary>
+    public static string NomeArquivoPlanilha(Proposta p)
+    {
+        var numero = (p.Numero ?? "").Trim();
+        var rev = (p.Revisao ?? "").Trim();
+        if (numero.Length == 0) numero = "rascunho";
+        if (rev.Length == 0) rev = "0";
+        var nome = $"R_{numero}-{rev}";
+        foreach (var c in System.IO.Path.GetInvalidFileNameChars())
+            nome = nome.Replace(c, '_');
+        return nome + ".xlsm";
+    }
+
     public static BillingInfo FaturamentoPadrao(string bu) =>
         Seed.Faturamento().FirstOrDefault(b => b.Id == bu) ?? new BillingInfo { Id = bu };
 

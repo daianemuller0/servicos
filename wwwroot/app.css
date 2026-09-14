@@ -614,3 +614,31 @@ h1 { font-size: 24px; margin: 0 0 4px; color: var(--primary); letter-spacing: -.
     .doc-grid { grid-template-columns: 1fr; }
     .ferr-side { position: static; max-height: none; overflow: visible; }
 }
+
+/* ---- aviso do Excel: lembra de apertar "Calcular Preço" ---- */
+.aviso-excel {
+    display: flex; align-items: flex-start; gap: 14px;
+    margin: 0 0 18px;
+    padding: 15px 16px;
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1px solid #fcd34d;
+    border-left: 5px solid #f59e0b;
+    border-radius: var(--radius);
+    box-shadow: 0 3px 12px rgba(245, 158, 11, .18);
+    animation: aviso-excel-entra .25s ease-out;
+}
+@keyframes aviso-excel-entra {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: none; }
+}
+.aviso-excel-icone { font-size: 24px; line-height: 1.1; }
+.aviso-excel-texto { flex: 1; color: #78350f; }
+.aviso-excel-titulo { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.aviso-excel-passo { font-size: 13px; line-height: 1.55; }
+.aviso-excel-passo strong { color: #7c2d12; }
+.aviso-excel-x {
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    color: #92400e; font-size: 15px; line-height: 1; padding: 2px 4px; opacity: .65;
+}
+.aviso-excel-x:hover { opacity: 1; }
+@media print { .aviso-excel { display: none; } }
