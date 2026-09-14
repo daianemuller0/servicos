@@ -207,7 +207,7 @@ public static class Servicos
             var doc = Pricing.Montar(mo, desp, par, Pricing.Num(p.PrazoEntregaDias));
             var docA = Pricing.Apresentar(doc, p.ModoApresentacao, Pricing.Num(par.TaxaAdmPct),
                 Pricing.Num(par.DiariaTravada), Pricing.Num(par.TotalTravado),
-                PrecisaConverter(p, par) ? Pricing.Num(par.TaxaCambio) : 0,
+                PrecisaConverter(p, par) ? Pricing.TaxaCambioNormalizada(par) : 0,
                 Pricing.Num(par.SegurancaCambioPct));
             return Pricing.DiariaNormalApresentada(docA);
         }

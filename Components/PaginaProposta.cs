@@ -212,7 +212,8 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
     /// diferente da moeda da tabela de custos da BU (senão não há o que converter).
     /// </summary>
     protected double CambioDaProposta =>
-        Data.Servicos.PrecisaConverter(R.Proposta, R.Params) ? Data.Pricing.Num(R.Params.TaxaCambio) : 0;
+        Data.Servicos.PrecisaConverter(R.Proposta, R.Params)
+            ? Data.Pricing.TaxaCambioNormalizada(R.Params) : 0;
 
     /// <summary>Símbolo da moeda da proposta (as mensagens saem na moeda apresentada).</summary>
     private string Cif => Data.Servicos.Simbolo(R.Proposta.Moeda);

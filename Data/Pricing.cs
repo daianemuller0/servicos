@@ -344,6 +344,18 @@ public static class Pricing
     /// Ex.: 1 USD = R$ 5,40 com 5% de segurança → converte por 5,13 — o preço
     /// em USD sobe, e se o dólar cair até 5% o valor em R$ não perde.
     /// </summary>
+    /// <summary>
+    /// Taxa na direção interna (1 moeda de VENDA = X da moeda do CUSTO),
+    /// qualquer que tenha sido a direção digitada na tela. É essa taxa que
+    /// converte os valores: valor_na_venda = valor_no_custo ÷ taxa.
+    /// </summary>
+    public static double TaxaCambioNormalizada(PricingParams p)
+    {
+        var t = Num(p.TaxaCambio);
+        if (t <= 0) return 0;
+        return p.CambioDirecao == "CustoEmVenda" ? 1 / t : t;
+    }
+
     public static double CambioEfetivo(double taxaCambio, double segurancaPct) =>
         taxaCambio <= 0 ? 1 : taxaCambio * Math.Max(1 - segurancaPct / 100.0, 0.01);
 

@@ -157,8 +157,13 @@
             </div>
             <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap">
                 <span>
-                    <b>Taxa de conversão:</b> 1 @P.Moeda = @cifraoCusto
-                    <input class="de num" style="width:70px" placeholder="5,40" @bind="R.Params.TaxaCambio" />
+                    <b>Taxa de conversão:</b>
+                    <select class="de" @bind="R.Params.CambioDirecao">
+                        <option value="VendaEmCusto">1 @P.Moeda em @moedaCusto</option>
+                        <option value="CustoEmVenda">1 @moedaCusto em @P.Moeda</option>
+                    </select>
+                    =
+                    <input class="de num" style="width:80px" placeholder="0,00" @bind="R.Params.TaxaCambio" />
                 </span>
                 <span>
                     <b>Segurança da moeda:</b>
@@ -168,7 +173,13 @@
             </div>
             @if (Pricing.Num(R.Params.TaxaCambio) > 0)
             {
+                var taxaBase = Pricing.TaxaCambioNormalizada(R.Params);
                 <div style="margin-top:6px; color:#5C6272">
+                    Confira: <b>1 @P.Moeda = @cifraoCusto @Pricing.Moeda(taxaBase)</b>
+                    &nbsp;·&nbsp;
+                    <b>1 @moedaCusto = @Servicos.Simbolo(P.Moeda) @Pricing.Moeda(1 / taxaBase)</b>
+                </div>
+                <div style="margin-top:3px; color:#5C6272">
                     → convertendo por @cifraoCusto @Pricing.Moeda(FxEfetivo) por @P.Moeda —
                     se a moeda cair até @Pricing.Moeda0(Pricing.Num(R.Params.SegurancaCambioPct))%,
                     o valor em @moedaCusto não perde.

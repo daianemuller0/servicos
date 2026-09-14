@@ -116,8 +116,14 @@
                 </label>
                 @if (Servicos.PrecisaConverter(P, R.Params))
                 {
-                    <label>Taxa de conversão (1 @P.Moeda em @Servicos.MoedaDosCustos(P, R.Params))
-                        <input class="cell num" placeholder="5,40" @bind="R.Params.TaxaCambio" />
+                    <label>Direção da taxa de conversão
+                        <select class="cell" @bind="R.Params.CambioDirecao">
+                            <option value="VendaEmCusto">1 @P.Moeda em @Servicos.MoedaDosCustos(P, R.Params)</option>
+                            <option value="CustoEmVenda">1 @Servicos.MoedaDosCustos(P, R.Params) em @P.Moeda</option>
+                        </select>
+                    </label>
+                    <label>Taxa de conversão
+                        <input class="cell num" placeholder="0,00" @bind="R.Params.TaxaCambio" />
                     </label>
                     <label>Segurança da moeda (% a menos na taxa)
                         <input class="cell num" placeholder="0" @bind="R.Params.SegurancaCambioPct" />

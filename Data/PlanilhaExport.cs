@@ -79,7 +79,7 @@ public static class PlanilhaExport
                 // "Diárias adicionais" em cascata (C43/C44/C45 derivam dela).
                 // Tudo aqui vai na MOEDA DOS CUSTOS, como o resto da planilha.
                 var fx = Pricing.CambioEfetivo(
-                    converte ? Pricing.Num(par.TaxaCambio) : 0,
+                    converte ? Pricing.TaxaCambioNormalizada(par) : 0,
                     Pricing.Num(par.SegurancaCambioPct));
                 var admFator = 1 + Pricing.Num(par.TaxaAdmPct) / 100.0;
 
@@ -122,7 +122,7 @@ public static class PlanilhaExport
                 // convertido, para conferência de quem abrir o arquivo.
                 if (converte)
                 {
-                    var taxa = Pricing.Num(par.TaxaCambio);
+                    var taxa = Pricing.TaxaCambioNormalizada(par);
                     var seguranca = Pricing.Num(par.SegurancaCambioPct);
                     var efetiva = Pricing.CambioEfetivo(taxa, seguranca);
 
@@ -131,7 +131,7 @@ public static class PlanilhaExport
                     Txt(ws, "C67", moedaCusto);
                     Txt(ws, "B68", "Moeda de venda da proposta");
                     Txt(ws, "C68", p.Moeda);
-                    Txt(ws, "B69", $"Taxa informada (1 {p.Moeda} em {moedaCusto})");
+                    Txt(ws, "B69", $"Taxa usada (1 {p.Moeda} em {moedaCusto})");
                     Num(ws, "C69", taxa);
                     Txt(ws, "B70", "Segurança da moeda (% a menos na taxa)");
                     Num(ws, "C70", seguranca);
@@ -181,7 +181,7 @@ public static class PlanilhaExport
                 if (converte && indiceMoedaPlanilha is int idx)
                 {
                     var efetivaPricing = Pricing.CambioEfetivo(
-                        Pricing.Num(par.TaxaCambio), Pricing.Num(par.SegurancaCambioPct));
+                        Pricing.TaxaCambioNormalizada(par), Pricing.Num(par.SegurancaCambioPct));
                     Num(ws, idx switch { 2 => "I37", 3 => "I38", 4 => "I39", _ => "I36" },
                         Math.Round(efetivaPricing, 6));
                 }

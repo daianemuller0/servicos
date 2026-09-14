@@ -153,8 +153,18 @@ public class PricingParams
     public string MoedaCusto { get; set; } = "BRL";
 
     // ---- conversão de moeda (custos numa moeda, venda em outra) ----
-    /// <summary>Quanto vale 1 unidade da moeda da proposta em R$ (ex.: 1 USD = 5,40). Vazio/0 = sem conversão.</summary>
+    /// <summary>
+    /// Taxa de câmbio digitada. Como ela é lida depende de
+    /// <see cref="CambioDirecao"/> — quem manda é a direção escolhida na tela.
+    /// Vazio/0 = sem conversão.
+    /// </summary>
     public string TaxaCambio { get; set; } = "";
+    /// <summary>
+    /// Direção em que a taxa foi digitada: "VendaEmCusto" = 1 moeda de VENDA
+    /// vale X da moeda do CUSTO (ex.: 1 USD = R$ 5,40); "CustoEmVenda" = o
+    /// contrário (ex.: 1 USD = 3,75 PEN, com custo em USD e venda em PEN).
+    /// </summary>
+    public string CambioDirecao { get; set; } = "VendaEmCusto";
     /// <summary>Segurança da moeda: % tirada da taxa ao converter — se a moeda cair até isso, o valor em R$ não perde.</summary>
     public string SegurancaCambioPct { get; set; } = "0";
 
