@@ -219,18 +219,18 @@ public static class Servicos
         return (c.Pis / c.ComImpostos * 100, c.Cofins / c.ComImpostos * 100, c.Iss / c.ComImpostos * 100);
     }
 
-    /// <summary>% acumulado escrito na linha "VALOR C/ PIS E COFINS".</summary>
+    /// <summary>Alíquotas escritas na linha "VALOR C/ PIS E COFINS".</summary>
     public static string PctPisCofins(Pricing.Documento doc)
     {
         var a = AliquotasDoc(doc);
-        return $"PIS {Pct2(a.Pis)} + COFINS {Pct2(a.Cofins)} = {Pct2(a.Pis + a.Cofins)}";
+        return $"PIS {Pct2(a.Pis)} + COFINS {Pct2(a.Cofins)}";
     }
 
-    /// <summary>% acumulado escrito na linha "VALOR C/ PIS, COFINS E ISS".</summary>
+    /// <summary>Alíquota escrita na linha "VALOR C/ PIS, COFINS E ISS".</summary>
     public static string PctPisCofinsIss(Pricing.Documento doc)
     {
         var a = AliquotasDoc(doc);
-        return $"+ ISS {Pct2(a.Iss)} = {Pct2(a.Pis + a.Cofins + a.Iss)}";
+        return $"+ ISS {Pct2(a.Iss)}";
     }
 
     private static string Pct2(double v) =>
