@@ -43,6 +43,11 @@ public class Proposta
     /// </summary>
     public string EscopoDetalhado { get; set; } = "";
     /// <summary>
+    /// Condição de pagamento (escolhida da lista ou digitada): sai na proposta
+    /// logo acima do escopo detalhado — e só aparece se tiver algo escrito.
+    /// </summary>
+    public string CondicaoPagamento { get; set; } = "";
+    /// <summary>
     /// Chaves das notas DESMARCADAS no tic (separadas por ";"): essas não saem
     /// no documento. Vazio = todas as notas automáticas saem.
     /// </summary>

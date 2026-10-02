@@ -371,6 +371,16 @@
         </table>
     }
 
+    @* ---------- condição de pagamento (escolha ou digite; em branco não sai na proposta) ---------- *@
+    <h2 style="margin-top:18px">@(P.Idioma switch { "English" => "PAYMENT TERMS", "Español" => "CONDICIONES DE PAGO", _ => "CONDIÇÕES DE PAGAMENTO" })</h2>
+    <input class="de" style="width:100%; font-size:12.5px" list="pagamentos"
+           placeholder="— condição de pagamento (escolha ou digite; em branco não sai na proposta) —"
+           value="@Servicos.PagamentoNoIdioma(P.CondicaoPagamento, P.Idioma)"
+           @onchange="e => P.CondicaoPagamento = e.Value?.ToString() ?? string.Empty" />
+    <datalist id="pagamentos">
+        @foreach (var o in Servicos.OpcoesPagamento(P.Idioma)) { <option value="@o"></option> }
+    </datalist>
+
     @* ---------- escopo detalhado (texto livre; em branco não sai na proposta) ---------- *@
     <h2 style="margin-top:18px">ESCOPO DO SERVIÇO</h2>
     <textarea class="de" rows="5"

@@ -25,6 +25,50 @@ public static class Servicos
         "Supervisão técnica de especialista Howden",
         "Levantamento dos pontos operacionais do equipamento",
     };
+    /// <summary>
+    /// Condições de pagamento sugeridas, nos três idiomas (o campo também
+    /// aceita digitação livre). A lista da tela e o documento acompanham o
+    /// idioma da proposta.
+    /// </summary>
+    private static readonly (string Pt, string Es, string En)[] CondicoesPagamento =
+    {
+        ("100% com o pedido de compra.",
+         "100% con la orden de compra.",
+         "100% upon purchase order."),
+        ("60% com o pedido de compra e 40% com o material pronto para embarque.",
+         "60% con la orden de compra y 40% con el material listo para embarque.",
+         "60% upon purchase order and 40% upon material ready for shipment."),
+        ("100% a 30 dias após o aviso do material pronto para embarque com o envio formal de notificação.",
+         "100% a 30 días después del aviso de material listo para embarque, con el envío formal de la notificación.",
+         "100% within 30 days after notice of material ready for shipment, upon formal notification."),
+        ("100% a 30DDL.",
+         "100% a 30 días.",
+         "100% net 30 days."),
+        ("• 30% com a ordem de compra • 10% com o envio dos desenhos para aprovação • 10% com a compra de matéria-prima • 20% com o aviso do material pronto para embarque • 30% na entrega do material",
+         "• 30% con la orden de compra • 10% con el envío de los planos para aprobación • 10% con la compra de materia prima • 20% con el aviso de material listo para embarque • 30% con la entrega del material",
+         "• 30% upon purchase order • 10% upon submission of drawings for approval • 10% upon purchase of raw material • 20% upon notice of material ready for shipment • 30% upon delivery of material"),
+    };
+
+    private static string NoIdioma((string Pt, string Es, string En) c, string idioma) =>
+        idioma switch { "English" => c.En, "Español" => c.Es, _ => c.Pt };
+
+    /// <summary>Condições de pagamento sugeridas no idioma da proposta.</summary>
+    public static string[] OpcoesPagamento(string idioma) =>
+        CondicoesPagamento.Select(c => NoIdioma(c, idioma)).ToArray();
+
+    /// <summary>
+    /// Condição de pagamento no idioma da proposta: uma das sugeridas (em
+    /// qualquer idioma) vira a versão do idioma escolhido; texto digitado à
+    /// mão sai como foi escrito.
+    /// </summary>
+    public static string PagamentoNoIdioma(string? texto, string idioma)
+    {
+        var t = (texto ?? "").Trim();
+        foreach (var c in CondicoesPagamento)
+            if (t == c.Pt || t == c.Es || t == c.En) return NoIdioma(c, idioma);
+        return t;
+    }
+
     public static readonly string[] Idiomas = { "Português", "English", "Español" };
     public static readonly string[] Moedas = { "BRL", "USD", "EUR", "CLP", "PEN" };
     public static readonly string[] Segmentos = { "Service", "NB", "AFM", "Intercompany" };
@@ -788,6 +832,20 @@ public static class Servicos
 <p style='margin:18px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{tituloEscopo}</p>
 <p style='margin:0;color:{corpo};font-size:8.5pt'>{E(p.EscopoDetalhado.Trim()).Replace("\r\n", "\n").Replace("\n", "<br/>")}</p>";
 
+        // Condição de pagamento: logo acima do escopo, só se foi preenchida.
+        // Cada "•" vira uma linha.
+        var tituloPagamento = p.Idioma switch
+        {
+            "English" => "PAYMENT TERMS",
+            "Español" => "CONDICIONES DE PAGO",
+            _ => "CONDIÇÕES DE PAGAMENTO",
+        };
+        var pagamento = PagamentoNoIdioma(p.CondicaoPagamento, p.Idioma);
+        var pagamentoHtml = pagamento == "" ? "" : $@"
+<p style='margin:18px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{tituloPagamento}</p>
+<p style='margin:0;color:{corpo};font-size:8.5pt'>{string.Join("<br/>", pagamento.Replace("\r\n", "\n").Split('\n', '•')
+            .Select(l => l.Trim()).Where(l => l != "").Select(l => (pagamento.Contains('•') ? "• " : "") + E(l)))}</p>";
+
         var fat = billing ?? FaturamentoPadrao(p.Bu);
         var bancoLinha = string.IsNullOrWhiteSpace(fat.BancoNome) ? "" :
             $"{L.Banco}: {E(fat.BancoNome)} – {L.Agencia}: {E(fat.Agencia)} {L.Conta}: {E(fat.Conta)}";
@@ -884,6 +942,8 @@ public static class Servicos
 <tr>{Th(L.Servico)}{Th(L.Obs)}{Th(L.ValorTotal, "right")}</tr>
 {linhasAdic}
 </table>")}
+
+{pagamentoHtml}
 
 {escopoHtml}
 
