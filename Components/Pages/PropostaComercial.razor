@@ -20,6 +20,10 @@
         </p>
     </div>
     <div class="page-actions">
+<select class="cell" style="width:auto" @bind="P.ModeloProposta" title="Padrão do documento gerado pelos botões PDF e Word">
+            <option value="Simples">Proposta simples</option>
+            <option value="Completa">Proposta completa (modelo Word)</option>
+        </select>
         <select class="cell" style="width:auto" @bind="P.ModoApresentacao" title="Como o documento sai para o cliente">
             <option value="ComDespesas">Mostrar despesas (custo + taxa adm.)</option>
             <option value="SemDespesas">Sem despesas (embutidas nas diárias)</option>
@@ -100,7 +104,7 @@
                 <table class="doc-bluebox" style="width:100%; border-collapse:collapse">
                     <tr><td colspan="2" style="font-weight:bold">
                         Proposta <input class="de" style="width:170px" placeholder="número (gera sozinho)" @bind="P.Numero" />
-                        · Rev. <input class="de" style="width:34px" @bind="P.Revisao" />
+                        · Rev. <input class="de" style="width:34px" @bind="P.Revisao" @bind:after="RevisaoMudou" />
                     </td></tr>
                     <tr>
                         <td style="font-weight:bold">DATA</td>
@@ -482,6 +486,10 @@
     {
         <div class="side-ok">@_msg</div>
     }
+    @if (MsgRevisao is not null)
+    {
+        <div class="side-ok">@MsgRevisao</div>
+    }
     <div class="panel ferramentas">
         <div class="ferr-bloco">
             <h3 class="dash-title">Margem (GM)</h3>
@@ -695,10 +703,21 @@
             : $"Proposta {P.Numero} cadastrada.";
     }
 
-    private async Task Imprimir() => await JS.InvokeVoidAsync("appPrint");
+    private async Task Imprimir()
+    {
+        if (!Completa) { await JS.InvokeVoidAsync("appPrint"); return; }
+        _msg = null;
+        _erro = await BaixarPropostaCompleta(true, DocA, Fat, _reps);
+    }
 
     private async Task GerarWord()
     {
+        if (Completa)
+        {
+            _msg = null;
+            _erro = await BaixarPropostaCompleta(false, DocA, Fat, _reps);
+            return;
+        }
         var html = Servicos.DocHtml(P, DocA, _logo, Fat, RepInfo(), Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA));
         var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
         var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };

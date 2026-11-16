@@ -15,11 +15,16 @@
     <PackageReference Include="DuckDB.NET.Data.Full" Version="1.1.3" />
     <!-- Geração do Excel de registro da proposta (guias PROPOSTA/CUSTO/PRICING) -->
     <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <!-- Proposta completa: preenche o modelo em Word da equipe (o mesmo do AFM_HSA) -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.20.0" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- A planilha original (subir.xlsm) que o botão Excel devolve preenchida. -->
     <Content Include="Recursos\planilha-modelo.xlsm" CopyToOutputDirectory="PreserveNewest" />
+    <!-- O modelo da proposta completa (Word) e os Termos y Condiciones da HCHL/HPU. -->
+    <Content Include="Recursos\proposta-completa.docx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Recursos\termos-hchl-hpu-es.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -83,7 +83,9 @@ servicos/
 
 ```
 custo (MO + despesas)
-  → + risco de variação                        (PRICING E36/E38)
+  → + Protected Margin (padrão 2%)             (PRICING F14:F33 → G34, E36)
+  → + Risco/Contingência (padrão 3,70%) sobre o custo já com a Protected Margin
+                                               (PRICING D37 × G34 = E37)
   → ÷ (1 − provisões − margem alvo)            (PRICING E52 — "montar preço a partir da margem")
   = VENDA LÍQUIDA (valor sem impostos)         (PRICING Q18)
   → ÷ (1 − PIS − COFINS − ISS)                 (PRICING Q20)
@@ -98,8 +100,16 @@ custo (MO + despesas)
   dos representantes 1 e 2 — que entra sozinha ao escolher o representante no
   cadastro e continua editável por proposta. Total padrão sem representante:
   1,65644%, igual ao D46 da planilha.
+- **Protected Margin e Risco/Contingência** (pricing de 13/11/26, o mesmo do
+  AFM_HSA): a Protected Margin (2%) entra em cada custo e o Risco/Contingência
+  (3,70%, antes "risco adicional" de 5%) incide sobre o custo já com ela.
+  Propostas gravadas antes guardam o risco delas e ficam sem Protected Margin
+  (o preço que o cliente recebeu não muda); cópia e nova revisão entram no
+  pricing atual (5% → 3,70% e PM 2%).
 - **Provisões** (percentuais sobre a venda líquida): margem de negociação,
-  PM + SACH, garantia do projeto e portal.
+  PM + SACH, garantia do projeto e portal. O portal é a lista do AFM
+  (Petronect, Quadrem/Ariba, Unilink, NIMBI): % sobre a venda líquida ou um
+  valor-teto fixo, que a venda cobre como custo.
 - **Seguro garantia / fiança**: calculado como na planilha — % da venda coberta ×
   dias de cobertura × taxa anual do instrumento ÷ 365 (taxas da tabela
   Custo_Garantia: fiança bancária HSA 5% a.a., seguro garantia 1% a.a. etc.).
@@ -226,6 +236,28 @@ compartilhado entre a impressão/PDF (`@media print` esconde a interface e mostr
 
 Os rótulos são traduzidos em **português, inglês e espanhol** (`Servicos.Labels`),
 como as macros `Macro_PT_br`, `Macro_Ingles` e `Macro_ESP` faziam.
+
+### Segundo padrão: a proposta completa (Word)
+
+O campo **Modelo** da proposta (Simples / Completa — padrão em E-mails e Padrões)
+decide o que os botões PDF e Word geram. A completa (`Data/PropostaCompleta.cs`)
+**preenche o modelo Word da equipe** (`Recursos/proposta-completa.docx`, o mesmo
+"Proposta Técnica Comercial" do AFM_HSA), com as ferramentas de preenchimento e a
+tradução (`Data/TraducaoDaProposta.cs`) trazidas de lá:
+
+- ficam capa, contatos, introdução, preço (as linhas da proposta), notas comerciais,
+  impostos de serviço (PIS, COFINS e ISS inclusos, com o detalhamento), condição de
+  pagamento, prazo, validade, faturamento, notas, sistema de gestão, **Assessoria
+  Técnica no Campo** (diária sem impostos e sem despesas; sáb/dom/feriado = 2×),
+  **Descrição da Assessoria** (escopo detalhado, técnicos e diárias), Anexos e
+  Comentários;
+- saem as partes de ventilador (Proposta Técnica, limites, itens e exclusos de
+  fornecimento, desenho, ISO 13348, Coanda, padrões, mancais) e o local de entrega;
+- HCHL/HPU: Howden Chile/Perú na capa, valor líquido e os Términos y Condiciones
+  (`Recursos/termos-hchl-hpu-es.txt`) no fim.
+
+O PDF é o mesmo Word convertido pelo Microsoft Word do computador (ou pelo
+LibreOffice) — `Data/PdfDaProposta.cs`.
 
 ---
 

@@ -171,6 +171,30 @@ public static class PlanilhaExport
                 Txt(ws, "P6", string.IsNullOrWhiteSpace(p.Representante2) ? "-" : p.Representante2);
                 Num(ws, "P26", Pricing.Pct(par.MargemAlvoPct));
 
+                // ---- Protected Margin e Risco/Contingência (pricing de 13/11/26) ----
+                // Como o pricing do AFM: F14:F33 = Protected Margin de cada linha
+                // de custo, e D37 = Risco/Contingência fixo (sobre G34).
+                Txt(ws, "F12", "Protected Margin");
+                for (var r = 14; r <= 33; r++) Num(ws, $"F{r}", Pricing.Pct(par.ProtectedMarginPct));
+                Txt(ws, "B37", "Risco/Contingencia");
+                Num(ws, "D37", Pricing.Pct(par.RiscoPct));
+
+                // ---- portal (P4 / D50) ----
+                var portal = Pricing.PortalEscolhido(par);
+                if (portal == Pricing.PortalAntigo) Txt(ws, "P4", "Sim");
+                else if (portal == "não") Txt(ws, "P4", "Não");
+                else
+                {
+                    // a lista do AFM: % sobre a venda líquida ou teto (D50 em referência circular, como lá)
+                    Txt(ws, "P4", portal);
+                    var teto = Pricing.TetoPortal(par);
+                    if (teto > 0)
+                        Formula(ws, "D50", $"{teto.ToString("0.##", Inv)}/({teto.ToString("0.##", Inv)}+SUM(E44:E49))");
+                    else
+                        Num(ws, "D50", Pricing.Pct(par.PortalPct));
+                    Formula(ws, "E50", "D50*Venda_Liquida_1");
+                }
+
                 // ---- conversão de moeda da planilha (bloco G36:J50) ----
                 // A planilha converte com Q14 = venda ÷ PROCV(BD_pricing!A1;
                 // A2:C5;3), onde A1 escolhe a moeda (1 = USD ou PEN conforme a

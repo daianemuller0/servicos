@@ -65,9 +65,13 @@ public class Rascunho
         Proposta.ValidadeDias = V("padrao.validade") ?? Proposta.ValidadeDias;
         Proposta.PrazoEntregaDias = V("padrao.prazo") ?? Proposta.PrazoEntregaDias;
         Proposta.ModoApresentacao = V("padrao.modo") ?? Proposta.ModoApresentacao;
+        Proposta.ModeloProposta = V("padrao.modelo") ?? Proposta.ModeloProposta;
         Proposta.NotasDesmarcadas = V("notas.padrao.desmarcadas") ?? "";
         Params.TaxaAdmPct = V("padrao.taxaAdm") ?? Params.TaxaAdmPct;
-        Params.RiscoPct = V("padrao.risco") ?? Params.RiscoPct;
+        // "5" era o padrão antigo (risco adicional): gravado na configuração,
+        // não deve segurar as propostas novas no valor de antes de 13/11/26.
+        Params.RiscoPct = V("padrao.risco") is { } risco && risco.Trim() != "5" ? risco : Params.RiscoPct;
+        Params.ProtectedMarginPct = V("padrao.protectedMargin") ?? "2";
         Params.FiancaTipo = V("padrao.fiancaTipo") ?? Params.FiancaTipo;
         Params.FiancaPctVenda = V("padrao.fiancaPct") ?? Params.FiancaPctVenda;
         Params.PropAnteriorPct = V("padrao.percAMais") ?? Params.PropAnteriorPct;
@@ -176,6 +180,22 @@ public class Rascunho
             var m = Pricing.MultPeloNome(i.Servico, i.Obs);
             if (m != "") i.Mult = m;
         }
+    }
+
+    /// <summary>
+    /// Nova revisão ou cópia de uma proposta gravada antes do pricing de
+    /// 13/11/26: o risco de 5% (padrão antigo) passa para 3,70% e entra a
+    /// Protected Margin de 2%. Valor digitado à mão (diferente de 5%) fica; a
+    /// revisão anterior continua gravada como o cliente recebeu.
+    /// </summary>
+    public static void AtualizarPricingAntigo(PricingParams p, IReadOnlyDictionary<string, string>? padroes = null)
+    {
+        string? V(string chave) => padroes is not null &&
+            padroes.TryGetValue(chave, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
+        if (Pricing.Num(p.RiscoPct) is var r && Math.Abs(r - 5) < 1e-9)
+            p.RiscoPct = V("padrao.risco") is { } risco && risco.Trim() != "5" ? risco : "3.7";
+        if (Pricing.Num(p.ProtectedMarginPct) <= 0)
+            p.ProtectedMarginPct = V("padrao.protectedMargin") ?? "2";
     }
 
     /// <summary>Copia o estado atual para o objeto que vai ser gravado.</summary>

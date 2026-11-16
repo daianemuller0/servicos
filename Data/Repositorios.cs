@@ -35,12 +35,13 @@ public class PropostaRepository
             EscopoDetalhado = extras >= 2 ? S(r, 39) : "",
             NotasDesmarcadas = extras >= 3 ? S(r, 40) : "",
             CondicaoPagamento = extras >= 4 ? S(r, 41) : "",
+            ModeloProposta = extras >= 5 && S(r, 42) != "" ? S(r, 42) : "Simples",
         };
 
         // Bancos antigos não têm as colunas mais novas — tenta com todas e vai
         // tirando da direita até a leitura passar; a primeira gravação nova
         // cria as que faltarem (union_by_name).
-        var novas = new[] { "escopoServico", "escopoDetalhado", "notasDesmarcadas", "condicaoPagamento" };
+        var novas = new[] { "escopoServico", "escopoDetalhado", "notasDesmarcadas", "condicaoPagamento", "modeloProposta" };
         for (var n = novas.Length; ; n--)
         {
             var extras = string.Concat(novas.Take(n).Select(c => ", " + c));
@@ -73,6 +74,7 @@ public class PropostaRepository
         new("status", p.Status), new("modoApresentacao", p.ModoApresentacao),
         new("escopoServico", p.EscopoServico), new("escopoDetalhado", p.EscopoDetalhado),
         new("notasDesmarcadas", p.NotasDesmarcadas), new("condicaoPagamento", p.CondicaoPagamento),
+        new("modeloProposta", p.ModeloProposta),
     });
 
     public void Delete(string id) => _store.WriteRow(Entidade,

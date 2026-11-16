@@ -276,7 +276,8 @@ public static class ExcelExport
             r++;
         }
         Etapa("Custo total (MO + despesas)", "—", c.CustoTotal);
-        Etapa("Risco de variação", $"{par.RiscoPct}%", c.Risco);
+        Etapa("Protected Margin", $"{par.ProtectedMarginPct}%", c.ProtectedMargin);
+        Etapa("Risco/Contingência (sobre custo + PM)", $"{par.RiscoPct}%", c.Contingencia);
         Etapa("Custo total com riscos", "—", c.CustoComRisco);
         Etapa($"Seguro garantia / fiança ({par.FiancaTipo})",
             par.FiancaTipo == "Não" ? "—"
@@ -286,7 +287,7 @@ public static class ExcelExport
         Etapa("Margem de negociação", $"{par.MargemNegociacaoPct}%", c.MargemNegociacao);
         Etapa("PM + SACH", $"{par.PmSachPct}%", c.PmSach);
         Etapa("Garantia do projeto", $"{par.GarantiaProjetoPct}%", c.GarantiaProjeto);
-        Etapa("Portal", $"{par.PortalPct}%", c.Portal);
+        Etapa($"Portal ({Pricing.PortalEscolhido(par)})", Pricing.TetoPortal(par) > 0 ? "teto" : $"{par.PortalPct}%", c.Portal);
         Etapa("VENDA LÍQUIDA (sem impostos)", $"margem {Pricing.Porcento(c.ProjectMargin)}", c.VendaLiquida);
         LinhaTotal(ws, r - 1, 1, 3);
         Etapa("PIS", $"{par.PisPct}%", c.Pis);

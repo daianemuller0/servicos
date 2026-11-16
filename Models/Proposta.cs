@@ -48,6 +48,11 @@ public class Proposta
     /// </summary>
     public string CondicaoPagamento { get; set; } = "";
     /// <summary>
+    /// Padrão do documento: "Simples" (a proposta de sempre, gerada aqui) ou
+    /// "Completa" (o modelo Word da equipe, o mesmo do AFM, preenchido).
+    /// </summary>
+    public string ModeloProposta { get; set; } = "Simples";
+    /// <summary>
     /// Chaves das notas DESMARCADAS no tic (separadas por ";"): essas não saem
     /// no documento. Vazio = todas as notas automáticas saem.
     /// </summary>
@@ -118,7 +123,17 @@ public class PricingParams
     public string HoraBase { get; set; } = "320";
 
     // riscos
-    public string RiscoPct { get; set; } = "5";           // PRICING D37/E36 (risco de variação)
+    /// <summary>
+    /// Risco/Contingência (PRICING D37), sobre o custo já com a Protected
+    /// Margin (G34). Padrão 3,70% desde 13/11/26 (antes: "risco adicional" de 5%).
+    /// </summary>
+    public string RiscoPct { get; set; } = "3.7";
+    /// <summary>
+    /// Protected Margin (PRICING F14:F33, a "variação" de cada linha de custo):
+    /// padrão 2% nas propostas novas. Propostas gravadas antes dela não têm o
+    /// campo e ficam com 0% — o preço que o cliente recebeu não muda.
+    /// </summary>
+    public string ProtectedMarginPct { get; set; } = "0";
 
     // comissões (PRICING L36:T59 + BD_pricing) — % sobre a venda líquida
     public string PprPct { get; set; } = "1";             // PPR (código C01)
@@ -132,7 +147,11 @@ public class PricingParams
     public string MargemNegociacaoPct { get; set; } = "3";// PRICING D47
     public string PmSachPct { get; set; } = "1";          // PRICING D48
     public string GarantiaProjetoPct { get; set; } = "2"; // PRICING D49
-    public string PortalPct { get; set; } = "0";          // PRICING D50 (0,7% quando há portal)
+    public string PortalPct { get; set; } = "0";          // PRICING D50: % sobre a venda líquida do portal escolhido
+    /// <summary>Portal escolhido (lista_Portal do pricing do AFM). Vazio = proposta antiga (Sim/Não pelo %).</summary>
+    public string PortalNome { get; set; } = "";
+    /// <summary>Portal com teto: valor fixo cobrado (na moeda dos custos), no lugar do %.</summary>
+    public string PortalTeto { get; set; } = "0";
 
     // seguro garantia / carta de fiança (PRICING M46:T59 + listas Custo_Garantia)
     public string FiancaTipo { get; set; } = "HSA C. Fiança (Banco)"; // padrão da planilha (P3 = Sim, 5% a.a.)

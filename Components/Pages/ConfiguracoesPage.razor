@@ -56,6 +56,12 @@
                 <option value="SemDespesas">Sem despesas (embutidas nas diárias)</option>
             </select>
         </label>
+        <label>Modelo da proposta
+            <select class="cell" value="@V("padrao.modelo", "Simples")" @onchange='e => Set("padrao.modelo", e)'>
+                <option value="Simples">Proposta simples</option>
+                <option value="Completa">Proposta completa (modelo Word da equipe)</option>
+            </select>
+        </label>
         <label>Validade (dias)
             <input class="cell num" value="@V("padrao.validade", "30")" @onchange='e => Set("padrao.validade", e)' />
         </label>
@@ -66,8 +72,11 @@
         <label>Taxa administrativa (%)
             <input class="cell num" value="@V("padrao.taxaAdm", "40")" @onchange='e => Set("padrao.taxaAdm", e)' />
         </label>
-        <label>Risco de variação (%)
-            <input class="cell num" value="@V("padrao.risco", "5")" @onchange='e => Set("padrao.risco", e)' />
+        <label>Risco/Contingência (%)
+            <input class="cell num" value="@V("padrao.risco", "3.7")" @onchange='e => Set("padrao.risco", e)' />
+        </label>
+        <label>Protected Margin (%)
+            <input class="cell num" value="@V("padrao.protectedMargin", "2")" @onchange='e => Set("padrao.protectedMargin", e)' />
         </label>
         <label>Fiança / Seguro garantia
             <select class="cell" value="@V("padrao.fiancaTipo", "HSA C. Fiança (Banco)")" @onchange='e => Set("padrao.fiancaTipo", e)'>

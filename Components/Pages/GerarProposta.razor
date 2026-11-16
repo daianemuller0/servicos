@@ -97,7 +97,7 @@
                     <input class="cell" placeholder="Gera sozinho se ficar vazio" @bind="P.Numero" />
                 </label>
                 <label>Revisão
-                    <input class="cell" @bind="P.Revisao" />
+                    <input class="cell" @bind="P.Revisao" @bind:after="RevisaoMudou" />
                 </label>
                 <label>Data
                     <input class="cell" type="date" @bind="DataProposta" />
@@ -205,14 +205,19 @@
                 <label>Margem alvo — Project Margin (%)
                     <input class="cell num" @bind="R.Params.MargemAlvoPct" @bind:after="MargemEditada" />
                 </label>
-                <label>Risco de variação (%)
+                <label>Risco/Contingência (%)
                     <input class="cell num" @bind="R.Params.RiscoPct" />
+                </label>
+                <label>Protected Margin (%)
+                    <input class="cell num" @bind="R.Params.ProtectedMarginPct" />
                 </label>
                 <label>Qtd. de técnicos
                     <input class="cell num" @bind="R.Params.QtdTecnicos" />
                 </label>
             </div>
             <div class="side-note" style="margin:10px 0 14px">
+                Padrão: Risco/Contingência de 3,70% + 2% de Protected Margin. A Protected Margin entra
+                em cada custo e o risco incide sobre o custo já com ela (como no pricing do AFM).
                 A margem padrão vem do segmento (Service 50% · NB 32% · AFM 52% · Intercompany 28%)
                 e pode ser alterada aqui, só para esta proposta.
             </div>
@@ -254,10 +259,16 @@
                 <label>Garantia do projeto (%)
                     <input class="cell num" @bind="R.Params.GarantiaProjetoPct" />
                 </label>
-                <label>Portal (como na planilha)
-                    <select class="cell" value="@(Pricing.Num(R.Params.PortalPct) > 0 ? "Sim" : "Não")" @onchange="MudarPortal">
-                        <option value="Não">Não</option>
-                        <option value="Sim">Sim (0,7%)</option>
+                <label>Portal
+                    <select class="cell" value="@Pricing.PortalEscolhido(R.Params)" @onchange="MudarPortal">
+                        @foreach (var o in Pricing.Portais)
+                        {
+                            <option value="@o.Nome">@o.Nome@(o.Teto > 0 ? $" (teto {Pricing.Moeda0(o.Teto)})" : o.Pct > 0 ? $" ({o.Pct.ToString("0.###", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))}%)" : "")</option>
+                        }
+                        @if (Pricing.PortalEscolhido(R.Params) == Pricing.PortalAntigo)
+                        {
+                            <option value="@Pricing.PortalAntigo">@Pricing.PortalAntigo</option>
+                        }
                     </select>
                 </label>
                 <label>Taxa adm. mostrada sobre despesas (%)
@@ -463,7 +474,8 @@
                 </thead>
                 <tbody>
                     <tr><td>Custo total (MO + despesas)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.CustoTotal)</td></tr>
-                    <tr><td>Risco de variação</td><td class="right">@R.Params.RiscoPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.Risco)</td></tr>
+                    <tr><td>Protected Margin</td><td class="right">@R.Params.ProtectedMarginPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.ProtectedMargin)</td></tr>
+                    <tr><td>Risco/Contingência (sobre o custo + Protected Margin)</td><td class="right">@R.Params.RiscoPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.Contingencia)</td></tr>
                     <tr><td>Seguro garantia / fiança (@R.Params.FiancaTipo)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Fianca)</td></tr>
                     <tr><td>Comissões (PPR @R.Params.PprPct% · Sales @R.Params.SalesDirPct% · DSR · Rep @R.Params.Rep1Pct%@(Pricing.Num(R.Params.Rep2Pct) > 0 ? $" + {R.Params.Rep2Pct}%" : ""))</td><td class="right">@Pricing.Porcento(Calc.ComissoesFracTotal)</td><td class="right nowrap">@Pricing.Moeda(Calc.Comissoes)</td></tr>
                     <tr><td>Provisões (negociação + PM/SACH + garantia + portal)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.MargemNegociacao + Calc.PmSach + Calc.GarantiaProjeto + Calc.Portal)</td></tr>
@@ -590,7 +602,17 @@
         {
             <div class="side-ok">@_msg</div>
         }
+        @if (MsgRevisao is not null)
+        {
+            <div class="side-ok">@MsgRevisao</div>
+        }
 
+        <label class="side-caption" style="display:block; margin-bottom:8px">Modelo do documento
+            <select class="cell" @bind="P.ModeloProposta">
+                <option value="Simples">Proposta simples</option>
+                <option value="Completa">Proposta completa (modelo Word da equipe)</option>
+            </select>
+        </label>
         <button class="btn-accent btn-block" @onclick="Cadastrar">🗄 Cadastrar no banco de dados</button>
         <div class="side-caption">Salva em Banco de Dados › Propostas Enviadas</div>
         <button class="btn-primary btn-block" @onclick="Imprimir">🖨 Gerar proposta (PDF)</button>
@@ -685,7 +707,7 @@
 
     // Portal como na planilha (P4): Sim = 0,7% sobre a venda, Não = 0.
     private void MudarPortal(ChangeEventArgs e) =>
-        R.Params.PortalPct = e.Value?.ToString() == "Sim" ? "0.7" : "0";
+        Pricing.EscolherPortal(R.Params, e.Value?.ToString() ?? "não");
 
     private void MudarSegmento(ChangeEventArgs e)
     {
@@ -743,10 +765,21 @@
             : $"Proposta {P.Numero} cadastrada no banco de dados.";
     }
 
-    private async Task Imprimir() => await JS.InvokeVoidAsync("appPrint");
+    private async Task Imprimir()
+    {
+        if (!Completa) { await JS.InvokeVoidAsync("appPrint"); return; }
+        _msg = null;
+        _erro = await BaixarPropostaCompleta(true, DocA, Faturamento(), _reps);
+    }
 
     private async Task GerarWord()
     {
+        if (Completa)
+        {
+            _msg = null;
+            _erro = await BaixarPropostaCompleta(false, DocA, Faturamento(), _reps);
+            return;
+        }
         var html = Servicos.DocHtml(P, DocA, _logo, Faturamento(), RepInfo(), Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA));
         var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
         var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };

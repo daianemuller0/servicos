@@ -334,6 +334,12 @@ public static class Servicos
         copia.Id = NovoIdProposta();
         copia.CriadaEm = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         copia.Status = "Rascunho";
+        // a cópia entra no pricing atual (a original fica como estava)
+        if (System.Text.Json.JsonSerializer.Deserialize<PricingParams>(string.IsNullOrWhiteSpace(copia.PricingJson) ? "{}" : copia.PricingJson) is { } par)
+        {
+            Rascunho.AtualizarPricingAntigo(par);
+            copia.PricingJson = System.Text.Json.JsonSerializer.Serialize(par);
+        }
         return copia;
     }
 

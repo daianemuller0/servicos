@@ -170,6 +170,57 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         return true;
     }
 
+    // ================= proposta completa (segundo padrão) =================
+
+    /// <summary>A proposta está no padrão completo (o modelo Word da equipe)?</summary>
+    protected bool Completa => R.Proposta.ModeloProposta == "Completa";
+
+    /// <summary>
+    /// Gera e baixa a proposta completa (Word ou PDF). Devolve null quando deu
+    /// certo, senão a explicação para mostrar na tela.
+    /// </summary>
+    protected async Task<string?> BaixarPropostaCompleta(bool pdf, Data.Pricing.Documento apresentado,
+        Models.BillingInfo? faturamento, IEnumerable<Models.Representante> representantes)
+    {
+        try
+        {
+            var reps = representantes.ToList();
+            var dados = new PropostaCompleta.Dados(R.Proposta, R.Params, R.Documento(), apresentado, faturamento,
+                nome => reps.FirstOrDefault(x => x.Nome == nome)?.Contato);
+            var bytes = pdf ? await Task.Run(() => PropostaCompleta.GerarPdf(dados)) : PropostaCompleta.Gerar(dados);
+            await JS.InvokeVoidAsync("appDownload", PropostaCompleta.NomeDoArquivo(R.Proposta, pdf ? "pdf" : "docx"),
+                pdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                Convert.ToBase64String(bytes));
+            return null;
+        }
+        catch (InvalidOperationException ex) when (pdf)
+        {
+            return "Não consegui gerar o PDF: " + ex.Message;
+        }
+        catch (Exception ex)
+        {
+            return "Não consegui gerar a proposta completa: " + ex.Message;
+        }
+    }
+
+    /// <summary>Mensagem mostrada quando a nova revisão atualizou o pricing antigo.</summary>
+    protected string? MsgRevisao { get; private set; }
+
+    /// <summary>
+    /// Nova revisão de uma proposta gravada: entra no pricing atual (risco
+    /// 5% → 3,70% e Protected Margin de 2%), como no AFM. A revisão anterior
+    /// continua no banco como o cliente recebeu.
+    /// </summary>
+    protected void RevisaoMudou()
+    {
+        MsgRevisao = null;
+        if (!R.Gravada) return;
+        var antes = (R.Params.RiscoPct, R.Params.ProtectedMarginPct);
+        Data.Rascunho.AtualizarPricingAntigo(R.Params, Cfg);
+        if (antes != (R.Params.RiscoPct, R.Params.ProtectedMarginPct))
+            MsgRevisao = $"Nova revisão no pricing atual: Risco/Contingência {R.Params.RiscoPct}% e Protected Margin {R.Params.ProtectedMarginPct}%.";
+    }
+
     // ================= tic das notas =================
 
     /// <summary>Mensagem do botão "salvar seleção como padrão".</summary>

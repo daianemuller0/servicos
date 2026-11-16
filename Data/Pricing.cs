@@ -68,6 +68,50 @@ public static class Pricing
         ("HCHL/HPU S. Garantia (Corretora)", 1.75),
     };
 
+    /// <summary>
+    /// Portais (P4, lista_Portal do pricing do AFM — listas B3:D13): % sobre a
+    /// venda líquida, ou "teto" — um valor fixo que o portal cobra (na planilha
+    /// D50 fecha em referência circular e cobra exatamente esse valor).
+    /// </summary>
+    public static readonly (string Nome, double Pct, double Teto)[] Portais =
+    {
+        ("não", 0, 0),
+        ("Petronect < BRL 22,5 M", 0.2, 0),
+        ("Petronect > BRL 22,5 M", 0, 45000),
+        ("Quadrem_Ariba HSA_HCHL > USD 50k", 0.155, 0),
+        ("Quadrem_Ariba HSA_HCHL > USD 50k(SV-RF)", 0.35, 0),
+        ("Quadrem_Ariba HPU < USD 25k", 0.4, 0),
+        ("Quadrem_Ariba HPU > USD 25k", 0, 100),
+        ("Unilink < USD 74,074", 0.27, 0),
+        ("Unilink > USD 74,074", 0, 200),
+        ("NIMBI", 0.45, 0),
+    };
+
+    /// <summary>Opção do portal das propostas gravadas antes da lista (Sim = 0,7% sobre o valor).</summary>
+    public const string PortalAntigo = "Sim (0,7% — proposta antiga)";
+
+    /// <summary>O nome do portal que a tela mostra (propostas antigas: pelo %).</summary>
+    public static string PortalEscolhido(PricingParams p)
+    {
+        if (!string.IsNullOrWhiteSpace(p.PortalNome)) return p.PortalNome;
+        return Num(p.PortalPct) > 0 ? PortalAntigo : "não";
+    }
+
+    /// <summary>Aplica o portal escolhido: o % e o teto saem da lista.</summary>
+    public static void EscolherPortal(PricingParams p, string nome)
+    {
+        var inv = CultureInfo.InvariantCulture;
+        if (nome == PortalAntigo) { p.PortalNome = ""; p.PortalPct = "0.7"; p.PortalTeto = "0"; return; }
+        var opcao = Portais.FirstOrDefault(x => x.Nome == nome);
+        if (opcao.Nome is null) opcao = Portais[0];
+        p.PortalNome = opcao.Nome;
+        p.PortalPct = opcao.Pct.ToString("0.####", inv);
+        p.PortalTeto = opcao.Teto.ToString("0.##", inv);
+    }
+
+    /// <summary>Valor fixo do portal com teto (zero = portal por %).</summary>
+    public static double TetoPortal(PricingParams p) => Math.Max(Num(p.PortalTeto), 0);
+
     /// <summary>"OUTROS" é a linha de acerto de valores: nunca sai na proposta ao cliente.</summary>
     public static bool EhOutros(string? nome) =>
         (nome ?? "").Trim().Equals("OUTROS", StringComparison.OrdinalIgnoreCase);
@@ -124,12 +168,13 @@ public static class Pricing
     public static double MargemParaMeta(Resultado c, PricingParams p, double meta, double prazoDias = 0)
     {
         if (meta <= 0 || c.CustoComRisco <= 0) return 0;
+        var teto = TetoPortal(p);
         var denImp = 1 - Pct(p.PisPct) - Pct(p.CofinsPct) - Pct(p.IssPct);
         var vendaLiquida = meta * denImp;
         if (vendaLiquida <= 0) return 0;
         var provisoes = ComissoesFrac(p) + Pct(p.MargemNegociacaoPct) + Pct(p.PmSachPct)
                       + Pct(p.GarantiaProjetoPct) + Pct(p.PortalPct);
-        return 1 - provisoes - FiancaFrac(p, prazoDias) - c.CustoComRisco / vendaLiquida;
+        return 1 - provisoes - FiancaFrac(p, prazoDias) - (c.CustoComRisco + teto) / vendaLiquida;
     }
 
     public static double TaxaGarantia(string tipo) =>
@@ -193,7 +238,8 @@ public static class Pricing
         double Pis, double Cofins, double Iss,
         double FatorLiquido, double FatorPisCofins, double FatorComImpostos,
         double Markup, double ProjectMargin, double ContributionMargin,
-        double ComissoesFracTotal, double Dsr);
+        double ComissoesFracTotal, double Dsr,
+        double ProtectedMargin = 0, double Contingencia = 0);
 
     public static Resultado Calcular(IEnumerable<ItemMO> mo, IEnumerable<ItemDespesa> desp, PricingParams p, double prazoDias = 0)
     {
@@ -202,8 +248,16 @@ public static class Pricing
         var totalDesp = desp.Sum(d => CustoDespesa(d, tec));
         var custo = totalMO + totalDesp;
 
-        var risco = custo * Pct(p.RiscoPct);
+        // Como o PRICING (E36:E39): cada linha de custo leva a Protected Margin
+        // como "variação" (G34 = custo × (1 + PM); E36 = G34 − E34), e o
+        // Risco/Contingência (D37) incide sobre o custo já com ela (E37 = D37 × G34).
+        var protegida = custo * Pct(p.ProtectedMarginPct);
+        var contingencia = (custo + protegida) * Pct(p.RiscoPct);
+        var risco = protegida + contingencia;
         var custoRisco = custo + risco;
+
+        // Portal com teto: valor fixo, que a venda precisa cobrir como um custo.
+        var teto = TetoPortal(p);
 
         var comissoesFrac = ComissoesFrac(p);
         var provisoes = comissoesFrac + Pct(p.MargemNegociacaoPct) + Pct(p.PmSachPct)
@@ -215,14 +269,14 @@ public static class Pricing
         // fecha por iteração: venda×(1−prov−margem) = custoRisco + venda×k.
         var k = FiancaFrac(p, prazoDias);
         var den = 1 - provisoes - margem - k;
-        var vendaLiquida = den > 0.0001 ? custoRisco / den : 0;
+        var vendaLiquida = den > 0.0001 ? (custoRisco + teto) / den : 0;
 
         // Paridade com o botão "Calcular Preço" da planilha (macro WILGERAPRECO):
         // ela acha o markup por busca em degraus e PARA no primeiro degrau que
         // cruza a margem alvo — não no valor exato. Reproduzimos os mesmos
         // degraus para o preço bater centavo a centavo com a planilha.
         if (vendaLiquida > 0 && den > 0.0001 && margem > 0)
-            vendaLiquida = VendaEscadaPlanilha(custoRisco, provisoes + k, margem);
+            vendaLiquida = VendaEscadaPlanilha(custoRisco + teto, provisoes + k, margem);
 
         var fianca = vendaLiquida * k;
 
@@ -245,7 +299,7 @@ public static class Pricing
         var mn = vendaLiquida * Pct(p.MargemNegociacaoPct);
         var pmSach = vendaLiquida * Pct(p.PmSachPct);
         var garantia = vendaLiquida * Pct(p.GarantiaProjetoPct);
-        var portal = vendaLiquida * Pct(p.PortalPct);
+        var portal = teto > 0 && vendaLiquida > 0 ? teto : vendaLiquida * Pct(p.PortalPct);
 
         var pm = vendaLiquida > 0
             ? (vendaLiquida - (custoRisco + fianca + comissoes + mn + pmSach + garantia + portal)) / vendaLiquida
@@ -253,7 +307,7 @@ public static class Pricing
         var cm = vendaLiquida > 0
             ? (vendaLiquida - (custoRisco + fianca + mn + pmSach + garantia + portal)) / vendaLiquida
             : 0;
-        var markup = custoRisco > 0 ? (vendaLiquida * (1 - provisoes) - fianca) / custoRisco : 0;
+        var markup = custoRisco > 0 ? (vendaLiquida * (1 - provisoes) - fianca - (teto > 0 ? portal : 0)) / custoRisco : 0;
 
         return new Resultado(
             totalMO, totalDesp, custo,
@@ -265,7 +319,8 @@ public static class Pricing
             custo > 0 ? comPisCofins / custo : 0,
             custo > 0 ? comImpostos / custo : 0,
             markup, pm, cm,
-            comissoesFrac, vendaLiquida * Pct(p.DsrFatorPct) * salesFrac);
+            comissoesFrac, vendaLiquida * Pct(p.DsrFatorPct) * salesFrac,
+            protegida, contingencia);
     }
 
     // ---------- itens já precificados (o que sai impresso na proposta) ----------
