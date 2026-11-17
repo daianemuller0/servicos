@@ -439,6 +439,7 @@ public static class Servicos
         "Proposta: {numero} (rev. {rev})\r\nCliente: {cliente} - {cidade}\r\nEscopo: {referencia}\r\nBU: {bu}\r\n\r\n" +
         "Custo total: R$ {custo_total}\r\nCusto com riscos: R$ {custo_riscos}\r\n" +
         "Venda liquida (sem impostos): R$ {venda_liquida}\r\nValor com impostos: R$ {valor_impostos}\r\n" +
+        "Protected Margin: {protected_margin}\r\nRisco/Contingência: {risco}\r\n" +
         "Project Margin: {pm}\r\nContribution Margin: {cm}\r\nMarkup: {markup}\r\n\r\n" +
         "Preparada por: {preparada_por}");
 
@@ -463,6 +464,8 @@ public static class Servicos
             .Replace("{custo_riscos}", Pricing.Moeda(c.CustoComRisco))
             .Replace("{venda_liquida}", Pricing.Moeda(c.VendaLiquida))
             .Replace("{valor_impostos}", Pricing.Moeda(doc.Total))
+            .Replace("{protected_margin}", $"R$ {Pricing.Moeda(c.ProtectedMargin)} ({Pricing.Porcento(c.ProtectedSobreVenda)} da venda)")
+            .Replace("{risco}", "R$ " + Pricing.Moeda(c.Contingencia))
             .Replace("{pm}", Pricing.Porcento(c.ProjectMargin))
             .Replace("{cm}", Pricing.Porcento(c.ContributionMargin))
             .Replace("{markup}", c.Markup.ToString("0.0000"));

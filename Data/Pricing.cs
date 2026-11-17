@@ -239,7 +239,24 @@ public static class Pricing
         double FatorLiquido, double FatorPisCofins, double FatorComImpostos,
         double Markup, double ProjectMargin, double ContributionMargin,
         double ComissoesFracTotal, double Dsr,
-        double ProtectedMargin = 0, double Contingencia = 0);
+        double ProtectedMargin = 0, double Contingencia = 0)
+    {
+        /// <summary>Custo com a Protected Margin (PRICING G34): a base do Risco/Contingência.</summary>
+        public double CustoComProtected => CustoTotal + ProtectedMargin;
+
+        /// <summary>Venda pura (PRICING E42 = markup × custo com riscos), antes da fiança e das provisões.</summary>
+        public double VendaPura => Markup * CustoComRisco;
+
+        /// <summary>
+        /// Quanto da venda líquida é Protected Margin. Na planilha ela entra no
+        /// custo (E36), então a Project Margin (D55) não a enxerga — é margem a mais,
+        /// guardada no custo.
+        /// </summary>
+        public double ProtectedSobreVenda => VendaLiquida > 0 ? ProtectedMargin / VendaLiquida : 0;
+
+        /// <summary>Project Margin + a Protected Margin guardada no custo.</summary>
+        public double MargemComProtected => ProjectMargin + ProtectedSobreVenda;
+    }
 
     public static Resultado Calcular(IEnumerable<ItemMO> mo, IEnumerable<ItemDespesa> desp, PricingParams p, double prazoDias = 0)
     {

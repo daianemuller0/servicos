@@ -381,5 +381,29 @@ public static class PlanilhaExport
         }
         calc.SetAttributeValue("fullCalcOnLoad", "1");
         Gravar(zip, "xl/workbook.xml", wb);
+        TirarCadeiaDeCalculo(zip);
+    }
+
+    /// <summary>
+    /// Tira a cadeia de cálculo (calcChain.xml): ela lista as células com
+    /// fórmula, e célula que deixou de ser fórmula aqui (ex.: D50) faria o
+    /// Excel pedir reparo ao abrir. Sem ela, o Excel refaz a cadeia sozinho.
+    /// </summary>
+    private static void TirarCadeiaDeCalculo(ZipArchive zip)
+    {
+        zip.GetEntry("xl/calcChain.xml")?.Delete();
+        XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
+        if (zip.GetEntry("[Content_Types].xml") is not null)
+        {
+            var tipos = Ler(zip, "[Content_Types].xml");
+            var antigos = tipos.Root!.Elements(ct + "Override")
+                .Where(o => (string?)o.Attribute("PartName") == "/xl/calcChain.xml").ToList();
+            if (antigos.Count > 0) { antigos.ForEach(o => o.Remove()); Gravar(zip, "[Content_Types].xml", tipos); }
+        }
+        XNamespace pr = "http://schemas.openxmlformats.org/package/2006/relationships";
+        var rels = Ler(zip, "xl/_rels/workbook.xml.rels");
+        var cadeia = rels.Root!.Elements(pr + "Relationship")
+            .Where(r => ((string?)r.Attribute("Target") ?? "").EndsWith("calcChain.xml")).ToList();
+        if (cadeia.Count > 0) { cadeia.ForEach(r => r.Remove()); Gravar(zip, "xl/_rels/workbook.xml.rels", rels); }
     }
 }

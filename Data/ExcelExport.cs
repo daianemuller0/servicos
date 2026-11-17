@@ -276,9 +276,11 @@ public static class ExcelExport
             r++;
         }
         Etapa("Custo total (MO + despesas)", "—", c.CustoTotal);
-        Etapa("Protected Margin", $"{par.ProtectedMarginPct}%", c.ProtectedMargin);
-        Etapa("Risco/Contingência (sobre custo + PM)", $"{par.RiscoPct}%", c.Contingencia);
-        Etapa("Custo total com riscos", "—", c.CustoComRisco);
+        Etapa("Protected Margin (em cada custo — F14:F33)", $"{par.ProtectedMarginPct}%", c.ProtectedMargin);
+        Etapa("Custo com Protected Margin (G34)", "—", c.CustoComProtected);
+        Etapa("Risco/Contingência (D37 × G34)", $"{par.RiscoPct}%", c.Contingencia);
+        Etapa("Custo total com riscos (E39)", "—", c.CustoComRisco);
+        Etapa("Venda pura (markup × custo com riscos)", $"markup {c.Markup:0.0000}", c.VendaPura);
         Etapa($"Seguro garantia / fiança ({par.FiancaTipo})",
             par.FiancaTipo == "Não" ? "—"
                 : $"{par.FiancaPctVenda}% × {(string.IsNullOrWhiteSpace(par.FiancaDias) ? p.PrazoEntregaDias + "d (prazo)" : par.FiancaDias + "d")}", c.Fianca);
@@ -299,6 +301,8 @@ public static class ExcelExport
 
         Titulo(ws, r++, "MARGENS");
         Rotulo(ws, r++, "Project Margin:", Pricing.Porcento(c.ProjectMargin));
+        Rotulo(ws, r++, "Protected Margin (no custo):", Pricing.Porcento(c.ProtectedSobreVenda));
+        Rotulo(ws, r++, "Project + Protected Margin:", Pricing.Porcento(c.MargemComProtected));
         Rotulo(ws, r++, "Contribution Margin:", Pricing.Porcento(c.ContributionMargin));
         Rotulo(ws, r++, "Markup:", c.Markup, "0.0000");
         r++;

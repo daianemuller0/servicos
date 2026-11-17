@@ -473,17 +473,36 @@
                     <tr><th>Etapa</th><th class="right">%</th><th class="right">Valor (R$)</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>Custo total (MO + despesas)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.CustoTotal)</td></tr>
-                    <tr><td>Protected Margin</td><td class="right">@R.Params.ProtectedMarginPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.ProtectedMargin)</td></tr>
-                    <tr><td>Risco/Contingência (sobre o custo + Protected Margin)</td><td class="right">@R.Params.RiscoPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.Contingencia)</td></tr>
-                    <tr><td>Seguro garantia / fiança (@R.Params.FiancaTipo)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Fianca)</td></tr>
-                    <tr><td>Comissões (PPR @R.Params.PprPct% · Sales @R.Params.SalesDirPct% · DSR · Rep @R.Params.Rep1Pct%@(Pricing.Num(R.Params.Rep2Pct) > 0 ? $" + {R.Params.Rep2Pct}%" : ""))</td><td class="right">@Pricing.Porcento(Calc.ComissoesFracTotal)</td><td class="right nowrap">@Pricing.Moeda(Calc.Comissoes)</td></tr>
-                    <tr><td>Provisões (negociação + PM/SACH + garantia + portal)</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.MargemNegociacao + Calc.PmSach + Calc.GarantiaProjeto + Calc.Portal)</td></tr>
-                    <tr><td><strong>VENDA LÍQUIDA (sem impostos)</strong></td><td class="right">margem @Pricing.Porcento(Calc.ProjectMargin)</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.VendaLiquida)</strong></td></tr>
-                    <tr><td>PIS + COFINS + ISS</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Pis + Calc.Cofins + Calc.Iss)</td></tr>
-                    <tr><td><strong>PREÇO DE VENDA (com impostos)</strong></td><td class="right">fator @Calc.FatorComImpostos.ToString("0.0000")</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.ComImpostos)</strong></td></tr>
+                    <tr><td>Custo total (MO + despesas) <span class="muted">E34</span></td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.CustoTotal)</td></tr>
+                    <tr><td>+ Protected Margin em cada custo <span class="muted">F14:F33 → E36</span></td><td class="right">@R.Params.ProtectedMarginPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.ProtectedMargin)</td></tr>
+                    <tr><td>= Custo com Protected Margin <span class="muted">G34</span></td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.CustoComProtected)</td></tr>
+                    <tr><td>+ Risco/Contingência sobre o custo com Protected Margin <span class="muted">D37 × G34</span></td><td class="right">@R.Params.RiscoPct%</td><td class="right nowrap">@Pricing.Moeda(Calc.Contingencia)</td></tr>
+                    <tr><td><strong>= Custo total com riscos</strong> <span class="muted">E39</span></td><td class="right">—</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.CustoComRisco)</strong></td></tr>
+                    <tr><td>× Markup = venda pura <span class="muted">E41 × E39</span></td><td class="right">× @Calc.Markup.ToString("0.0000")</td><td class="right nowrap">@Pricing.Moeda(Calc.VendaPura)</td></tr>
+                    <tr><td>+ Seguro garantia / fiança (@R.Params.FiancaTipo) <span class="muted">E43</span></td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Fianca)</td></tr>
+                    <tr><td>+ Comissões (PPR @R.Params.PprPct% · Sales @R.Params.SalesDirPct% · DSR · Rep @R.Params.Rep1Pct%@(Pricing.Num(R.Params.Rep2Pct) > 0 ? $" + {R.Params.Rep2Pct}%" : "")) <span class="muted">D46</span></td><td class="right">@Pricing.Porcento(Calc.ComissoesFracTotal)</td><td class="right nowrap">@Pricing.Moeda(Calc.Comissoes)</td></tr>
+                    <tr><td>+ Provisões (negociação + PM/SACH + garantia + portal) <span class="muted">D47:D50</span></td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.MargemNegociacao + Calc.PmSach + Calc.GarantiaProjeto + Calc.Portal)</td></tr>
+                    <tr><td><strong>= VENDA LÍQUIDA (sem impostos)</strong> <span class="muted">E52</span></td><td class="right">—</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.VendaLiquida)</strong></td></tr>
+                    <tr><td>+ PIS + COFINS + ISS</td><td class="right">—</td><td class="right nowrap">@Pricing.Moeda(Calc.Pis + Calc.Cofins + Calc.Iss)</td></tr>
+                    <tr><td><strong>= PREÇO DE VENDA (com impostos)</strong></td><td class="right">fator @Calc.FatorComImpostos.ToString("0.0000")</td><td class="right nowrap"><strong>@Pricing.Moeda(Calc.ComImpostos)</strong></td></tr>
                 </tbody>
             </table>
+
+            <h4 style="margin:14px 0 8px; font-size:13px; color:var(--muted)">Margens (sobre a venda líquida)</h4>
+            <table class="grid">
+                <tbody>
+                    <tr><td>Project Margin — a margem pedida <span class="muted">D55</span></td><td class="right nowrap"><strong>@Pricing.Porcento(Calc.ProjectMargin)</strong></td></tr>
+                    <tr><td>Protected Margin guardada no custo <span class="muted">E36 ÷ venda</span></td><td class="right nowrap">@Pricing.Porcento(Calc.ProtectedSobreVenda)</td></tr>
+                    <tr><td>Project Margin + Protected Margin</td><td class="right nowrap"><strong>@Pricing.Porcento(Calc.MargemComProtected)</strong></td></tr>
+                    <tr><td>Contribution Margin <span class="muted">D58</span></td><td class="right nowrap">@Pricing.Porcento(Calc.ContributionMargin)</td></tr>
+                </tbody>
+            </table>
+            <div class="side-note" style="margin-top:10px">
+                O preço sai como na planilha: a Protected Margin e o Risco/Contingência entram no
+                custo com riscos (E39), e o markup sobe até a Project Margin (D55) chegar na margem
+                pedida. Por isso a Protected Margin não aparece na Project Margin — ela é margem a
+                mais, guardada no custo.
+            </div>
         </div>
 
         @* ================== 6. A PROPOSTA (itens precificados) ================== *@
