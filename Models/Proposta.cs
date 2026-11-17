@@ -53,6 +53,11 @@ public class Proposta
     /// </summary>
     public string ModeloProposta { get; set; } = "Simples";
     /// <summary>
+    /// Data prevista para o serviço (texto livre, ex.: "15/12/2026" ou "a partir de
+    /// janeiro"). Em branco, a proposta completa pede ao cliente: "FAVOR INFORMAR".
+    /// </summary>
+    public string DataPrevistaServico { get; set; } = "";
+    /// <summary>
     /// Chaves das notas DESMARCADAS no tic (separadas por ";"): essas não saem
     /// no documento. Vazio = todas as notas automáticas saem.
     /// </summary>

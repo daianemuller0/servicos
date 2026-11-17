@@ -143,6 +143,9 @@
                 <label>Prazo de entrega
                     <input class="cell" placeholder="digite (ex.: 30 ou A combinar)" @bind="P.PrazoEntregaDias" />
                 </label>
+                <label>Data prevista para o serviço
+                    <input class="cell" placeholder="em branco = FAVOR INFORMAR" @bind="P.DataPrevistaServico" />
+                </label>
                 <label>Segmento (margem)
                     <select class="cell" value="@P.Segmento" @onchange="MudarSegmento">
                         @foreach (var o in Servicos.Segmentos) { <option value="@o">@o</option> }

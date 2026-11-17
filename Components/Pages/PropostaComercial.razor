@@ -150,6 +150,7 @@
     </div>
     <div style="margin-top:8px">
         Prazo de entrega: <input class="de" style="width:110px" placeholder="digite" @bind="P.PrazoEntregaDias" /> ·
+        Data prevista p/ o serviço: <input class="de" style="width:120px" placeholder="favor informar" @bind="P.DataPrevistaServico" /> ·
         Qtd. de técnicos: <input class="de qtd" @bind="R.Params.QtdTecnicos" /> ·
         BU: <select class="de" value="@P.Bu" @onchange="MudarBu">
             @foreach (var o in Servicos.Bus) { <option value="@o">@o</option> }

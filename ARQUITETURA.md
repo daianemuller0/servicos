@@ -250,8 +250,13 @@ decide o que os botões PDF e Word geram. A completa (`Data/PropostaCompleta.cs`
 "Proposta Técnica Comercial" do AFM_HSA), com as ferramentas de preenchimento e a
 tradução (`Data/TraducaoDaProposta.cs`) trazidas de lá:
 
-- ficam capa, contatos, introdução, preço (as linhas da proposta), notas comerciais,
-  impostos de serviço (PIS, COFINS e ISS inclusos, com o detalhamento), condição de
+- a seção 2 é a **Proposta Comercial de Serviços**, com os preços no padrão da
+  proposta de serviços da equipe: data prevista do serviço, tabelas ASSESSORIA
+  TÉCNICA e DESPESAS, TOTAL C/ IMPOSTOS, o resumo (sem impostos / c/ PIS e COFINS /
+  c/ PIS, COFINS e ISS), os itens opcionais (INFORMAÇÕES COMPLEMENTARES — NÃO
+  INCLUSO) e as notas (*) e (**);
+- ficam capa, contatos, introdução, NOTAS IMPORTANTES,
+  impostos de serviço (PIS, COFINS e ISS inclusos, com o código fiscal), condição de
   pagamento, prazo, validade, faturamento, notas, sistema de gestão, **Assessoria
   Técnica no Campo** (diária sem impostos e sem despesas; sáb/dom/feriado = 2×),
   **Descrição da Assessoria** (escopo detalhado, técnicos e diárias), Anexos e

@@ -556,158 +556,283 @@ internal sealed class PreenchimentoCompleto
                 $"Howden tiene la satisfacción de presentar a {cliente} su oferta para la prestación de servicios de asesoría técnica{escopo}."));
     }
 
+    /// <summary>
+    /// A apresentação de preços no padrão da proposta de serviços da equipe
+    /// ("Proposta Comercial de Serviços"): o título vira PREÇOS, a data prevista
+    /// do serviço, a tabela ASSESSORIA TÉCNICA (serviços, obs, horas, valor hora,
+    /// valor 1 diária, qtd. diária, total), a tabela DESPESAS, o TOTAL C/
+    /// IMPOSTOS, o resumo (sem impostos / c/ PIS e COFINS / c/ PIS, COFINS e
+    /// ISS), os itens opcionais (INFORMAÇÕES COMPLEMENTARES — NÃO INCLUSO) e
+    /// as notas (*) e (**). Os valores são os mesmos da proposta simples.
+    /// </summary>
     private void Precos()
     {
-        // não há proposta técnica de ventilador: a frase que apontava para ela sai
-        Achar("Preços conforme descrição da Proposta Técnica")?.Remove();
-        TabelaDePrecos();
+        if (Titulo1("Proposta Comercial") is { } secao)
+            Escrever(secao, T3("Proposta Comercial de Serviços", "Commercial Proposal for Services", "Oferta Comercial de Servicios"));
 
-        // a quebra de página depois da tabela sai: as Notas Comerciais seguem logo abaixo
-        if (Achar("A descrição do produto deverá estar presente na Ordem de Compra") is { } nota
-            && nota.NextSibling() is Paragraph seguinte && Texto(seguinte).Trim().Length == 0)
+        var titulo = Titulo2("Preço");
+        var tabelaAntiga = Tabelas().FirstOrDefault(t => Texto(t).StartsWith("Item", StringComparison.Ordinal) && Texto(t).Contains("Descrição"));
+        var nota = Achar("A descrição do produto deverá estar presente na Ordem de Compra");
+        if (titulo is null) return;
+        Escrever(titulo, T3("Preços", "Prices", "Precios"));
+
+        // a quebra de página depois da tabela sai: as Notas Importantes seguem logo abaixo
+        if (nota?.NextSibling() is Paragraph seguinte && Texto(seguinte).Trim().Length == 0)
         {
             foreach (var quebra in seguinte.Descendants<Break>().Where(b => b.Type?.Value == BreakValues.Page).ToList()) quebra.Remove();
             foreach (var p in seguinte.Descendants<ParagraphProperties>()) p.RemoveAllChildren<PageBreakBefore>();
         }
+        Achar("Preços conforme descrição da Proposta Técnica")?.Remove();
+        tabelaAntiga?.Remove();
+        nota?.Remove();
+
+        OpenXmlElement depois = titulo;
+        void Por(OpenXmlElement e) { depois.InsertAfterSelf(e); depois = e; }
+        foreach (var e in BlocoDePrecos()) Por(e);
     }
 
-    /// <summary>Uma linha da tabela de preços: título, observação, quantidade, unitário e total.</summary>
-    private sealed record LinhaDePreco(string Titulo, string Obs, double Qtd, double Total);
+    // ---------- a apresentação de preços (tabelas montadas aqui, no estilo do modelo) ----------
 
-    /// <summary>
-    /// As linhas do preço: as da assessoria (diárias e horas) e, mostrando as
-    /// despesas, as despesas a custo + taxa; sem despesas, o deslocamento numa
-    /// linha própria — o mesmo que a proposta simples mostra.
-    /// </summary>
-    private List<LinhaDePreco> LinhasDePreco()
+    private const string AzulHowden = "004785";
+    private const string Linha = "404040";
+
+    private int LarguraUtil()
     {
-        var linhas = new List<LinhaDePreco>();
-        foreach (var l in _a.MO.Where(l => l.ValorTotal > 0.004))
-            linhas.Add(new(Item(l.Servico), Item(l.Obs), l.QtdDiaria > 0 ? l.QtdDiaria : 1, l.ValorTotal));
-        foreach (var d in _a.Despesas.Where(d => d.ValorTotal > 0.004))
-            linhas.Add(new(Item(d.Despesa), Item(d.Obs), d.Qtd > 0 ? d.Qtd : 1, d.ValorTotal));
+        var sp = _corpo.Elements<SectionProperties>().LastOrDefault();
+        var w = (int?)(sp?.GetFirstChild<PageSize>()?.Width?.Value) ?? 11906;
+        var m = sp?.GetFirstChild<PageMargin>();
+        var util = w - (int)(m?.Left?.Value ?? 851) - (int)(m?.Right?.Value ?? 851);
+        return util > 3000 ? util : 10204;
+    }
+
+    private static Run Rx(string t, bool negrito = false, int tamanho = 16, string? cor = null)
+    {
+        var rp = new RunProperties(new RunFonts { Ascii = "Arial", HighAnsi = "Arial", ComplexScript = "Arial" });
+        if (negrito) { rp.Append(new Bold()); rp.Append(new BoldComplexScript()); }
+        if (cor is not null) rp.Append(new Color { Val = cor });
+        rp.Append(new FontSize { Val = tamanho.ToString(CultureInfo.InvariantCulture) });
+        rp.Append(new FontSizeComplexScript { Val = tamanho.ToString(CultureInfo.InvariantCulture) });
+        return new Run(rp, new Text(t) { Space = SpaceProcessingModeValues.Preserve });
+    }
+
+    private static Paragraph Px(JustificationValues alinhar, int antes, int depois, params Run[] runs)
+    {
+        var p = new Paragraph(new ParagraphProperties(
+            new SpacingBetweenLines { Before = antes.ToString(CultureInfo.InvariantCulture), After = depois.ToString(CultureInfo.InvariantCulture), Line = "240", LineRule = LineSpacingRuleValues.Auto },
+            new Justification { Val = alinhar }));
+        foreach (var r in runs) p.Append(r);
+        return p;
+    }
+
+    [Flags]
+    private enum Bordas { Nenhuma = 0, Cima = 1, Baixo = 2, Esquerda = 4, Direita = 8, Todas = 15 }
+
+    private static TableCell Cx(int largura, Paragraph p, int span = 1, string? fundo = null, Bordas bordas = Bordas.Nenhuma)
+    {
+        var props = new TableCellProperties(new TableCellWidth { Width = largura.ToString(CultureInfo.InvariantCulture), Type = TableWidthUnitValues.Dxa });
+        if (span > 1) props.Append(new GridSpan { Val = span });
+        if (bordas != Bordas.Nenhuma)
+        {
+            BorderType B<TB>(Bordas qual) where TB : BorderType, new() => bordas.HasFlag(qual)
+                ? new TB { Val = BorderValues.Single, Size = 6, Color = Linha, Space = 0 }
+                : new TB { Val = BorderValues.Nil };
+            props.Append(new TableCellBorders(B<TopBorder>(Bordas.Cima), B<LeftBorder>(Bordas.Esquerda),
+                B<BottomBorder>(Bordas.Baixo), B<RightBorder>(Bordas.Direita)));
+        }
+        if (fundo is not null) props.Append(new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = fundo });
+        props.Append(new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Center });
+        return new TableCell(props, p);
+    }
+
+    private Table Tx(int[] larguras)
+    {
+        var total = larguras.Sum();
+        var t = new Table(new TableProperties(
+            new TableWidth { Width = total.ToString(CultureInfo.InvariantCulture), Type = TableWidthUnitValues.Dxa },
+            new TableBorders(
+                new TopBorder { Val = BorderValues.Nil }, new LeftBorder { Val = BorderValues.Nil },
+                new BottomBorder { Val = BorderValues.Nil }, new RightBorder { Val = BorderValues.Nil },
+                new InsideHorizontalBorder { Val = BorderValues.Nil }, new InsideVerticalBorder { Val = BorderValues.Nil }),
+            new TableLayout { Type = TableLayoutValues.Fixed },
+            new TableCellMarginDefault(
+                new TopMargin { Width = "30", Type = TableWidthUnitValues.Dxa },
+                new TableCellLeftMargin { Width = 70, Type = TableWidthValues.Dxa },
+                new BottomMargin { Width = "30", Type = TableWidthUnitValues.Dxa },
+                new TableCellRightMargin { Width = 70, Type = TableWidthValues.Dxa })));
+        var grade = new TableGrid();
+        foreach (var l in larguras) grade.Append(new GridColumn { Width = l.ToString(CultureInfo.InvariantCulture) });
+        t.Append(grade);
+        return t;
+    }
+
+    /// <summary>As larguras das colunas (em %) na largura útil da página.</summary>
+    private int[] Colunas(params int[] pcts)
+    {
+        var util = LarguraUtil();
+        var ws = pcts.Select(p => util * p / 100).ToArray();
+        ws[^1] += util - ws.Sum();
+        return ws;
+    }
+
+    private static TableRow LinhaNaoQuebra(params TableCell[] celulas)
+    {
+        var r = new TableRow(new TableRowProperties(new CantSplit()));
+        foreach (var c in celulas) r.Append(c);
+        return r;
+    }
+
+    /// <summary>A faixa azul com o nome da tabela (ASSESSORIA TÉCNICA, DESPESAS...).</summary>
+    private static TableRow Faixa(string titulo, int[] w) =>
+        LinhaNaoQuebra(Cx(w.Sum(), Px(JustificationValues.Left, 20, 20, Rx(titulo, true, 18, "FFFFFF")), w.Length, AzulHowden));
+
+    private static TableRow Cabecalho(int[] w, JustificationValues[] al, params string[] textos) =>
+        LinhaNaoQuebra(textos.Select((t, i) => Cx(w[i], Px(al[i], 0, 0, Rx(t, true, 14)), bordas: Bordas.Todas)).ToArray());
+
+    private static TableRow LinhaDeValores(int[] w, JustificationValues[] al, params string[] textos) =>
+        LinhaNaoQuebra(textos.Select((t, i) => Cx(w[i], Px(al[i], 0, 0, Rx(t, false, 15)))).ToArray());
+
+    /// <summary>A linha de total, numa caixa: o rótulo ocupa as colunas até a última, o valor fica na última.</summary>
+    private static TableRow LinhaDeTotal(int[] w, string rotulo, string valor) =>
+        LinhaNaoQuebra(
+            Cx(w.Take(w.Length - 1).Sum(), Px(JustificationValues.Left, 20, 20, Rx(rotulo, true, 15)), w.Length - 1,
+               bordas: Bordas.Cima | Bordas.Baixo | Bordas.Esquerda),
+            Cx(w[^1], Px(JustificationValues.Right, 20, 20, Rx(valor, true, 15)), bordas: Bordas.Cima | Bordas.Baixo | Bordas.Direita));
+
+    private static Paragraph Espaco(int depois = 120) => Px(JustificationValues.Left, 0, depois, Rx("", false, 8));
+
+    private IEnumerable<OpenXmlElement> BlocoDePrecos()
+    {
+        var L = Servicos.Labels(_p.Idioma);
+        var en = _idioma == IdiomasDaProposta.Ingles;
+        var es = _idioma == IdiomasDaProposta.Espanhol;
+        string Mx0(double v) => Pricing.Moeda0(v);
+        var E = JustificationValues.Left; var C = JustificationValues.Center; var D = JustificationValues.Right;
+
+        // Chile/Peru (sem impostos): só o valor líquido, sem "c/ impostos" nos rótulos
+        var totalAssessoria = _semImpostos ? T3("TOTAL ASSESSORIA TÉCNICA", "TOTAL TECHNICAL ASSISTANCE", "TOTAL ASESORÍA TÉCNICA") : L.TotalAssessoria;
+        var totalDespesas = _semImpostos ? T3("TOTAL DESPESAS", "TOTAL EXPENSES", "TOTAL GASTOS") : L.TotalDespesas;
+        var totalGeral = _semImpostos ? T3("VALOR TOTAL", "TOTAL AMOUNT", "VALOR TOTAL") : L.TotalComImpostos;
+
+        // data prevista para o serviço (em branco: pede ao cliente, em vermelho)
+        var data = (_p.DataPrevistaServico ?? "").Trim();
+        yield return Px(JustificationValues.Left, 60, 60,
+            Rx(T3("DATA PREVISTA PARA O SERVIÇO: ", "EXPECTED SERVICE DATE: ", "FECHA PREVISTA PARA EL SERVICIO: "), false, 18),
+            data.Length > 0 ? Rx(data, true, 18) : Rx(T3("FAVOR INFORMAR", "PLEASE INFORM", "FAVOR INFORMAR"), false, 18, "C00000"));
+        yield return Px(JustificationValues.Left, 120, 160,
+            Rx(T3("Preços conforme Escopo de Fornecimento (Descrição - Assessoria Técnica).",
+                  "Prices according to the Scope of Supply (Description - Technical Assistance).",
+                  "Precios según el Alcance del Suministro (Descripción - Asesoría Técnica)."), false, 18));
+
+        // ---- ASSESSORIA TÉCNICA ----
+        if (_a.MO.Count > 0)
+        {
+            var w = Colunas(22, 17, 7, 12, 13, 11, 18);
+            var al = new[] { E, E, C, D, D, C, D };
+            var t = Tx(w);
+            t.Append(Faixa(L.Assessoria, w));
+            t.Append(Cabecalho(w, al, L.Servico, L.Obs, L.Horas, L.ValorHora, L.ValorDiaria, L.QtdDiaria, L.ValorTotal));
+            foreach (var l in _a.MO)
+                t.Append(LinhaDeValores(w, al, "- " + Item(l.Servico), Item(l.Obs), Mx0(l.Horas), M(l.ValorHora),
+                    l.ValorDiaria <= 0 ? "—" : M(l.ValorDiaria), Mx0(l.QtdDiaria), M(l.ValorTotal)));
+            t.Append(LinhaDeTotal(w, totalAssessoria, M(_a.TotalMO)));
+            yield return t;
+            yield return Espaco(200);
+        }
+
+        // ---- DESPESAS (a custo + taxa administrativa) ----
+        if (_a.Despesas.Count > 0)
+        {
+            var w = Colunas(26, 36, 8, 14, 16);
+            var al = new[] { E, E, C, D, D };
+            var titulo = L.Despesas;
+            if (_a.TaxaAdmPct > 0)
+            {
+                var adm = Pricing.Moeda0(_a.TaxaAdmPct);
+                titulo += en ? $" (includes {adm}% administrative fee)" : es ? $" (incluye {adm}% de tasa administrativa)" : $" (incluso {adm}% de taxa administrativa)";
+            }
+            var t = Tx(w);
+            t.Append(Faixa(titulo, w));
+            t.Append(Cabecalho(w, al, L.Despesas, L.Obs, L.Qtd, L.ValorUnit, L.ValorTotal));
+            foreach (var d in _a.Despesas)
+                t.Append(LinhaDeValores(w, al, "- " + Item(d.Despesa), Item(d.Obs), Mx0(d.Qtd), M(d.ValorUnitario), M(d.ValorTotal)));
+            t.Append(LinhaDeTotal(w, totalDespesas, M(_a.TotalDespesas)));
+            yield return t;
+            yield return Espaco(200);
+        }
+
+        // ---- deslocamento (sem despesas: táxi + passagem numa linha própria) ----
         if (_a.Deslocamento > 0.004)
         {
-            var l = Servicos.Labels(_p.Idioma);
-            linhas.Add(new(l.Deslocamento, l.DeslocamentoObs, 1, _a.Deslocamento));
+            var adm = Pricing.Moeda0(_a.TaxaAdmPct);
+            var obs = _a.TaxaAdmPct <= 0 ? L.DeslocamentoObs : T3(
+                $"Táxi + passagem aérea — custo + {adm}% de taxa administrativa",
+                $"Taxi + airfare — cost + {adm}% administrative fee",
+                $"Taxi + pasaje aéreo — costo + {adm}% de tasa administrativa");
+            var t = Tx(Colunas(80, 20));
+            t.Append(LinhaDeTotal(Colunas(80, 20), $"{L.Deslocamento} — {obs}", M(_a.Deslocamento)));
+            yield return t;
+            yield return Espaco(200);
         }
-        return linhas;
-    }
 
-    private void TabelaDePrecos()
-    {
-        var tabela = Tabelas().FirstOrDefault(t => Texto(t).StartsWith("Item", StringComparison.Ordinal) && Texto(t).Contains("Descrição"));
-        if (tabela is null) return;
-        var linhas = tabela.Elements<TableRow>().ToList();
-        if (linhas.Count < 3) return;
-
-        var cab = linhas[0].Elements<TableCell>().ToList();
-        if (cab.Count >= 5)
+        // ---- TOTAL C/ IMPOSTOS ----
         {
-            EscreverNaCelula(cab[3], new[] { "Preço Unitário" });
-            EscreverNaCelula(cab[4], new[] { "Preço Total" });
+            var w = Colunas(80, 20);
+            var t = Tx(w);
+            t.Append(LinhaDeTotal(w, totalGeral, M(_a.Total)));
+            yield return t;
+            yield return Espaco(240);
         }
 
-        var total = linhas[^1];
-        foreach (var sdt in total.Descendants<SdtElement>().ToList()) Abrir(sdt);
-        var celTotal = total.Elements<TableCell>().ToList();
-        if (celTotal.Count >= 2)
+        // ---- valor sem impostos / c/ PIS e COFINS / c/ PIS, COFINS e ISS ----
+        if (!_semImpostos)
         {
-            EscreverNaCelula(celTotal[0], new[]
-            {
-                _semImpostos ? T3("VALOR TOTAL", "TOTAL AMOUNT", "VALOR TOTAL")
-                    : T3("VALOR TOTAL C/ PIS, COFINS E ISS", "TOTAL AMOUNT INCL. PIS, COFINS AND ISS", "VALOR TOTAL CON PIS, COFINS E ISS"),
-            });
-            EscreverNaCelula(celTotal[^1], new[] { M(_a.Total) });
-            RotuloEmNegrito(celTotal[0], celTotal[^1]);
+            var (semImp, comPisCofins) = Pricing.ResumoDoTotal(_a);
+            var w = Colunas(45, 25, 30);
+            var t = Tx(w);
+            foreach (var (rotulo, valor) in new[] { (L.SemImpostos, semImp), (L.ComPisCofins, comPisCofins), (L.ComPisCofinsIss, _a.Total) })
+                t.Append(LinhaNaoQuebra(
+                    Cx(w[0], Px(E, 10, 10, Rx(rotulo, true, 15))),
+                    Cx(w[1], Px(D, 10, 10, Rx(M(valor), true, 15))),
+                    Cx(w[2], Px(E, 10, 10, Rx("", false, 15)))));
+            yield return t;
+            yield return Espaco(240);
         }
 
-        var modelo = (TableRow)linhas[1].CloneNode(true);
-        modelo.TableRowProperties ??= new TableRowProperties();
-        if (!modelo.TableRowProperties.Elements<CantSplit>().Any()) modelo.TableRowProperties.Append(new CantSplit());
-        var itens = LinhasDePreco();
-        for (var i = 0; i < itens.Count; i++)
+        // ---- itens opcionais: diárias adicionais e horas extras (não inclusos) ----
+        var adicionais = Pricing.DiariasAdicionais(_a);
+        if (adicionais.Count > 0)
         {
-            var linha = (TableRow)modelo.CloneNode(true);
-            PreencherItem(linha, i, itens[i]);
-            tabela.InsertBefore(linha, total);
+            yield return Px(E, 120, 120, Rx(T3("Preços dos Itens Opcionais (Não Inclusos)", "Prices of Optional Items (Not Included)",
+                                                "Precios de los Ítems Opcionales (No Incluidos)"), false, 20));
+            var w = Colunas(24, 46, 8, 22);
+            var al = new[] { E, E, C, D };
+            var t = Tx(w);
+            t.Append(Faixa(L.Complementares, w));
+            t.Append(Cabecalho(w, al, L.Descricao, L.Obs, L.Qtd, _semImpostos ? L.ValorTotal : L.ComPisCofinsIss));
+            foreach (var a in adicionais)
+                t.Append(LinhaDeValores(w, al, "- " + Item(a.Servico), Item(a.Obs), "1", M(a.Valor)));
+            yield return t;
+            yield return Espaco(200);
         }
-        foreach (var antiga in linhas.Skip(1).Take(linhas.Count - 2)) antiga.Remove();
-    }
 
-    private void PreencherItem(TableRow linha, int indice, LinhaDePreco item)
-    {
-        var celulas = linha.Elements<TableCell>().ToList();
-        if (celulas.Count < 5) return;
-
-        EscreverNaCelula(celulas[0], new[] { (indice + 1).ToString("D2") });
-        Descricao(celulas[1], item);
-        EscreverNaCelula(celulas[2], new[] { Qtd(item.Qtd) });
-        EscreverNaCelula(celulas[3], new[] { M(Math.Round(item.Total / item.Qtd, 2)) });
-        EscreverNaCelula(celulas[4], new[] { M(item.Total) });
-    }
-
-    /// <summary>
-    /// A descrição do item nos parágrafos do modelo (é deles que vem o negrito
-    /// e o centro do título): o serviço no título e a observação embaixo. O
-    /// resto (referências e escopo de peça, prazo, NCM) é de ventilador e sai.
-    /// </summary>
-    private static void Descricao(TableCell celula, LinhaDePreco item)
-    {
-        foreach (var sdt in celula.Elements<SdtElement>().ToList()) Abrir(sdt);
-        var paragrafos = celula.Elements<Paragraph>().ToList();
-        var titulo = paragrafos.FirstOrDefault(p => Texto(p).Contains("PREENCHER!!", StringComparison.Ordinal));
-        var obs = paragrafos.FirstOrDefault(p => Texto(p).Trim() == "XXXXXX");
-        foreach (var e in celula.ChildElements.Where(e => e is Paragraph or Table or SdtElement).ToList())
-            if (e != titulo && e != obs) e.Remove();
-        if (titulo is not null) Escrever(titulo, item.Titulo);
-        if (obs is not null)
-        {
-            if (item.Obs.Trim().Length > 0) Escrever(obs, item.Obs);
-            else obs.Remove();
-        }
-        if (!celula.Elements<Paragraph>().Any()) celula.Append(new Paragraph(new Run(new Text(item.Titulo))));
-    }
-
-    private static void RotuloEmNegrito(TableCell rotulo, TableCell valor)
-    {
-        var cor = valor.Descendants<Run>().FirstOrDefault(r => r.Elements<Text>().Any(t => t.Text.Trim().Length > 0))
-            ?.RunProperties?.GetFirstChild<Color>();
-        foreach (var run in rotulo.Descendants<Run>().Where(r => r.Elements<Text>().Any()))
-        {
-            run.RunProperties ??= new RunProperties();
-            var rp = run.RunProperties;
-            if (rp.GetFirstChild<Bold>() is null) rp.Append(new Bold());
-            if (rp.GetFirstChild<BoldComplexScript>() is null) rp.Append(new BoldComplexScript());
-            rp.GetFirstChild<Color>()?.Remove();
-            rp.Append(cor is not null ? (Color)cor.CloneNode(true) : new Color { Val = "000000" });
-            NaOrdem(rp);
-        }
-    }
-
-    private static readonly Type[] OrdemDoRPr =
-    {
-        typeof(RunStyle), typeof(RunFonts), typeof(Bold), typeof(BoldComplexScript), typeof(Italic), typeof(ItalicComplexScript),
-        typeof(Caps), typeof(SmallCaps), typeof(Strike), typeof(DoubleStrike), typeof(Outline), typeof(Shadow), typeof(Emboss),
-        typeof(Imprint), typeof(NoProof), typeof(SnapToGrid), typeof(Vanish), typeof(WebHidden), typeof(Color), typeof(Spacing),
-        typeof(CharacterScale), typeof(Kern), typeof(Position), typeof(FontSize), typeof(FontSizeComplexScript), typeof(Highlight),
-        typeof(Underline), typeof(TextEffect), typeof(Border), typeof(Shading), typeof(FitText), typeof(VerticalTextAlignment),
-        typeof(RightToLeftText), typeof(ComplexScript), typeof(Emphasis), typeof(Languages),
-    };
-
-    private static void NaOrdem(RunProperties rp)
-    {
-        var filhos = rp.ChildElements.ToList();
-        int Posicao(OpenXmlElement e) => Array.IndexOf(OrdemDoRPr, e.GetType()) is var i and >= 0 ? i : OrdemDoRPr.Length;
-        var ordenados = filhos.Select((e, i) => (e, i)).OrderBy(x => Posicao(x.e)).ThenBy(x => x.i).Select(x => x.e).ToList();
-        if (ordenados.SequenceEqual(filhos)) return;
-        foreach (var f in filhos) f.Remove();
-        foreach (var f in ordenados) rp.Append(f);
+        // ---- notas (*) e (**) ----
+        yield return Px(JustificationValues.Both, 120, 20, Rx(T3(
+            "(*) A descrição do serviço deverá estar presente na ordem de compra, assim como os valores de diárias adicionais e horas extras não inclusas.",
+            "(*) The description of the service must appear on the purchase order, as well as the rates for additional days and overtime not included.",
+            "(*) La descripción del servicio deberá estar en la orden de compra, así como los valores de días adicionales y horas extras no incluidos."), false, 18));
+        yield return Px(JustificationValues.Both, 0, 200, Rx(T3(
+            "(**) Importante nos informar a data prevista para a realização do serviço com antecedência, visando analisarmos a disponibilidade dos técnicos na data requerida.",
+            "(**) Please inform us in advance of the expected date for the service, so that we can check the availability of our technicians on the requested date.",
+            "(**) Es importante informarnos con anticipación la fecha prevista para la realización del servicio, para analizar la disponibilidad de los técnicos en la fecha requerida."), false, 18));
     }
 
     /// <summary>HCHL / HPU: as Notas Comerciais começam com as duas notas a mais da equipe de lá.</summary>
     private void NotasComerciais()
     {
+        // o título fica como no modelo de serviços: NOTAS IMPORTANTES
+        if (_corpo.Descendants<Paragraph>().FirstOrDefault(p => Texto(p).Trim() == "NOTAS COMERCIAIS:") is { } titulo)
+            Escrever(titulo, T3("NOTAS IMPORTANTES:", "IMPORTANT NOTES:", "NOTAS IMPORTANTES:"));
+
         if (!DeFora || _corpo.Descendants<Paragraph>().FirstOrDefault(p => Texto(p).Contains("Excluso de nosso fornecimento qualquer item", StringComparison.Ordinal)) is not { } primeira)
             return;
         foreach (var texto in new[]
@@ -738,7 +863,7 @@ internal sealed class PreenchimentoCompleto
         {
             Achar("ITATIBA:"), Achar("ICMS: (18% - SP)"), Achar("ICMS: (12% - MG"), Achar("ICMS: (7% - INDICAR"), Achar("VITORIA:"),
             Achar("ICMS: (12% - INDICAR"), Achar("ICMS: (17% - ES)"), Achar("IPI: 0%"), Achar("IPI: 3,25%"), Achar("IPI: 9,75%"),
-            Achar("ISS: 5%"), Achar("Fundamento Legal"),
+            Achar("ISS: 5%"),
         };
 
         if (_semImpostos)
@@ -751,6 +876,7 @@ internal sealed class PreenchimentoCompleto
             apagar.AddRange(new[] { cofins, iss });
             apagar.AddRange(new[]
             {
+                Achar("Fundamento Legal"),
                 Achar("Nota sobre Legislação Tributária"), Achar("A presente proposta comercial foi elaborada com base na legislação tributária"),
                 Achar("Dessa forma, a Howden South America se reserva o direito de revisar"),
             });
@@ -763,7 +889,21 @@ internal sealed class PreenchimentoCompleto
             if (cofins is not null) Escrever(cofins, $"COFINS: {Pct(aCofins)} {incluso};");
             if (iss is not null)
             {
-                if (aIss > 0.004) Escrever(iss, $"ISS: {Pct(aIss)} {incluso};");
+                if (aIss > 0.004)
+                {
+                    Escrever(iss, T3($"ISS: {Pct(aIss)} incluso (recolhido no município do prestador, conforme lei 3667/2003);",
+                                     $"ISS: {Pct(aIss)} included (paid in the service provider's municipality, according to law 3667/2003);",
+                                     $"ISS: {Pct(aIss)} incluido (recaudado en el municipio del prestador, según la ley 3667/2003);"));
+                    // o código fiscal do serviço, como no modelo de serviços (sem marcador)
+                    var treinamento = (_p.EscopoServico ?? "").ToUpperInvariant().Contains("TREINAMENTO");
+                    var codigo = (Paragraph)iss.CloneNode(true);
+                    codigo.ParagraphProperties?.RemoveAllChildren<NumberingProperties>();
+                    codigo.ParagraphProperties?.RemoveAllChildren<Indentation>();
+                    Escrever(codigo, treinamento
+                        ? T3("Código fiscal: 8.02 Treinamento;", "Tax code: 8.02 Training;", "Código fiscal: 8.02 Capacitación;")
+                        : T3("Código fiscal: 17.01 Assessoria Técnica;", "Tax code: 17.01 Technical Assistance;", "Código fiscal: 17.01 Asesoría Técnica;"));
+                    iss.InsertAfterSelf(codigo);
+                }
                 else apagar.Add(iss);
             }
         }
@@ -779,30 +919,15 @@ internal sealed class PreenchimentoCompleto
         DetalhamentoDosImpostos();
     }
 
-    /// <summary>"Detalhamento para adição dos Impostos": líquido, com PIS/COFINS e com PIS/COFINS/ISS (= o total).</summary>
+    /// <summary>
+    /// O "Detalhamento para adição dos Impostos" sai: o mesmo resumo (sem
+    /// impostos / c/ PIS e COFINS / c/ PIS, COFINS e ISS) já está embaixo do
+    /// total, na apresentação de preços — como no modelo de serviços.
+    /// </summary>
     private void DetalhamentoDosImpostos()
     {
-        var tabela = Tabelas().FirstOrDefault(t => Texto(t).StartsWith("Valor Total Líquido", StringComparison.Ordinal));
-        if (tabela is null) return;
-        if (_semImpostos)
-        {
-            Achar("Detalhamento para adição dos Impostos")?.Remove();
-            tabela.Remove();
-            return;
-        }
-        var linhas = tabela.Elements<TableRow>().ToList();
-        if (linhas.Count < 4) return;
-
-        var (semImp, comPisCofins) = Pricing.ResumoDoTotal(_a);
-        void Valor(TableRow linha, double v) => EscreverNaCelula(linha.Elements<TableCell>().Last(), new[] { M(v) });
-        Valor(linhas[0], semImp);
-        Valor(linhas[1], comPisCofins);
-        EscreverNaCelula(linhas[2].Elements<TableCell>().First(), new[]
-        {
-            T3("Valor Total c/ PIS, COFINS e ISS:", "Total Value incl. PIS, COFINS and ISS:", "Valor Total c/ PIS, COFINS e ISS:"),
-        });
-        Valor(linhas[2], _a.Total);
-        foreach (var l in linhas.Skip(3)) l.Remove();
+        Tabelas().FirstOrDefault(t => Texto(t).StartsWith("Valor Total Líquido", StringComparison.Ordinal))?.Remove();
+        Achar("Detalhamento para adição dos Impostos")?.Remove();
     }
 
     // ================= pagamento, prazo, entrega e validade =================
@@ -889,6 +1014,14 @@ internal sealed class PreenchimentoCompleto
             if ((fat.Registro ?? "").Trim().Length > 0) Escrever(registro, fat.Registro!.Trim());
             else registro.Remove();
         }
+        // título, empresa e endereço ficam na mesma página da conta bancária
+        foreach (var junto in new[] { Titulo2("Dados Para Faturamento"), razao, endereco, registro })
+            if (junto is not null && junto.Parent is not null)
+            {
+                junto.ParagraphProperties ??= new ParagraphProperties();
+                junto.ParagraphProperties.KeepNext ??= new KeepNext();
+            }
+
         if (banco is null) return;
         if ((fat.BancoNome ?? "").Trim().Length == 0) { banco.Remove(); return; }
 
@@ -1241,6 +1374,12 @@ internal sealed class PreenchimentoCompleto
             {
                 var t = Texto(p).Trim();
                 if (TitulosQueSaem.Any(tt => t.StartsWith(tt, StringComparison.Ordinal))) p.Remove();
+            }
+            // os títulos que mudaram de nome (o Word também refaz o índice ao abrir)
+            foreach (var texto in conteudo.Descendants<Text>())
+            {
+                if (texto.Text == "Proposta Comercial") texto.Text = "Proposta Comercial de Serviços";
+                else if (texto.Text == "Preço") texto.Text = "Preços";
             }
         }
 
