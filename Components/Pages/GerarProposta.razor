@@ -84,6 +84,14 @@
                     <div class="side-caption" style="font-weight:600">Escopo do serviço — padrões (tic = sai na proposta)</div>
                     <TopicosComTic Chave="@Topicos.ChaveEscopo" @bind-Selecao="P.EscopoMarcado" PermiteNovoPadrao="true" />
                 </div>
+                <div style="grid-column:1 / -1">
+                    <div class="side-caption" style="font-weight:600">Infraestrutura e recursos – responsabilidade contratante (tic = sai na proposta completa)</div>
+                    <TopicosComTic Chave="@Topicos.ChaveInfraestrutura" @bind-Selecao="P.InfraestruturaMarcada" />
+                </div>
+                <div style="grid-column:1 / -1">
+                    <div class="side-caption" style="font-weight:600">Equipe de apoio – responsabilidade contratante</div>
+                    <EquipeDeApoio P="P" />
+                </div>
                 <label style="grid-column:1 / -1">Escopo — outras informações (texto livre, opcional)
                     <textarea class="cell" rows="4" style="font-family:inherit; resize:vertical"
                               placeholder="texto livre, impresso antes das notas da proposta"

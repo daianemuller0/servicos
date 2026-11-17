@@ -67,6 +67,8 @@ public class Rascunho
         Proposta.ModoApresentacao = V("padrao.modo") ?? Proposta.ModoApresentacao;
         Proposta.ModeloProposta = V("padrao.modelo") ?? Proposta.ModeloProposta;
         Proposta.NotasDesmarcadas = V("notas.padrao.desmarcadas") ?? "";
+        // infraestrutura por conta do cliente: na proposta nova sai tudo marcado (quem monta tira o que não vale)
+        Proposta.InfraestruturaMarcada = Topicos.Gravar(Topicos.Padroes(padroes, Topicos.ChaveInfraestrutura));
         Params.TaxaAdmPct = V("padrao.taxaAdm") ?? Params.TaxaAdmPct;
         // "5" era o padrão antigo (risco adicional): gravado na configuração,
         // não deve segurar as propostas novas no valor de antes de 13/11/26.

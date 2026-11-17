@@ -258,7 +258,10 @@ tradução (`Data/TraducaoDaProposta.cs`) trazidas de lá:
   Montagem, Comissionamento e Start-up) — e o texto livre do escopo
   (`Data/Topicos.cs`, tela `Components/Shared/TopicosComTic.razor`: item ou padrão
   novo adicionado na proposta fica salvo na configuração e vale para todos; a
-  proposta guarda o texto do que foi marcado); o horário das diárias sai em amarelo para conferir no Word (e, sem
+  proposta guarda o texto do que foi marcado); em seguida, fixos, os **Entregáveis** e os
+  **Recursos Fornecidos pela Howden**, a **Infraestrutura e Recursos – Responsabilidade
+  CONTRATANTE** (tic; na proposta nova vem tudo marcado) e, se ligada, a **Equipe de
+  apoio** com as quantidades digitadas (função sem quantidade não sai); o horário das diárias sai em amarelo para conferir no Word (e, sem
   escopo escolhido, o exemplo do modelo também). Ela substitui a antiga "Escopo de
   Fornecimento / Descrição - Assessoria Técnica" do fim;
 - a seção 3 é a **Proposta Comercial de Serviços**, com os preços no padrão da

@@ -1336,6 +1336,49 @@ internal sealed class PreenchimentoCompleto
         var livre = (_p.EscopoDetalhado ?? "").Replace("\r\n", "\n").Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
         for (var i = 0; i < livre.Count; i++)
             yield return Pt(i == 0 ? 160 : 20, 0, 0, Rt(livre[i]));
+
+        // entregáveis e recursos da Howden: saem sempre
+        foreach (var (titulo, itens) in new[]
+        {
+            (T3("Entregáveis:", "Deliverables:", "Entregables:"), Topicos.Entregaveis),
+            (T3("Recursos Fornecidos pela Howden:", "Resources Provided by Howden:", "Recursos Proporcionados por Howden:"), Topicos.RecursosHowden),
+        })
+        {
+            yield return Pt(160, 20, 0, Rt(titulo, negrito: true));
+            for (var i = 0; i < itens.Length; i++)
+                yield return Marcador(Topicos.ComPontuacao(Item(itens[i]), i == itens.Length - 1));
+        }
+
+        // infraestrutura e recursos por conta do cliente (o que estiver com tic)
+        foreach (var g in Topicos.Marcados(_p.InfraestruturaMarcada))
+        {
+            yield return Pt(160, 20, 0, Rt(Item(g.Titulo) + ":", negrito: true));
+            for (var i = 0; i < g.Itens.Count; i++)
+                yield return Marcador(Topicos.ComPontuacao(Item(g.Itens[i]), i == g.Itens.Count - 1));
+        }
+
+        // equipe de apoio do cliente (se marcada): só as funções com quantidade
+        if (_p.EquipeApoio == "Sim")
+        {
+            var funcoes = new (string Qtd, string Pt, string En, string Es)[]
+            {
+                (_p.EquipeMecanicos, "Mecânicos", "Mechanics", "Mecánicos"),
+                (_p.EquipeAjudantes, "Ajudantes", "Helpers", "Ayudantes"),
+                (_p.EquipeEletricistas, "Eletricistas", "Electricians", "Electricistas"),
+                (_p.EquipeTecSeguranca, "Técnico de segurança", "Safety technician", "Técnico de seguridad"),
+            }.Where(f => Pricing.Num(f.Qtd) > 0).ToList();
+            if (funcoes.Count > 0)
+            {
+                yield return Pt(160, 20, 0, Rt(T3("Equipe de apoio – Responsabilidade CONTRATANTE:", "Support Team – CUSTOMER's Responsibility:",
+                    "Equipo de apoyo – Responsabilidad del CONTRATANTE:"), negrito: true));
+                foreach (var f in funcoes)
+                {
+                    var n = Pricing.Num(f.Qtd);
+                    var prof = n == 1 ? T3("profissional", "professional", "profesional") : T3("profissionais", "professionals", "profesionales");
+                    yield return Marcador($"{T3(f.Pt, f.En, f.Es)} – {Pricing.Moeda0(n)} {prof}");
+                }
+            }
+        }
     }
 
     /// <summary>Realce amarelo nos trechos para conferir (depois de tirar os realces do modelo).</summary>

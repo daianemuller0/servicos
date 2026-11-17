@@ -399,6 +399,20 @@
               style="width:100%; resize:vertical; font-family:inherit; font-size:12.5px; margin-top:8px"
               placeholder="— outras informações do escopo (texto livre, opcional) —"
               @bind="P.EscopoDetalhado"></textarea>
+    <p class="no-print doc-muted" style="margin:4px 0 0; font-size:12px">
+        Na proposta completa, os <strong>Entregáveis</strong> e os <strong>Recursos fornecidos pela Howden</strong> saem sempre, logo depois do escopo.
+    </p>
+
+    @* ---------- infraestrutura e equipe de apoio: só da proposta completa (não saem na impressão desta) ---------- *@
+    <div class="no-print">
+    <h2 style="margin-top:18px">INFRAESTRUTURA E RECURSOS – RESPONSABILIDADE CONTRATANTE</h2>
+    <p class="no-print doc-muted" style="margin:0 0 6px; font-size:12px">Sai na proposta completa o que estiver com tic. Desmarque o título para não sair nada.</p>
+    <TopicosComTic Chave="@Topicos.ChaveInfraestrutura" @bind-Selecao="P.InfraestruturaMarcada" />
+
+    @* ---------- equipe de apoio do cliente (opcional) ---------- *@
+    <h2 style="margin-top:18px">EQUIPE DE APOIO – RESPONSABILIDADE CONTRATANTE</h2>
+    <EquipeDeApoio P="P" />
+    </div>
 
     @* ---------- notas (incluso / excluso / gerais) — tic escolhe o que sai ---------- *@
     @{

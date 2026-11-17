@@ -20,6 +20,7 @@ public static class Topicos
 {
     public const string ChaveAtividades = "padroes.atividades";
     public const string ChaveEscopo = "padroes.escopo";
+    public const string ChaveInfraestrutura = "padroes.infraestrutura";
 
     public const string TituloAtividades = "Descrição das Atividades de Assessoria";
 
@@ -85,12 +86,71 @@ public static class Topicos
         },
     };
 
+    public const string TituloInfraestrutura = "Infraestrutura e Recursos – Responsabilidade CONTRATANTE";
+
+    /// <summary>Infraestrutura e recursos por conta do cliente (um grupo; nas propostas novas sai tudo marcado).</summary>
+    public static List<GrupoDeTopicos> InfraestruturaDeFabrica() => new()
+    {
+        new GrupoDeTopicos
+        {
+            Titulo = TituloInfraestrutura,
+            Itens = new()
+            {
+                "Ferramental Geral para Atividade",
+                "Jogo de ferramentas completo",
+                "Chave de impacto e acessórios",
+                "Torquímetro de estalo ou similar com acessórios",
+                "Relógio comparador com base magnética",
+                "Alinhador a laser",
+                "Outras ferramentas que o Especialista Howden julgar necessário",
+                "Ferramental Geral para Corte e Solda da Carcaça (SE APLICÁVEL)",
+                "Conjunto de oxicorte composto por maçarico de corte oxicombustível, cilindros/reguladores de oxigênio e gás combustível, mangueiras e acessórios de segurança para execução dos cortes na carcaça do ventilador",
+                "Máquina de solda para remoção de soldas existentes e preparação de juntas",
+                "Esmerilhadeiras angulares de diversos portes, equipadas com discos de corte, desbaste e flap para acabamento e preparação das superfícies",
+                "Furadeiras elétricas e ferramentas de corte auxiliares para execução de furos, remoção de interferências e adequação dimensional",
+                "Equipamentos de medição e controle dimensional, incluindo trenas, réguas, níveis, esquadros, paquímetros e instrumentos de alinhamento",
+                "Dispositivos de marcação, gabaritos e instrumentos de traçagem para delimitação das áreas de corte e controle geométrico",
+                "Andaimes",
+                "Plataforma Elevatória",
+                "Caminhão Munck, Guindastes com acessórios",
+                "Caminhão para movimentação interna",
+                "Container Almoxarifado, adaptado para banheiros e vestiários",
+                "Posto de trabalho com internet, impressora e outros",
+                "Instalações adequadas, como banheiros, refeitórios, para uso do especialista, promovendo um ambiente de trabalho digno e funcional",
+                "EPCs, PCMSO, PGR, Permissão de Trabalho e outros documentos de segurança",
+                "O transporte aéreo por helicóptero será de responsabilidade da CONTRATANTE, contemplando o deslocamento entre a base operacional e a plataforma. A HOWDEN não fornecerá este meio de transporte específico",
+            },
+        },
+    };
+
+    /// <summary>Entregáveis (texto fixo da proposta completa).</summary>
+    public static readonly string[] Entregaveis =
+    {
+        "Relatório dos serviços executados (com descrição dos serviços, fotos etc.)",
+        "Relatório de horas de atendimento",
+        "Material didático de treinamento (formato eletrônico), quando contratado este serviço",
+        "Caso sejam solicitados documentos adicionais aos listados acima, após as negociações e/ou fechamento do contrato, serão cobrados como adicionais de escopo",
+    };
+
+    /// <summary>Recursos fornecidos pela Howden (texto fixo da proposta completa).</summary>
+    public static readonly string[] RecursosHowden =
+    {
+        "Especialista HOWDEN para Assessoria Técnica",
+        "EPIs obrigatórios (capacete, óculos, luvas, protetor auditivo, calçado de segurança etc.)",
+        "Instrumentação de medição de vibração e alinhamento (quando contratado)",
+    };
+
     /// <summary>Os padrões gravados na configuração; sem nada gravado, os de fábrica.</summary>
     public static List<GrupoDeTopicos> Padroes(IReadOnlyDictionary<string, string>? cfg, string chave)
     {
         if (cfg is not null && cfg.TryGetValue(chave, out var json) && Ler(json) is { Count: > 0 } gravados)
             return gravados;
-        return chave == ChaveAtividades ? AtividadesDeFabrica() : EscopoDeFabrica();
+        return chave switch
+        {
+            ChaveAtividades => AtividadesDeFabrica(),
+            ChaveInfraestrutura => InfraestruturaDeFabrica(),
+            _ => EscopoDeFabrica(),
+        };
     }
 
     /// <summary>Lê uma lista de grupos (padrão gravado ou seleção da proposta). Inválido/vazio = lista vazia.</summary>

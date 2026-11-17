@@ -61,6 +61,15 @@ public class Proposta
     public string AtividadesMarcadas { get; set; } = "";
     /// <summary>Itens dos padrões de escopo marcados (JSON de <see cref="Data.GrupoDeTopicos"/>: "Assessoria de Montagem"...).</summary>
     public string EscopoMarcado { get; set; } = "";
+    /// <summary>Infraestrutura e recursos por conta do cliente marcados (JSON de <see cref="Data.GrupoDeTopicos"/>).</summary>
+    public string InfraestruturaMarcada { get; set; } = "";
+
+    // ---- equipe de apoio (responsabilidade do contratante) — só sai se EquipeApoio = "Sim" ----
+    public string EquipeApoio { get; set; } = "";
+    public string EquipeMecanicos { get; set; } = "";
+    public string EquipeAjudantes { get; set; } = "";
+    public string EquipeEletricistas { get; set; } = "";
+    public string EquipeTecSeguranca { get; set; } = "";
     /// <summary>
     /// Chaves das notas DESMARCADAS no tic (separadas por ";"): essas não saem
     /// no documento. Vazio = todas as notas automáticas saem.

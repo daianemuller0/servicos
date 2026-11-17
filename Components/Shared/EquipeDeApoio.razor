@@ -1,0 +1,22 @@
+@* Equipe de apoio por conta do cliente: só sai na proposta completa se marcada,
+   com as quantidades preenchidas (linha sem quantidade não sai). *@
+
+<div class="equipe">
+    <label class="topicos-titulo">
+        <input type="checkbox" checked="@(P.EquipeApoio == "Sim")" @onchange='e => P.EquipeApoio = (bool)e.Value! ? "Sim" : ""' />
+        <span>Mostrar a equipe de apoio na proposta</span>
+    </label>
+    @if (P.EquipeApoio == "Sim")
+    {
+        <div class="equipe-campos">
+            <label>Mecânicos <input class="de qtd" placeholder="qtd" @bind="P.EquipeMecanicos" /></label>
+            <label>Ajudantes <input class="de qtd" placeholder="qtd" @bind="P.EquipeAjudantes" /></label>
+            <label>Eletricistas <input class="de qtd" placeholder="qtd" @bind="P.EquipeEletricistas" /></label>
+            <label>Técnico de segurança <input class="de qtd" placeholder="qtd" @bind="P.EquipeTecSeguranca" /></label>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Proposta P { get; set; } = default!;
+}
