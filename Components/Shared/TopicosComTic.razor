@@ -8,13 +8,18 @@
     {
         var marcados = MarcadosDe(g.Titulo);
         var todos = g.Itens.Count > 0 && g.Itens.All(i => marcados.Any(m => Topicos.Igual(m, i)));
+        var aberto = _abertos.Contains(g.Titulo);
         <div class="topicos-grupo @(marcados.Count == 0 ? "topicos-vazio" : "")">
-            <label class="topicos-titulo">
-                <input type="checkbox" checked="@todos" @onchange="e => MarcarGrupo(g, (bool)e.Value!)" />
-                <span>@g.Titulo</span>
-                <span class="topicos-conta">@marcados.Count de @g.Itens.Count</span>
-            </label>
-            <ul>
+            <div class="topicos-titulo">
+                <input type="checkbox" checked="@todos" title="Marcar/desmarcar todos" @onchange="e => MarcarGrupo(g, (bool)e.Value!)" />
+                <button type="button" class="topicos-abrir" title="@(aberto ? "Recolher" : "Abrir os itens")" @onclick="() => Alternar(g.Titulo)">
+                    <span class="topicos-seta">@(aberto ? "▾" : "▸")</span>
+                    <span>@g.Titulo</span>
+                    <span class="topicos-conta">@marcados.Count de @g.Itens.Count</span>
+                </button>
+            </div>
+            @* recolhido: a lista fica no HTML (a impressão mostra os itens marcados), só escondida na tela *@
+            <ul class="@(aberto ? "" : "topicos-fechado")">
                 @foreach (var item in g.Itens)
                 {
                     var marcado = marcados.Any(m => Topicos.Igual(m, item));
@@ -26,7 +31,7 @@
                     </li>
                 }
             </ul>
-            <div class="topicos-novo">
+            <div class="topicos-novo @(aberto ? "" : "topicos-fechado")">
                 <input class="de" placeholder="+ adicionar item a “@g.Titulo” (fica salvo no padrão)"
                        value="@NovoItem(g.Titulo)" @onchange="e => _novoItem[g.Titulo] = e.Value?.ToString() ?? string.Empty" />
                 <button class="btn-ghost" @onclick="() => AdicionarItem(g.Titulo)">Adicionar</button>
@@ -64,6 +69,14 @@
     private readonly Dictionary<string, string> _novoItem = new();
     private string _tituloNovo = "", _itensNovo = "";
     private string? _msg;
+
+    /// <summary>Grupos abertos na tela (começam todos recolhidos).</summary>
+    private readonly HashSet<string> _abertos = new();
+
+    private void Alternar(string titulo)
+    {
+        if (!_abertos.Remove(titulo)) _abertos.Add(titulo);
+    }
 
     protected override void OnInitialized() => Recarregar();
 
@@ -135,6 +148,7 @@
             else g.Itens.AddRange(itens.Where(i => !g.Itens.Any(x => Topicos.Igual(x, i))));
         });
         _tituloNovo = _itensNovo = "";
+        _abertos.Add(titulo);
         await Mudar(titulo, itens, true);
         _msg = $"Padrão “{titulo}” salvo — já aparece para todos.";
     }
