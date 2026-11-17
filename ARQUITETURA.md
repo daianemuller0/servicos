@@ -250,7 +250,13 @@ decide o que os botões PDF e Word geram. A completa (`Data/PropostaCompleta.cs`
 "Proposta Técnica Comercial" do AFM_HSA), com as ferramentas de preenchimento e a
 tradução (`Data/TraducaoDaProposta.cs`) trazidas de lá:
 
-- a seção 2 é a **Proposta Comercial de Serviços**, com os preços no padrão da
+- a seção 2 é a **Proposta Técnica de Serviços** (ASSESSORIA TÉCNICA → Escopo de
+  Fornecimento): "A HOWDEN fornecerá serviços de assessoria técnica de <escopo do
+  serviço escolhido no sistema>…", o que a assessoria consiste, o escopo detalhado e
+  as NOTAS; o horário das diárias sai em amarelo para conferir no Word (e, sem
+  escopo escolhido, o exemplo do modelo também). Ela substitui a antiga "Escopo de
+  Fornecimento / Descrição - Assessoria Técnica" do fim;
+- a seção 3 é a **Proposta Comercial de Serviços**, com os preços no padrão da
   proposta de serviços da equipe: data prevista do serviço, tabelas ASSESSORIA
   TÉCNICA e DESPESAS, TOTAL C/ IMPOSTOS, o resumo (sem impostos / c/ PIS e COFINS /
   c/ PIS, COFINS e ISS), os itens opcionais (INFORMAÇÕES COMPLEMENTARES — NÃO
@@ -259,8 +265,7 @@ tradução (`Data/TraducaoDaProposta.cs`) trazidas de lá:
   impostos de serviço (PIS, COFINS e ISS inclusos, com o código fiscal), condição de
   pagamento, prazo, validade, faturamento, notas, sistema de gestão, **Assessoria
   Técnica no Campo** (diária sem impostos e sem despesas; sáb/dom/feriado = 2×),
-  **Descrição da Assessoria** (escopo detalhado, técnicos e diárias), Anexos e
-  Comentários;
+  Anexos e Comentários;
 - saem as partes de ventilador (Proposta Técnica, limites, itens e exclusos de
   fornecimento, desenho, ISO 13348, Coanda, padrões, mancais) e o local de entrega;
 - HCHL/HPU: Howden Chile/Perú na capa, valor líquido e os Términos y Condiciones

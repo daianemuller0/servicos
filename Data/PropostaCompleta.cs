@@ -125,12 +125,13 @@ internal sealed class PreenchimentoCompleto
         Faturamento();
         AssessoriaNoCampo();
         TirarParteTecnica();
-        DescricaoDaAssessoria();
         InformacoesAdicionais();
+        PropostaTecnicaDeServicos();
         TermosNoFim();
         Indice();
         Traduzir();
         TirarRealce();
+        Realcar();
 
         _doc.MainDocumentPart!.Document.Save();
     }
@@ -719,9 +720,9 @@ internal sealed class PreenchimentoCompleto
             Rx(T3("DATA PREVISTA PARA O SERVIÇO: ", "EXPECTED SERVICE DATE: ", "FECHA PREVISTA PARA EL SERVICIO: "), false, 18),
             data.Length > 0 ? Rx(data, true, 18) : Rx(T3("FAVOR INFORMAR", "PLEASE INFORM", "FAVOR INFORMAR"), false, 18, "C00000"));
         yield return Px(JustificationValues.Left, 120, 160,
-            Rx(T3("Preços conforme Escopo de Fornecimento (Descrição - Assessoria Técnica).",
-                  "Prices according to the Scope of Supply (Description - Technical Assistance).",
-                  "Precios según el Alcance del Suministro (Descripción - Asesoría Técnica)."), false, 18));
+            Rx(T3("Preços conforme Proposta Técnica de Serviços.",
+                  "Prices according to the Technical Proposal for Services.",
+                  "Precios según la Propuesta Técnica de Servicios."), false, 18));
 
         // ---- ASSESSORIA TÉCNICA ----
         if (_a.MO.Count > 0)
@@ -1171,74 +1172,169 @@ internal sealed class PreenchimentoCompleto
         }
     }
 
+    // ================= 2 · Proposta Técnica de Serviços =================
+
+    /// <summary>Trechos que saem com realce amarelo (para quem monta a proposta conferir/alterar).</summary>
+    private readonly List<Run> _realcar = new();
+
     /// <summary>
-    /// "Descrição - Assessoria Técnica": o escopo detalhado digitado na
-    /// proposta e o que está incluso — técnicos e as linhas de diárias/horas
-    /// (as mesmas quantidades do preço). As notas repetidas da seção (que já
-    /// estão em Assessoria Técnica no Campo) saem.
+    /// A seção "Proposta Técnica de Serviços" (antes dos preços), no padrão da
+    /// proposta de serviços da equipe: ASSESSORIA TÉCNICA → Escopo de
+    /// Fornecimento, com o escopo do serviço escolhido no sistema, o que a
+    /// assessoria consiste, o escopo detalhado digitado e as NOTAS. O horário
+    /// das diárias sai em amarelo, para ser conferido no Word. Ela substitui a
+    /// antiga "Escopo de Fornecimento / Descrição - Assessoria Técnica" do fim.
     /// </summary>
-    private void DescricaoDaAssessoria()
+    private void PropostaTecnicaDeServicos()
     {
-        var titulo = Titulo2("Descrição - Assessoria Técnica");
-        var intro = Achar("Estamos considerando incluso em nosso escopo");
-        var tecnicos = Achar("XXXXX técnico/técnicos");
-        var diarias = Achar("XXXXX total de diárias de assessoria técnica");
-        var sub = Achar("XXXXX diárias de deslocamento");
-        var ultima = Achar("Despesas de transporte, estadia e alimentação a cargo de V.Sas");
-        if (titulo is null || intro is null || tecnicos is null || diarias is null || sub is null) return;
+        TirarEscopoAntigo();
 
-        // as notas do fim da seção (de "Preço para trabalhos por dia útil" até as despesas) saem
-        var viagens = Achar("XXXXX viagens para o total de diárias inclusas");
-        if (ultima is not null) ApagarEntre(viagens ?? sub, ultima);
-        viagens?.Remove();
-        Achar("XXXXX dias de integração")?.Remove();
+        // os títulos da parte comercial já estão no idioma da proposta (Precos)
+        var titulo = Titulo1(T3("Proposta Comercial de Serviços", "Commercial Proposal for Services", "Oferta Comercial de Servicios"));
+        var subtitulo = Titulo2(T3("Preços", "Prices", "Precios"));
+        if (titulo is null || subtitulo is null) return;
+        var numero = NumeroDe(titulo);
+        OpenXmlElement inicio = numero ?? (OpenXmlElement)titulo;
 
-        var n = Math.Max(Pricing.Inteiro(_d.Params.QtdTecnicos), 1);
-        Escrever(tecnicos, T3($"{n} {(n == 1 ? "técnico" : "técnicos")}", $"{n} {(n == 1 ? "technician" : "technicians")}",
-                              $"{n} {(n == 1 ? "técnico" : "técnicos")}"));
-
-        var linhas = _a.MO.Where(l => l.QtdDiaria > 0).ToList();
-        if (linhas.Count == 0)
+        var novos = new List<OpenXmlElement>();
+        if (numero is not null)
         {
-            diarias.Remove();
-            sub.Remove();
+            var n = (Paragraph)numero.CloneNode(true);
+            Escrever(n, "2");
+            novos.Add(n);
+            Escrever(numero, "3");
         }
-        else
-        {
-            Escrever(diarias, T3("Diárias e horas de assessoria técnica, considerando:", "Technical assistance days and hours, considering:",
-                                 "Días y horas de asesoría técnica, considerando:"));
-            OpenXmlElement depois = sub;
-            foreach (var l in linhas)
-            {
-                var obs = Item(l.Obs).Trim();
-                var p = (Paragraph)sub.CloneNode(true);
-                Escrever(p, $"{Qtd(l.QtdDiaria)} × {Item(l.Servico).TrimEnd(':')}{(obs.Length > 0 ? $" – {obs}" : "")}");
-                depois.InsertAfterSelf(p);
-                depois = p;
-            }
-            sub.Remove();
-        }
+        var t1 = (Paragraph)titulo.CloneNode(true);
+        Escrever(t1, T3("Proposta Técnica de Serviços", "Technical Proposal for Services", "Propuesta Técnica de Servicios"));
+        novos.Add(t1);
+        var t2 = (Paragraph)subtitulo.CloneNode(true);
+        Escrever(t2, T3("Assessoria Técnica", "Technical Assistance", "Asesoría Técnica"));
+        novos.Add(t2);
+        novos.AddRange(TextoDaPropostaTecnica());
+        // a Proposta Comercial começa numa página nova, como antes
+        novos.Add(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
 
-        // o escopo detalhado digitado na proposta, logo abaixo do título
-        var escopo = (_p.EscopoDetalhado ?? "").Replace("\r\n", "\n").Split('\n').Select(l => l.TrimEnd()).ToList();
-        while (escopo.Count > 0 && escopo[^1].Length == 0) escopo.RemoveAt(escopo.Count - 1);
-        if (escopo.Count > 0)
-        {
-            var moldeTexto = (Paragraph)intro.CloneNode(true);
-            OpenXmlElement depois = titulo;
-            foreach (var linha in escopo)
-            {
-                var p = (Paragraph)moldeTexto.CloneNode(true);
-                Escrever(p, linha);
-                foreach (var r in p.Elements<Run>()) { if (r.RunProperties is { } rp) { rp.Bold = null; rp.BoldComplexScript = null; } }
-                depois.InsertAfterSelf(p);
-                depois = p;
-            }
-            // um espaço entre o escopo e o "Estamos considerando incluso"
-            intro.ParagraphProperties ??= new ParagraphProperties();
-            intro.ParagraphProperties.SpacingBetweenLines ??= new SpacingBetweenLines();
-            intro.ParagraphProperties.SpacingBetweenLines.Before = "160";
-        }
+        foreach (var e in novos) inicio.InsertBeforeSelf(e);
+    }
+
+    /// <summary>A antiga seção "Escopo de Fornecimento" (Descrição - Assessoria Técnica) sai: o texto novo a substitui.</summary>
+    private void TirarEscopoAntigo()
+    {
+        var escopo = Titulo1("Escopo de Fornecimento");
+        var adicionais = Titulo1("Informações Adicionais");
+        if (escopo is null || adicionais is null) return;
+        OpenXmlElement de = NumeroDe(escopo) ?? escopo;
+        OpenXmlElement ate = NumeroDe(adicionais) ?? adicionais;
+        // a quebra de página que abria a seção também sai (Informações Adicionais já começa em página nova)
+        if (de.PreviousSibling() is Paragraph quebra && Texto(quebra).Trim().Length == 0
+            && quebra.Descendants<Break>().Any(b => b.Type?.Value == BreakValues.Page)
+            && quebra.ParagraphProperties?.SectionProperties is null)
+            quebra.Remove();
+        foreach (var e in Entre(de, ate)) e.Remove();
+        de.Remove();
+    }
+
+    private Run Rt(string texto, bool negrito = false, bool italico = false, bool realce = false)
+    {
+        var rp = new RunProperties(new RunFonts { Ascii = "Arial", HighAnsi = "Arial", ComplexScript = "Arial" });
+        if (negrito) { rp.Append(new Bold()); rp.Append(new BoldComplexScript()); }
+        if (italico) { rp.Append(new Italic()); rp.Append(new ItalicComplexScript()); }
+        rp.Append(new FontSize { Val = "19" });
+        rp.Append(new FontSizeComplexScript { Val = "19" });
+        var r = new Run(rp, new Text(texto) { Space = SpaceProcessingModeValues.Preserve });
+        if (realce) _realcar.Add(r);
+        return r;
+    }
+
+    private static Paragraph Pt(int antes, int depois, int esquerda, params Run[] runs)
+    {
+        var pp = new ParagraphProperties(
+            new SpacingBetweenLines { Before = antes.ToString(CultureInfo.InvariantCulture), After = depois.ToString(CultureInfo.InvariantCulture), Line = "252", LineRule = LineSpacingRuleValues.Auto });
+        if (esquerda > 0) pp.Append(new Indentation { Left = esquerda.ToString(CultureInfo.InvariantCulture) });
+        pp.Append(new Justification { Val = JustificationValues.Both });
+        var p = new Paragraph(pp);
+        foreach (var r in runs) p.Append(r);
+        return p;
+    }
+
+    private Paragraph Marcador(string texto)
+    {
+        var p = new Paragraph(new ParagraphProperties(
+            new Tabs(new TabStop { Val = TabStopValues.Left, Position = 1080 }),
+            new SpacingBetweenLines { Before = "0", After = "20" },
+            new Indentation { Left = "1080", Hanging = "360" }));
+        p.Append(Rt("•"));
+        var tab = Rt("");
+        tab.RemoveAllChildren<Text>();
+        tab.Append(new TabChar());
+        p.Append(tab);
+        p.Append(Rt(texto));
+        return p;
+    }
+
+    private IEnumerable<OpenXmlElement> TextoDaPropostaTecnica()
+    {
+        // o escopo escolhido/digitado no sistema; em branco, o exemplo do modelo em amarelo
+        var escolhido = Item(_p.EscopoServico).Trim().TrimEnd('.');
+        var escopoVazio = escolhido.Length == 0;
+        var escopo = escopoVazio
+            ? T3("manutenção, supervisão de montagem, comissionamento e startup para equipamentos",
+                 "maintenance, assembly supervision, commissioning and start-up of equipment",
+                 "mantenimiento, supervisión de montaje, comisionamiento y puesta en marcha de equipos")
+            : _idioma == IdiomasDaProposta.Ingles ? escolhido.ToLowerInvariant() : char.ToLowerInvariant(escolhido[0]) + escolhido[1..];
+
+        yield return Pt(80, 0, 0, Rt(T3("Escopo de Fornecimento:", "Scope of Supply:", "Alcance del Suministro:"), negrito: true));
+        yield return Pt(0, 60, 0,
+            Rt(T3("A HOWDEN fornecerá serviços de assessoria técnica de ", "HOWDEN will provide technical assistance services for ",
+                  "HOWDEN proporcionará servicios de asesoría técnica de ")),
+            Rt(escopo, realce: escopoVazio),
+            Rt(T3(", através da disponibilização de profissional de campo qualificado para acompanhamento das atividades nas instalações do cliente, a qual consiste:",
+                  ", through the provision of a qualified field professional to follow up the activities at the customer's facilities, consisting of:",
+                  ", mediante la disponibilidad de un profesional de campo calificado para el acompañamiento de las actividades en las instalaciones del cliente, que consiste en:")));
+        yield return Marcador(T3("Especialista HOWDEN;", "HOWDEN specialist;", "Especialista HOWDEN;"));
+        yield return Marcador(T3("Mobilização e Desmobilização;", "Mobilization and Demobilization;", "Movilización y Desmovilización;"));
+        yield return Marcador(T3("Diárias de serviço.", "Service days.", "Días de servicio."));
+
+        // o escopo detalhado digitado na proposta
+        foreach (var linha in (_p.EscopoDetalhado ?? "").Replace("\r\n", "\n").Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0))
+            yield return Pt(40, 0, 720, Rt(linha));
+
+        yield return Pt(60, 120, 720, Rt(T3(
+            "Todos os serviços serão executados conforme cronograma acordado entre as partes e em conformidade com os procedimentos de segurança e requisitos operacionais do cliente. A integração EHS dos profissionais está contemplada no período de serviços de campo.",
+            "All services will be performed according to the schedule agreed between the parties and in compliance with the customer's safety procedures and operational requirements. The EHS induction of the professionals is included in the field service period.",
+            "Todos los servicios se ejecutarán según el cronograma acordado entre las partes y de conformidad con los procedimientos de seguridad y requisitos operacionales del cliente. La inducción EHS de los profesionales está contemplada en el período de servicios en campo.")));
+
+        yield return Pt(60, 0, 0, Rt(T3("NOTAS:", "NOTES:", "NOTAS:")));
+        yield return Pt(0, 20, 0,
+            Rt(T3("Proposta considera a mobilização e desmobilização durante semana (Segunda a Sexta, exceto feriados) no período diurno das ",
+                  "This proposal considers mobilization and demobilization during weekdays (Monday to Friday, except holidays) in the daytime period from ",
+                  "La propuesta considera la movilización y desmovilización durante la semana (lunes a viernes, excepto feriados) en el período diurno de ")),
+            Rt(T3("08h00 às 17h00 incluindo 01 hora de descanso", "8:00 a.m. to 5:00 p.m., including a 1-hour break", "08h00 a 17h00, incluida 01 hora de descanso"), realce: true),
+            Rt(";"));
+        yield return Pt(0, 20, 0, Rt(T3(
+            "O tempo de viagem e/ou de locomoção na origem e no destino e horas de integração será apurado como período trabalhado;",
+            "Travel and/or commuting time at origin and destination and induction hours will be counted as time worked;",
+            "El tiempo de viaje y/o de traslado en el origen y en el destino y las horas de inducción se computarán como período trabajado;")));
+        yield return Pt(0, 20, 0, Rt(T3(
+            "As partes devem estabelecer o prazo técnico razoável para execução do Serviço, sendo que, a partir do comunicado do Cliente, a HOWDEN definirá o(s) Técnico(s) responsável(eis) e providenciará a documentação necessária para integração do(s) mesmo(s), de acordo com as exigências do Cliente.",
+            "The parties shall establish a reasonable technical period for the performance of the Service; upon the Customer's notice, HOWDEN will appoint the responsible Technician(s) and will provide the documentation required for their induction, in accordance with the Customer's requirements.",
+            "Las partes deben establecer un plazo técnico razonable para la ejecución del Servicio; a partir del aviso del Cliente, HOWDEN definirá el/los Técnico(s) responsable(s) y gestionará la documentación necesaria para su inducción, de acuerdo con las exigencias del Cliente.")));
+        yield return Pt(0, 20, 0, Rt(T3(
+            "O Cliente deve informar com mínimo de 20 dias de antecedência à HOWDEN para que se proceda a mobilização dos profissionais.",
+            "The Customer must inform HOWDEN at least 20 days in advance so that the mobilization of the professionals can proceed.",
+            "El Cliente debe informar a HOWDEN con un mínimo de 20 días de anticipación para que se proceda con la movilización de los profesionales.")));
+        yield return Pt(0, 120, 0, Rt(T3(
+            "A execução de serviços em equipamentos, peças ou componentes Howden (manutenção, desmontagem, montagem ou outros) realizados pelo cliente ou terceiros, sem supervisão Howden, cessa automaticamente a garantia contratual concedida inicialmente. Em caso de danos causados em decorrência destas intervenções, estas são de total responsabilidade do cliente.",
+            "Services on Howden equipment, parts or components (maintenance, disassembly, assembly or others) performed by the customer or third parties without Howden supervision automatically terminate the contractual warranty initially granted. Any damage resulting from such interventions is the sole responsibility of the customer.",
+            "La ejecución de servicios en equipos, piezas o componentes Howden (mantenimiento, desmontaje, montaje u otros) realizados por el cliente o terceros, sin supervisión de Howden, cesa automáticamente la garantía contractual otorgada inicialmente. En caso de daños causados como consecuencia de estas intervenciones, estos son de total responsabilidad del cliente."), italico: true));
+    }
+
+    /// <summary>Realce amarelo nos trechos para conferir (depois de tirar os realces do modelo).</summary>
+    private void Realcar()
+    {
+        foreach (var r in _realcar)
+            r.RunProperties?.Append(new Highlight { Val = HighlightColorValues.Yellow });
+        _doc.MainDocumentPart!.Document.Save();
     }
 
     /// <summary>
@@ -1357,6 +1453,7 @@ internal sealed class PreenchimentoCompleto
         "Nível de Ruído", "Limite de bateria", "Condições de processo", "Itens inclusos", "Documentação Incluída",
         "Itens Opcionais", "Exclusos do Fornecimento", "Desenho de linha de eixo", "Tolerâncias De Performance",
         "Efeito Coanda", "Padrões e Códigos", "Mancais Monobloco", "Local de Entrega",
+        "Escopo de Fornecimento", "Descrição - Assessoria Técnica",
     };
 
     /// <summary>
@@ -1380,6 +1477,21 @@ internal sealed class PreenchimentoCompleto
             {
                 if (texto.Text == "Proposta Comercial") texto.Text = "Proposta Comercial de Serviços";
                 else if (texto.Text == "Preço") texto.Text = "Preços";
+            }
+
+            // as entradas da Proposta Técnica de Serviços, antes da comercial (a numeração do índice é automática)
+            var comercial = conteudo.Elements<Paragraph>().FirstOrDefault(p => Texto(p).StartsWith("Proposta Comercial de Serviços", StringComparison.Ordinal));
+            var precos = conteudo.Elements<Paragraph>().FirstOrDefault(p => Texto(p).StartsWith("Preços", StringComparison.Ordinal));
+            if (comercial is not null && precos is not null)
+            {
+                Paragraph Entrada(Paragraph molde, string de, string para)
+                {
+                    var e = (Paragraph)molde.CloneNode(true);
+                    foreach (var t in e.Descendants<Text>().Where(t => t.Text == de)) t.Text = para;
+                    return e;
+                }
+                comercial.InsertBeforeSelf(Entrada(comercial, "Proposta Comercial de Serviços", "Proposta Técnica de Serviços"));
+                comercial.InsertBeforeSelf(Entrada(precos, "Preços", "Assessoria Técnica"));
             }
         }
 

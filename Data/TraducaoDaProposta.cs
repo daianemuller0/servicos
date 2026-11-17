@@ -67,6 +67,8 @@ public static class TraducaoDaProposta
         ("Preço", "Price", "Precio"),
         ("Preços", "Prices", "Precios"),
         ("Proposta Comercial de Serviços", "Commercial Proposal for Services", "Oferta Comercial de Servicios"),
+        ("Proposta Técnica de Serviços", "Technical Proposal for Services", "Propuesta Técnica de Servicios"),
+        ("Assessoria Técnica", "Technical Assistance", "Asesoría Técnica"),
         ("NOTAS IMPORTANTES:", "IMPORTANT NOTES:", "NOTAS IMPORTANTES:"),
         ("Impostos Vigentes", "Applicable Taxes", "Impuestos Vigentes"),
         ("Condições De Pagamento", "Payment Terms", "Condiciones de Pago"),
