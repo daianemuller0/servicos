@@ -105,7 +105,12 @@ custo (MO + despesas)
   (3,70%, antes "risco adicional" de 5%) incide sobre o custo já com ela.
   Propostas gravadas antes guardam o risco delas e ficam sem Protected Margin
   (o preço que o cliente recebeu não muda); cópia e nova revisão entram no
-  pricing atual (5% → 3,70% e PM 2%).
+  pricing atual (5% → 3,70% e PM 2%). Os dois valores estão gravados na própria
+  planilha-modelo (F14:F33 e D37).
+- **Margens** (como o PRICING): Project Margin (D55) é a margem pedida — a
+  Protected Margin fica no custo e não entra nela; ela volta como **Protected PM**
+  (D56 = (E33 + E36) ÷ venda líquida) e soma no **Total Project Margin**
+  (D57 = D55 + D56) e na Contribution Margin (D58).
 - **Provisões** (percentuais sobre a venda líquida): margem de negociação,
   PM + SACH, garantia do projeto e portal. O portal é a lista do AFM
   (Petronect, Quadrem/Ariba, Unilink, NIMBI): % sobre a venda líquida ou um

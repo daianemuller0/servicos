@@ -440,7 +440,8 @@ public static class Servicos
         "Custo total: R$ {custo_total}\r\nCusto com riscos: R$ {custo_riscos}\r\n" +
         "Venda liquida (sem impostos): R$ {venda_liquida}\r\nValor com impostos: R$ {valor_impostos}\r\n" +
         "Protected Margin: {protected_margin}\r\nRisco/Contingência: {risco}\r\n" +
-        "Project Margin: {pm}\r\nContribution Margin: {cm}\r\nMarkup: {markup}\r\n\r\n" +
+        "Project Margin: {pm}\r\nProtected PM: {protected_pm}\r\nTotal Project Margin: {total_pm}\r\n" +
+        "Contribution Margin: {cm}\r\nMarkup: {markup}\r\n\r\n" +
         "Preparada por: {preparada_por}");
 
     /// <summary>Substitui as variáveis {…} de um modelo pelos dados da proposta.</summary>
@@ -466,6 +467,8 @@ public static class Servicos
             .Replace("{valor_impostos}", Pricing.Moeda(doc.Total))
             .Replace("{protected_margin}", $"R$ {Pricing.Moeda(c.ProtectedMargin)} ({Pricing.Porcento(c.ProtectedSobreVenda)} da venda)")
             .Replace("{risco}", "R$ " + Pricing.Moeda(c.Contingencia))
+            .Replace("{protected_pm}", Pricing.Porcento(c.ProtectedSobreVenda))
+            .Replace("{total_pm}", Pricing.Porcento(c.MargemComProtected))
             .Replace("{pm}", Pricing.Porcento(c.ProjectMargin))
             .Replace("{cm}", Pricing.Porcento(c.ContributionMargin))
             .Replace("{markup}", c.Markup.ToString("0.0000"));

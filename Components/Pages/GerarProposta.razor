@@ -492,16 +492,16 @@
             <table class="grid">
                 <tbody>
                     <tr><td>Project Margin — a margem pedida <span class="muted">D55</span></td><td class="right nowrap"><strong>@Pricing.Porcento(Calc.ProjectMargin)</strong></td></tr>
-                    <tr><td>Protected Margin guardada no custo <span class="muted">E36 ÷ venda</span></td><td class="right nowrap">@Pricing.Porcento(Calc.ProtectedSobreVenda)</td></tr>
-                    <tr><td>Project Margin + Protected Margin</td><td class="right nowrap"><strong>@Pricing.Porcento(Calc.MargemComProtected)</strong></td></tr>
+                    <tr><td>Protected PM — a Protected Margin guardada no custo <span class="muted">D56</span></td><td class="right nowrap">@Pricing.Porcento(Calc.ProtectedSobreVenda)</td></tr>
+                    <tr><td><strong>Total Project Margin</strong> <span class="muted">D57 = D55 + D56</span></td><td class="right nowrap"><strong>@Pricing.Porcento(Calc.MargemComProtected)</strong></td></tr>
                     <tr><td>Contribution Margin <span class="muted">D58</span></td><td class="right nowrap">@Pricing.Porcento(Calc.ContributionMargin)</td></tr>
                 </tbody>
             </table>
             <div class="side-note" style="margin-top:10px">
                 O preço sai como na planilha: a Protected Margin e o Risco/Contingência entram no
                 custo com riscos (E39), e o markup sobe até a Project Margin (D55) chegar na margem
-                pedida. Por isso a Protected Margin não aparece na Project Margin — ela é margem a
-                mais, guardada no custo.
+                pedida. A Protected Margin não entra na Project Margin: ela volta como Protected PM
+                e soma no Total Project Margin (e na Contribution Margin), como na planilha.
             </div>
         </div>
 

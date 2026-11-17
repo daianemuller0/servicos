@@ -248,13 +248,13 @@ public static class Pricing
         public double VendaPura => Markup * CustoComRisco;
 
         /// <summary>
-        /// Quanto da venda líquida é Protected Margin. Na planilha ela entra no
-        /// custo (E36), então a Project Margin (D55) não a enxerga — é margem a mais,
-        /// guardada no custo.
+        /// Protected PM (PRICING D56 = E36 ÷ venda líquida): a Protected Margin
+        /// entra no custo (E36), então a Project Margin (D55) não a enxerga — ela
+        /// volta aqui, como margem.
         /// </summary>
         public double ProtectedSobreVenda => VendaLiquida > 0 ? ProtectedMargin / VendaLiquida : 0;
 
-        /// <summary>Project Margin + a Protected Margin guardada no custo.</summary>
+        /// <summary>Total Project Margin (PRICING D57 = D55 + D56).</summary>
         public double MargemComProtected => ProjectMargin + ProtectedSobreVenda;
     }
 
@@ -321,8 +321,10 @@ public static class Pricing
         var pm = vendaLiquida > 0
             ? (vendaLiquida - (custoRisco + fianca + comissoes + mn + pmSach + garantia + portal)) / vendaLiquida
             : 0;
+        // Contribution Margin (D58): sem as comissões e devolvendo a Protected
+        // Margin (E56), que está guardada no custo com riscos.
         var cm = vendaLiquida > 0
-            ? (vendaLiquida - (custoRisco + fianca + mn + pmSach + garantia + portal)) / vendaLiquida
+            ? (vendaLiquida - (custoRisco + fianca + mn + pmSach + garantia + portal - protegida)) / vendaLiquida
             : 0;
         var markup = custoRisco > 0 ? (vendaLiquida * (1 - provisoes) - fianca - (teto > 0 ? portal : 0)) / custoRisco : 0;
 

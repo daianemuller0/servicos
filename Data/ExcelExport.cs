@@ -301,8 +301,8 @@ public static class ExcelExport
 
         Titulo(ws, r++, "MARGENS");
         Rotulo(ws, r++, "Project Margin:", Pricing.Porcento(c.ProjectMargin));
-        Rotulo(ws, r++, "Protected Margin (no custo):", Pricing.Porcento(c.ProtectedSobreVenda));
-        Rotulo(ws, r++, "Project + Protected Margin:", Pricing.Porcento(c.MargemComProtected));
+        Rotulo(ws, r++, "Protected PM (D56):", Pricing.Porcento(c.ProtectedSobreVenda));
+        Rotulo(ws, r++, "Total Project Margin (D57):", Pricing.Porcento(c.MargemComProtected));
         Rotulo(ws, r++, "Contribution Margin:", Pricing.Porcento(c.ContributionMargin));
         Rotulo(ws, r++, "Markup:", c.Markup, "0.0000");
         r++;
