@@ -386,11 +386,18 @@
         @foreach (var o in Servicos.OpcoesPagamento(P.Idioma)) { <option value="@o"></option> }
     </datalist>
 
-    @* ---------- escopo detalhado (texto livre; em branco não sai na proposta) ---------- *@
+    @* ---------- atividades de assessoria (tic; o que for adicionado vira padrão) ---------- *@
+    <h2 style="margin-top:18px">DESCRIÇÃO DAS ATIVIDADES DE ASSESSORIA</h2>
+    <p class="no-print doc-muted" style="margin:0 0 6px; font-size:12px">Com tic ✓ sai na proposta. Atividade adicionada aqui fica salva no padrão para todos.</p>
+    <TopicosComTic Chave="@Topicos.ChaveAtividades" @bind-Selecao="P.AtividadesMarcadas" />
+
+    @* ---------- escopo: padrões com tic + texto livre (em branco não sai) ---------- *@
     <h2 style="margin-top:18px">ESCOPO DO SERVIÇO</h2>
-    <textarea class="de" rows="5"
-              style="width:100%; resize:vertical; font-family:inherit; font-size:12.5px"
-              placeholder="— digite o escopo detalhado (opcional: em branco, esta seção não sai na proposta) —"
+    <p class="no-print doc-muted" style="margin:0 0 6px; font-size:12px">Tique o padrão inteiro ou item a item. Item ou padrão novo fica salvo para todos.</p>
+    <TopicosComTic Chave="@Topicos.ChaveEscopo" @bind-Selecao="P.EscopoMarcado" PermiteNovoPadrao="true" />
+    <textarea class="de" rows="3"
+              style="width:100%; resize:vertical; font-family:inherit; font-size:12.5px; margin-top:8px"
+              placeholder="— outras informações do escopo (texto livre, opcional) —"
               @bind="P.EscopoDetalhado"></textarea>
 
     @* ---------- notas (incluso / excluso / gerais) — tic escolhe o que sai ---------- *@

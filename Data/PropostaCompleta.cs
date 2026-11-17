@@ -1295,10 +1295,6 @@ internal sealed class PreenchimentoCompleto
         yield return Marcador(T3("Mobilização e Desmobilização;", "Mobilization and Demobilization;", "Movilización y Desmovilización;"));
         yield return Marcador(T3("Diárias de serviço.", "Service days.", "Días de servicio."));
 
-        // o escopo detalhado digitado na proposta
-        foreach (var linha in (_p.EscopoDetalhado ?? "").Replace("\r\n", "\n").Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0))
-            yield return Pt(40, 0, 720, Rt(linha));
-
         yield return Pt(60, 120, 720, Rt(T3(
             "Todos os serviços serão executados conforme cronograma acordado entre as partes e em conformidade com os procedimentos de segurança e requisitos operacionais do cliente. A integração EHS dos profissionais está contemplada no período de serviços de campo.",
             "All services will be performed according to the schedule agreed between the parties and in compliance with the customer's safety procedures and operational requirements. The EHS induction of the professionals is included in the field service period.",
@@ -1327,6 +1323,19 @@ internal sealed class PreenchimentoCompleto
             "A execução de serviços em equipamentos, peças ou componentes Howden (manutenção, desmontagem, montagem ou outros) realizados pelo cliente ou terceiros, sem supervisão Howden, cessa automaticamente a garantia contratual concedida inicialmente. Em caso de danos causados em decorrência destas intervenções, estas são de total responsabilidade do cliente.",
             "Services on Howden equipment, parts or components (maintenance, disassembly, assembly or others) performed by the customer or third parties without Howden supervision automatically terminate the contractual warranty initially granted. Any damage resulting from such interventions is the sole responsibility of the customer.",
             "La ejecución de servicios en equipos, piezas o componentes Howden (mantenimiento, desmontaje, montaje u otros) realizados por el cliente o terceros, sin supervisión de Howden, cesa automáticamente la garantía contractual otorgada inicialmente. En caso de daños causados como consecuencia de estas intervenciones, estos son de total responsabilidad del cliente."), italico: true));
+
+        // a Descrição das Atividades de Assessoria e os padrões de escopo marcados (tic)
+        foreach (var g in Topicos.Marcados(_p.AtividadesMarcadas).Concat(Topicos.Marcados(_p.EscopoMarcado)))
+        {
+            yield return Pt(160, 20, 0, Rt(Item(g.Titulo) + ":", negrito: true));
+            for (var i = 0; i < g.Itens.Count; i++)
+                yield return Marcador(Topicos.ComPontuacao(Item(g.Itens[i]), i == g.Itens.Count - 1));
+        }
+
+        // o texto livre do escopo (outras informações)
+        var livre = (_p.EscopoDetalhado ?? "").Replace("\r\n", "\n").Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+        for (var i = 0; i < livre.Count; i++)
+            yield return Pt(i == 0 ? 160 : 20, 0, 0, Rt(livre[i]));
     }
 
     /// <summary>Realce amarelo nos trechos para conferir (depois de tirar os realces do modelo).</summary>

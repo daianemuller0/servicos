@@ -57,6 +57,10 @@ public class Proposta
     /// janeiro"). Em branco, a proposta completa pede ao cliente: "FAVOR INFORMAR".
     /// </summary>
     public string DataPrevistaServico { get; set; } = "";
+    /// <summary>Atividades de assessoria marcadas (JSON de <see cref="Data.GrupoDeTopicos"/>, com o texto de cada uma).</summary>
+    public string AtividadesMarcadas { get; set; } = "";
+    /// <summary>Itens dos padrões de escopo marcados (JSON de <see cref="Data.GrupoDeTopicos"/>: "Assessoria de Montagem"...).</summary>
+    public string EscopoMarcado { get; set; } = "";
     /// <summary>
     /// Chaves das notas DESMARCADAS no tic (separadas por ";"): essas não saem
     /// no documento. Vazio = todas as notas automáticas saem.

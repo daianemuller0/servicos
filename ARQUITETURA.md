@@ -253,7 +253,12 @@ tradução (`Data/TraducaoDaProposta.cs`) trazidas de lá:
 - a seção 2 é a **Proposta Técnica de Serviços** (ASSESSORIA TÉCNICA → Escopo de
   Fornecimento): "A HOWDEN fornecerá serviços de assessoria técnica de <escopo do
   serviço escolhido no sistema>…", o que a assessoria consiste, o escopo detalhado e
-  as NOTAS; o horário das diárias sai em amarelo para conferir no Word (e, sem
+  as NOTAS, e depois os tópicos marcados com tic na proposta — **Descrição das
+  Atividades de Assessoria** e os padrões do **Escopo do Serviço** (Assessoria de
+  Montagem, Comissionamento e Start-up) — e o texto livre do escopo
+  (`Data/Topicos.cs`, tela `Components/Shared/TopicosComTic.razor`: item ou padrão
+  novo adicionado na proposta fica salvo na configuração e vale para todos; a
+  proposta guarda o texto do que foi marcado); o horário das diárias sai em amarelo para conferir no Word (e, sem
   escopo escolhido, o exemplo do modelo também). Ela substitui a antiga "Escopo de
   Fornecimento / Descrição - Assessoria Técnica" do fim;
 - a seção 3 é a **Proposta Comercial de Serviços**, com os preços no padrão da

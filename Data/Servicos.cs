@@ -840,9 +840,19 @@ public static class Servicos
             "Español" => "ALCANCE DEL SERVICIO",
             _ => "ESCOPO DO SERVIÇO",
         };
-        var escopoHtml = string.IsNullOrWhiteSpace(p.EscopoDetalhado) ? "" : $@"
+        // Atividades de assessoria e padrões de escopo marcados (tic), no idioma da proposta.
+        string Topicos(List<GrupoDeTopicos> grupos) => string.Concat(grupos.Select(g =>
+            $"<p style='margin:8px 0 2px;font-weight:bold;font-size:8.5pt;color:{navy}'>{E(Traducoes.Item(g.Titulo, p.Idioma))}:</p>" +
+            "<ul style='margin:0;padding-left:18px'>" +
+            string.Concat(g.Itens.Select((i, n) => $"<li style='margin:1px 0;color:{corpo};font-size:8.5pt'>{E(Data.Topicos.ComPontuacao(Traducoes.Item(i, p.Idioma), n == g.Itens.Count - 1))}</li>")) +
+            "</ul>"));
+        var atividades = Data.Topicos.Marcados(p.AtividadesMarcadas);
+        var padroesEscopo = Data.Topicos.Marcados(p.EscopoMarcado);
+        var temTexto = !string.IsNullOrWhiteSpace(p.EscopoDetalhado);
+        var escopoHtml = atividades.Count == 0 && padroesEscopo.Count == 0 && !temTexto ? "" : $@"
 <p style='margin:18px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{tituloEscopo}</p>
-<p style='margin:0;color:{corpo};font-size:8.5pt'>{E(p.EscopoDetalhado.Trim()).Replace("\r\n", "\n").Replace("\n", "<br/>")}</p>";
+{Topicos(atividades)}{Topicos(padroesEscopo)}
+{(temTexto ? $"<p style='margin:6px 0 0;color:{corpo};font-size:8.5pt'>{E(p.EscopoDetalhado.Trim()).Replace("\r\n", "\n").Replace("\n", "<br/>")}</p>" : "")}";
 
         // Condição de pagamento: logo acima do escopo, só se foi preenchida.
         // Cada "•" vira uma linha.

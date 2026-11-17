@@ -80,6 +80,44 @@ public static partial class Traducoes
             ("Supervisión técnica de especialista Howden", "Technical supervision by a Howden specialist"),
         ["LEVANTAMENTO DOS PONTOS OPERACIONAIS DO EQUIPAMENTO"] =
             ("Levantamiento de los puntos operativos del equipo", "Survey of the equipment operating points"),
+
+        // ---- descrição das atividades de assessoria e padrões de escopo (Data/Topicos.cs) ----
+        ["DESCRICAO DAS ATIVIDADES DE ASSESSORIA"] = ("Descripción de las Actividades de Asesoría", "Description of the Technical Assistance Activities"),
+        ["INSPECAO INICIAL DO EQUIPAMENTO"] = ("Inspección inicial del equipo", "Initial inspection of the equipment"),
+        ["VERIFICACAO DO ESTADO GERAL DE TODOS OS COMPONENTES"] = ("Verificación del estado general de todos los componentes", "Check of the general condition of all components"),
+        ["INSPECAO VISUAL DOS MANCAIS"] = ("Inspección visual de los descansos", "Visual inspection of the bearings"),
+        ["INSPECAO VISUAL DO ACOPLAMENTO"] = ("Inspección visual del acoplamiento", "Visual inspection of the coupling"),
+        ["INSPECAO DOS COLARINHOS FLEXIVEIS"] = ("Inspección de las juntas flexibles", "Inspection of the flexible connectors"),
+        ["INSPECAO E TESTE DE ABERTURA E FECHAMENTO DO DAMPER"] = ("Inspección y prueba de apertura y cierre del damper", "Inspection and opening/closing test of the damper"),
+        ["ABERTURA DAS PORTAS DE INSPECAO PARA ACESSO INTERNO AO VENTILADOR"] = ("Apertura de las puertas de inspección para acceso interno al ventilador", "Opening of the inspection doors for internal access to the fan"),
+        ["ABERTURA DO BIPARTIDO DO MANCAL MONOBLOCO PARA INSPECAO INTERNA"] = ("Apertura del bipartido del descanso monobloque para inspección interna", "Opening of the split housing of the monobloc bearing for internal inspection"),
+
+        ["ASSESSORIA DE MONTAGEM"] = ("Asesoría de Montaje", "Assembly Assistance"),
+        ["APOIO AO PLANEJAMENTO E PREPARACAO DAS ATIVIDADES DE CAMPO"] = ("Apoyo a la planificación y preparación de las actividades de campo", "Support for the planning and preparation of field activities"),
+        ["ACOMPANHAMENTO DA MANUTENCAO DOS COMPONENTES"] = ("Acompañamiento del mantenimiento de los componentes", "Follow-up of the maintenance of the components"),
+        ["ACOMPANHAMENTO DA DESMONTAGEM DOS COMPONENTES EXISTENTES"] = ("Acompañamiento del desmontaje de los componentes existentes", "Follow-up of the disassembly of the existing components"),
+        ["ACOMPANHAMENTO DA MONTAGEM MECANICA DOS EQUIPAMENTOS E ACESSORIOS"] = ("Acompañamiento del montaje mecánico de los equipos y accesorios", "Follow-up of the mechanical assembly of the equipment and accessories"),
+        ["ACOMPANHAMENTO DO ALINHAMENTO E POSICIONAMENTO DOS CONJUNTOS GIRANTES"] = ("Acompañamiento de la alineación y posicionamiento de los conjuntos rotativos", "Follow-up of the alignment and positioning of the rotating assemblies"),
+        ["ACOMPANHAMENTO DA INSTALACAO DOS ELEMENTOS DE FIXACAO E RESPECTIVOS TORQUES DE APERTO"] = ("Acompañamiento de la instalación de los elementos de fijación y sus torques de apriete", "Follow-up of the installation of the fasteners and their tightening torques"),
+        ["ACOMPANHAMENTO DA INSTALACAO DE SISTEMAS AUXILIARES, QUANDO APLICAVEL"] = ("Acompañamiento de la instalación de sistemas auxiliares, cuando corresponda", "Follow-up of the installation of auxiliary systems, when applicable"),
+        ["INTERFACE TECNICA COM A EQUIPE DE MONTAGEM PARA ESCLARECIMENTO DE DUVIDAS E ORIENTACAO DE BOAS PRATICAS"] = ("Interfaz técnica con el equipo de montaje para aclarar dudas y orientar sobre buenas prácticas", "Technical interface with the assembly team to clarify doubts and provide guidance on good practices"),
+
+        ["COMISSIONAMENTO E START-UP"] = ("Comisionamiento y Puesta en Marcha", "Commissioning and Start-up"),
+        ["INSPECAO FINAL DE MONTAGEM MECANICA"] = ("Inspección final del montaje mecánico", "Final inspection of the mechanical assembly"),
+        ["VERIFICACAO DIMENSIONAL E VISUAL DOS COMPONENTES INSTALADOS"] = ("Verificación dimensional y visual de los componentes instalados", "Dimensional and visual check of the installed components"),
+        ["CONFERENCIA DO APERTO E TRAVAMENTO DOS ELEMENTOS DE FIXACAO"] = ("Verificación del apriete y bloqueo de los elementos de fijación", "Check of the tightening and locking of the fasteners"),
+        ["VERIFICACAO DOS NIVEIS E CONDICOES DE LUBRIFICACAO"] = ("Verificación de los niveles y condiciones de lubricación", "Check of the lubrication levels and conditions"),
+        ["VERIFICACAO DAS INTERLIGACOES ELETRICAS E DE INSTRUMENTACAO RELACIONADAS AO EQUIPAMENTO"] = ("Verificación de las interconexiones eléctricas y de instrumentación relacionadas con el equipo", "Check of the electrical and instrumentation interconnections related to the equipment"),
+        ["INSPECAO DOS SISTEMAS DE PROTECAO E SEGURANCA DO EQUIPAMENTO"] = ("Inspección de los sistemas de protección y seguridad del equipo", "Inspection of the protection and safety systems of the equipment"),
+        ["ACOMPANHAMENTO DO TESTE DE GIRO LIVRE E CONFIRMACAO DA AUSENCIA DE INTERFERENCIAS MECANICAS"] = ("Acompañamiento de la prueba de giro libre y confirmación de la ausencia de interferencias mecánicas", "Follow-up of the free rotation test and confirmation that there is no mechanical interference"),
+        ["VERIFICACAO DO SENTIDO DE ROTACAO DO CONJUNTO GIRANTE"] = ("Verificación del sentido de rotación del conjunto rotativo", "Check of the direction of rotation of the rotating assembly"),
+        ["ACOMPANHAMENTO DA PARTIDA A FRIO DO EQUIPAMENTO"] = ("Acompañamiento de la partida en frío del equipo", "Follow-up of the cold start of the equipment"),
+        ["MONITORAMENTO DAS CONDICOES OPERACIONAIS DURANTE A ELEVACAO GRADUAL DA CARGA"] = ("Monitoreo de las condiciones operacionales durante el aumento gradual de la carga", "Monitoring of the operating conditions during the gradual load increase"),
+        ["MEDICAO E ANALISE DOS NIVEIS DE VIBRACAO"] = ("Medición y análisis de los niveles de vibración", "Measurement and analysis of the vibration levels"),
+        ["MONITORAMENTO DE TEMPERATURA DE MANCAIS, MOTOR E DEMAIS COMPONENTES CRITICOS"] = ("Monitoreo de temperatura de descansos, motor y demás componentes críticos", "Temperature monitoring of bearings, motor and other critical components"),
+        ["VERIFICACAO DA ESTABILIDADE OPERACIONAL DO EQUIPAMENTO"] = ("Verificación de la estabilidad operacional del equipo", "Check of the operational stability of the equipment"),
+        ["ORIENTACAO OPERACIONAL A EQUIPE DO CLIENTE QUANTO AS MELHORES PRATICAS DE OPERACAO"] = ("Orientación operacional al equipo del cliente sobre las mejores prácticas de operación", "Operational guidance to the customer's team on best operating practices"),
+        ["REGISTRO DE OCORRENCIAS E RECOMENDACOES PARA OTIMIZACAO DA OPERACAO"] = ("Registro de ocurrencias y recomendaciones para la optimización de la operación", "Record of occurrences and recommendations for optimizing operation"),
     };
 
     // chave normalizada (maiúsculas, sem acento) → (espanhol, inglês).

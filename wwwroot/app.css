@@ -648,3 +648,21 @@ h1 { font-size: 24px; margin: 0 0 4px; color: var(--primary); letter-spacing: -.
 
 /* referência da célula da planilha, ao lado da etapa do preço */
 .grid .muted { color: var(--muted); font-size: 11px; margin-left: 4px; }
+
+/* tópicos com tic (atividades de assessoria e padrões de escopo) */
+.topicos { font-size: 12.5px; color: #3C465A; }
+.topicos-grupo { margin: 6px 0 10px; }
+.topicos-titulo { display: flex; gap: 7px; align-items: center; font-weight: 700; color: #141E32; cursor: pointer; }
+.topicos-conta { font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 4px; }
+.topicos ul { list-style: none; margin: 4px 0 0; padding-left: 22px; }
+.topicos li { margin: 2px 0; }
+.topicos li label { display: flex; gap: 7px; align-items: flex-start; cursor: pointer; }
+.topicos li input { margin-top: 2px; flex: none; }
+.topicos-fora { opacity: .45; }
+.topicos-novo, .topicos-padrao { display: flex; gap: 6px; align-items: center; margin: 4px 0 0 22px; flex-wrap: wrap; }
+.topicos-novo input { flex: 1; min-width: 220px; font-size: 12px; }
+.topicos-padrao { display: block; margin-top: 8px; }
+.topicos-padrao summary { cursor: pointer; color: #004785; font-weight: 600; }
+.topicos-padrao input, .topicos-padrao textarea { display: block; width: 100%; margin: 6px 0; font-family: inherit; font-size: 12px; }
+.topicos-msg { color: #0a7a41; font-weight: 600; margin-top: 6px; }
+@media print { .topicos-novo, .topicos-padrao, .topicos-conta, .topicos-fora, .topicos-vazio { display: none; } .topicos input[type=checkbox] { display: none; } }

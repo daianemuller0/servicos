@@ -1,0 +1,141 @@
+@* Tópicos com tic (Descrição das Atividades de Assessoria / padrões do Escopo do Serviço).
+   O que estiver marcado sai na proposta. Item ou padrão novo adicionado aqui fica salvo
+   na configuração — vira padrão para todos. *@
+@inject ConfigRepository Config
+
+<div class="topicos">
+    @foreach (var g in Visiveis())
+    {
+        var marcados = MarcadosDe(g.Titulo);
+        var todos = g.Itens.Count > 0 && g.Itens.All(i => marcados.Any(m => Topicos.Igual(m, i)));
+        <div class="topicos-grupo @(marcados.Count == 0 ? "topicos-vazio" : "")">
+            <label class="topicos-titulo">
+                <input type="checkbox" checked="@todos" @onchange="e => MarcarGrupo(g, (bool)e.Value!)" />
+                <span>@g.Titulo</span>
+                <span class="topicos-conta">@marcados.Count de @g.Itens.Count</span>
+            </label>
+            <ul>
+                @foreach (var item in g.Itens)
+                {
+                    var marcado = marcados.Any(m => Topicos.Igual(m, item));
+                    <li class="@(marcado ? "" : "topicos-fora")">
+                        <label>
+                            <input type="checkbox" checked="@marcado" @onchange="e => MarcarItem(g.Titulo, item, (bool)e.Value!)" />
+                            <span>@item</span>
+                        </label>
+                    </li>
+                }
+            </ul>
+            <div class="topicos-novo">
+                <input class="de" placeholder="+ adicionar item a “@g.Titulo” (fica salvo no padrão)"
+                       value="@NovoItem(g.Titulo)" @onchange="e => _novoItem[g.Titulo] = e.Value?.ToString() ?? string.Empty" />
+                <button class="btn-ghost" @onclick="() => AdicionarItem(g.Titulo)">Adicionar</button>
+            </div>
+        </div>
+    }
+
+    @if (PermiteNovoPadrao)
+    {
+        <details class="topicos-padrao">
+            <summary>+ Criar um novo padrão</summary>
+            <input class="de" placeholder="Título do padrão (ex.: Inspeção Preditiva)" @bind="_tituloNovo" />
+            <textarea class="de" rows="4" placeholder="Um item por linha" @bind="_itensNovo"></textarea>
+            <button class="btn-ghost" @onclick="CriarPadrao">Salvar padrão</button>
+        </details>
+    }
+    @if (_msg is not null)
+    {
+        <div class="topicos-msg">@_msg</div>
+    }
+</div>
+
+@code {
+    /// <summary>Chave dos padrões na configuração (<see cref="Topicos.ChaveAtividades"/> ou <see cref="Topicos.ChaveEscopo"/>).</summary>
+    [Parameter, EditorRequired] public string Chave { get; set; } = "";
+
+    /// <summary>A seleção da proposta (JSON), com @bind-Selecao.</summary>
+    [Parameter] public string Selecao { get; set; } = "";
+    [Parameter] public EventCallback<string> SelecaoChanged { get; set; }
+
+    /// <summary>Permite criar um padrão novo (grupo com título e itens).</summary>
+    [Parameter] public bool PermiteNovoPadrao { get; set; }
+
+    private List<GrupoDeTopicos> _padroes = new();
+    private readonly Dictionary<string, string> _novoItem = new();
+    private string _tituloNovo = "", _itensNovo = "";
+    private string? _msg;
+
+    protected override void OnInitialized() => Recarregar();
+
+    private void Recarregar() => _padroes = Topicos.Padroes(Config.All(), Chave);
+
+    private List<string> MarcadosDe(string titulo) =>
+        Topicos.Ler(Selecao).FirstOrDefault(g => Topicos.Igual(g.Titulo, titulo))?.Itens ?? new();
+
+    private string NovoItem(string titulo) => _novoItem.TryGetValue(titulo, out var v) ? v : "";
+
+    /// <summary>Os padrões e, junto, o que a proposta tem marcado e não está mais no padrão.</summary>
+    private List<GrupoDeTopicos> Visiveis()
+    {
+        var lista = _padroes.Select(p => new GrupoDeTopicos { Titulo = p.Titulo, Itens = p.Itens.ToList() }).ToList();
+        foreach (var s in Topicos.Ler(Selecao))
+        {
+            var g = lista.FirstOrDefault(x => Topicos.Igual(x.Titulo, s.Titulo));
+            if (g is null) { lista.Add(new GrupoDeTopicos { Titulo = s.Titulo, Itens = s.Itens.ToList() }); continue; }
+            g.Itens.AddRange(s.Itens.Where(i => !g.Itens.Any(x => Topicos.Igual(x, i))));
+        }
+        return lista;
+    }
+
+    private Task Mudar(string titulo, IEnumerable<string> itens, bool ligar)
+    {
+        _msg = null;
+        var nova = Topicos.Marcar(Visiveis(), Topicos.Ler(Selecao), titulo, itens, ligar);
+        Selecao = Topicos.Gravar(nova);
+        return SelecaoChanged.InvokeAsync(Selecao);
+    }
+
+    private Task MarcarItem(string titulo, string item, bool ligar) => Mudar(titulo, new[] { item }, ligar);
+
+    private Task MarcarGrupo(GrupoDeTopicos g, bool ligar) => Mudar(g.Titulo, g.Itens, ligar);
+
+    /// <summary>Lê os padrões de novo (outra pessoa pode ter salvo), acrescenta e grava.</summary>
+    private void SalvarPadroes(Action<List<GrupoDeTopicos>> mudar)
+    {
+        var atuais = Topicos.Padroes(Config.All(), Chave);
+        mudar(atuais);
+        Config.Set(Chave, Topicos.Gravar(atuais));
+        _padroes = atuais;
+    }
+
+    private async Task AdicionarItem(string titulo)
+    {
+        var item = Topicos.LimparItem(NovoItem(titulo));
+        if (item.Length == 0) return;
+        SalvarPadroes(lista =>
+        {
+            var g = lista.FirstOrDefault(x => Topicos.Igual(x.Titulo, titulo));
+            if (g is null) { g = new GrupoDeTopicos { Titulo = titulo }; lista.Add(g); }
+            if (!g.Itens.Any(x => Topicos.Igual(x, item))) g.Itens.Add(item);
+        });
+        _novoItem[titulo] = "";
+        await Mudar(titulo, new[] { item }, true);
+        _msg = $"“{item}” adicionado ao padrão — já aparece para todos.";
+    }
+
+    private async Task CriarPadrao()
+    {
+        var titulo = Topicos.LimparItem(_tituloNovo);
+        var itens = (_itensNovo ?? "").Replace("\r\n", "\n").Split('\n').Select(Topicos.LimparItem).Where(i => i.Length > 0).ToList();
+        if (titulo.Length == 0 || itens.Count == 0) { _msg = "Informe o título e pelo menos um item."; return; }
+        SalvarPadroes(lista =>
+        {
+            var g = lista.FirstOrDefault(x => Topicos.Igual(x.Titulo, titulo));
+            if (g is null) lista.Add(new GrupoDeTopicos { Titulo = titulo, Itens = itens });
+            else g.Itens.AddRange(itens.Where(i => !g.Itens.Any(x => Topicos.Igual(x, i))));
+        });
+        _tituloNovo = _itensNovo = "";
+        await Mudar(titulo, itens, true);
+        _msg = $"Padrão “{titulo}” salvo — já aparece para todos.";
+    }
+}
