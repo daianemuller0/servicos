@@ -1,0 +1,81 @@
+@* Horário de trabalho (o parágrafo "Proposta considera a mobilização ... das 08h00 às 17h00...").
+   Escolhe um padrão ou edita o texto só desta proposta; "Salvar como novo padrão" deixa o
+   texto disponível para todos. *@
+@inject ConfigRepository Config
+
+<div class="jornada">
+    <select class="de" @onchange="Escolher">
+        @foreach (var (t, i) in _padroes.Select((t, i) => (t, i)))
+        {
+            <option value="@i" selected="@(Jornada.Igual(t, Atual))">@(i == 0 ? "Padrão: " : "") @Resumo(t)</option>
+        }
+        @if (!_padroes.Any(t => Jornada.Igual(t, Atual)))
+        {
+            <option value="-1" selected>Texto editado nesta proposta</option>
+        }
+    </select>
+    <textarea class="de" rows="3" value="@Atual" @onchange="Editar"></textarea>
+    <div class="jornada-acoes">
+        @if (!_padroes.Any(t => Jornada.Igual(t, Atual)))
+        {
+            <button type="button" class="btn-ghost" @onclick="SalvarPadrao">Salvar como novo padrão</button>
+            <button type="button" class="btn-ghost" @onclick="() => Usar(Jornada.DeFabrica)">Voltar ao padrão</button>
+        }
+        else if (!Jornada.Igual(Atual, Jornada.DeFabrica))
+        {
+            <button type="button" class="btn-ghost" @onclick="RemoverPadrao" title="Tira este texto da lista de padrões (a proposta continua com ele)">Remover da lista de padrões</button>
+        }
+        @if (_msg is not null)
+        {
+            <span class="topicos-msg">@_msg</span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Proposta P { get; set; } = default!;
+
+    /// <summary>Avisa a página (a prévia da proposta redesenha com o texto novo).</summary>
+    [Parameter] public EventCallback Mudou { get; set; }
+
+    private List<string> _padroes = new();
+    private string? _msg;
+
+    private string Atual => Jornada.DaProposta(P.Jornada);
+
+    protected override void OnInitialized() => _padroes = Jornada.Padroes(Config.All());
+
+    private static string Resumo(string t) => t.Length > 110 ? t[..110] + "…" : t;
+
+    private Task Usar(string texto)
+    {
+        _msg = null;
+        P.Jornada = Jornada.EhDeFabrica(texto) ? "" : Jornada.Limpar(texto);
+        return Mudou.InvokeAsync();
+    }
+
+    private Task Escolher(ChangeEventArgs e) =>
+        int.TryParse(e.Value?.ToString(), out var i) && i >= 0 && i < _padroes.Count ? Usar(_padroes[i]) : Task.CompletedTask;
+
+    private Task Editar(ChangeEventArgs e) => Usar(e.Value?.ToString() ?? "");
+
+    private void SalvarPadrao()
+    {
+        var texto = Jornada.Limpar(Atual);
+        if (texto.Length == 0) return;
+        var atuais = Jornada.Padroes(Config.All());   // lê de novo: outra pessoa pode ter salvo
+        if (!atuais.Any(t => Jornada.Igual(t, texto))) atuais.Add(texto);
+        Config.Set(Jornada.Chave, Jornada.Gravar(atuais));
+        _padroes = Jornada.Padroes(Config.All());
+        _msg = "Salvo como padrão — já aparece para todos.";
+    }
+
+    private void RemoverPadrao()
+    {
+        var texto = Atual;
+        var atuais = Jornada.Padroes(Config.All()).Where(t => !Jornada.Igual(t, texto));
+        Config.Set(Jornada.Chave, Jornada.Gravar(atuais));
+        _padroes = Jornada.Padroes(Config.All());
+        _msg = "Removido da lista de padrões.";
+    }
+}

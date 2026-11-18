@@ -187,6 +187,16 @@ Entidades: `propostas`, `parametros` (tabela de custos, semeada), `representante
 (semeada com a tabela da planilha: 31 representantes com comissão e contato),
 `faturamento` (semeada com os dados da HSA-SP e da HCHL) e `branding` (logo).
 
+**Horário de trabalho** (`Data/Jornada.cs`, componente `JornadaDeTrabalho`): o
+parágrafo "Proposta considera a mobilização e desmobilização durante semana ...
+das 08h00 às 17h00 incluindo 01 hora de descanso". A proposta guarda o texto
+(`Proposta.Jornada`, coluna `jornada`; em branco = padrão de fábrica). Os padrões
+salvos ficam na configuração (`padroes.jornada`, lista JSON) e aparecem para todos.
+O padrão de fábrica sai traduzido em EN/ES; texto editado sai como foi escrito.
+Na proposta completa é a 1ª das NOTAS (sem realce); na simples substitui a nota
+`inc.mobilizacao` quando o texto não é o padrão (com o padrão, continua o texto
+automático que muda com fim de semana / 2º turno).
+
 **Dados bancários por BU e moeda** (`Data/DadosBancarios.cs`): um bloco de texto
 por BU+moeda, na configuração (chave `banco.<BU>.<moeda>`); sem nada salvo vale o
 padrão de fábrica (HSA-SP: BRL Itaú, USD JPMorgan→Itaú, EUR Commerzbank→Itaú;

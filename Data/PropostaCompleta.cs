@@ -1337,12 +1337,8 @@ internal sealed class PreenchimentoCompleto
             "Todos los servicios se ejecutarán según el cronograma acordado entre las partes y de conformidad con los procedimientos de seguridad y requisitos operacionales del cliente. La inducción EHS de los profesionales está contemplada en el período de servicios en campo.")));
 
         yield return Pt(60, 0, 0, Rt(T3("NOTAS:", "NOTES:", "NOTAS:")));
-        yield return Pt(0, 20, 0,
-            Rt(T3("Proposta considera a mobilização e desmobilização durante semana (Segunda a Sexta, exceto feriados) no período diurno das ",
-                  "This proposal considers mobilization and demobilization during weekdays (Monday to Friday, except holidays) in the daytime period from ",
-                  "La propuesta considera la movilización y desmovilización durante la semana (lunes a viernes, excepto feriados) en el período diurno de ")),
-            Rt(T3("08h00 às 17h00 incluindo 01 hora de descanso", "8:00 a.m. to 5:00 p.m., including a 1-hour break", "08h00 a 17h00, incluida 01 hora de descanso"), realce: true),
-            Rt(";"));
+        // o horário de trabalho escolhido na proposta (padrão ou texto editado)
+        yield return Pt(0, 20, 0, Rt(Jornada.NoIdioma(_p.Jornada, _p.Idioma) + ";"));
         yield return Pt(0, 20, 0, Rt(T3(
             "O tempo de viagem e/ou de locomoção na origem e no destino e horas de integração será apurado como período trabalhado;",
             "Travel and/or commuting time at origin and destination and induction hours will be counted as time worked;",

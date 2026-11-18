@@ -70,6 +70,9 @@ public class Proposta
     public string EquipeAjudantes { get; set; } = "";
     public string EquipeEletricistas { get; set; } = "";
     public string EquipeTecSeguranca { get; set; } = "";
+
+    /// <summary>O parágrafo do horário de trabalho (em branco = o padrão de fábrica — ver <see cref="Data.Jornada"/>).</summary>
+    public string Jornada { get; set; } = "";
     /// <summary>
     /// Chaves das notas DESMARCADAS no tic (separadas por ";"): essas não saem
     /// no documento. Vazio = todas as notas automáticas saem.

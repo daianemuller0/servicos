@@ -45,13 +45,14 @@ public class PropostaRepository
             EquipeAjudantes = extras >= 12 ? S(r, 49) : "",
             EquipeEletricistas = extras >= 13 ? S(r, 50) : "",
             EquipeTecSeguranca = extras >= 14 ? S(r, 51) : "",
+            Jornada = extras >= 15 ? S(r, 52) : "",
         };
 
         // Bancos antigos não têm as colunas mais novas — tenta com todas e vai
         // tirando da direita até a leitura passar; a primeira gravação nova
         // cria as que faltarem (union_by_name).
         var novas = new[] { "escopoServico", "escopoDetalhado", "notasDesmarcadas", "condicaoPagamento", "modeloProposta", "dataPrevistaServico", "atividadesMarcadas", "escopoMarcado",
-            "infraestruturaMarcada", "equipeApoio", "equipeMecanicos", "equipeAjudantes", "equipeEletricistas", "equipeTecSeguranca" };
+            "infraestruturaMarcada", "equipeApoio", "equipeMecanicos", "equipeAjudantes", "equipeEletricistas", "equipeTecSeguranca", "jornada" };
         for (var n = novas.Length; ; n--)
         {
             var extras = string.Concat(novas.Take(n).Select(c => ", " + c));
@@ -89,6 +90,7 @@ public class PropostaRepository
         new("infraestruturaMarcada", p.InfraestruturaMarcada), new("equipeApoio", p.EquipeApoio),
         new("equipeMecanicos", p.EquipeMecanicos), new("equipeAjudantes", p.EquipeAjudantes),
         new("equipeEletricistas", p.EquipeEletricistas), new("equipeTecSeguranca", p.EquipeTecSeguranca),
+        new("jornada", p.Jornada),
     });
 
     public void Delete(string id) => _store.WriteRow(Entidade,

@@ -584,7 +584,11 @@ public static class Servicos
 
         foreach (var v in variaveis.Where(v => v.Incluso))
             Inc(v.Chave, v.Texto);
-        Inc("inc.mobilizacao", idioma switch
+        // horário de trabalho: com o padrão, o texto automático (fim de semana / 2º turno);
+        // com outro texto escolhido na proposta, ele
+        if (!Jornada.EhDeFabrica(p.Jornada))
+            notas.Add(new("inc.mobilizacao", "incluso", Jornada.DaProposta(p.Jornada) + ";"));
+        else Inc("inc.mobilizacao", idioma switch
         {
             "English" => "This quotation covers all services, mobilization and demobilization" +
                 (temFds ? "" : " on weekdays (Monday to Friday, except holidays)") +
