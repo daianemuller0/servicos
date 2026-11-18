@@ -40,7 +40,7 @@ public static class PropostaCompleta
     /// <param name="ContatoDoRepresentante">o "Contato" do cadastro do representante, pelo nome</param>
     public sealed record Dados(
         Proposta P, PricingParams Params, Pricing.Documento Base, Pricing.Documento Apresentado,
-        BillingInfo? Faturamento, Func<string, string?> ContatoDoRepresentante);
+        BillingInfo? Faturamento, Func<string, string?> ContatoDoRepresentante, string? Bancario = null);
 
     /// <summary>"Proposta-HSAXXX.AFM.000123-rev0.docx" (Quote / Propuesta no inglês e no espanhol).</summary>
     public static string NomeDoArquivo(Proposta p, string extensao)
@@ -1024,6 +1024,7 @@ internal sealed class PreenchimentoCompleto
             }
 
         if (banco is null) return;
+        if (DadosBancarios.Linhas(_d.Bancario) is { Count: > 0 } linhas) { BlocoBancario(banco, linhas); return; }
         if ((fat.BancoNome ?? "").Trim().Length == 0) { banco.Remove(); return; }
 
         // "Banco: X" em negrito e o resto normal, como no modelo
@@ -1047,6 +1048,41 @@ internal sealed class PreenchimentoCompleto
         if ((fat.Agencia ?? "").Trim().Length > 0) resto += $" – {T3("Agência", "Branch", "Agencia")}: {fat.Agencia!.Trim()}";
         if ((fat.Conta ?? "").Trim().Length > 0) resto += $" {T3("Conta", "Account", "Cuenta")}: {fat.Conta!.Trim()}";
         if (resto.Length > 0) p.Append(R(normal, resto));
+    }
+
+    /// <summary>
+    /// Os dados bancários da moeda da proposta (tela Dados de Faturamento) no
+    /// lugar da caixa do banco: o título ("Dólar Americano – USD") e o quadro
+    /// "esquerda | direita", tudo junto na mesma página.
+    /// </summary>
+    private void BlocoBancario(Table banco, List<LinhaBancaria> linhas)
+    {
+        var duas = linhas.Any(l => l.Direita.Length > 0);
+        var esquerda = DadosBancarios.LarguraDaEsquerda(linhas);
+        var w = duas ? Colunas(esquerda, 100 - esquerda) : Colunas(100);
+        TableCell Celula(int largura, string texto)
+        {
+            var c = Cx(largura, Px(JustificationValues.Left, 0, 0,
+                DadosBancarios.Trechos(texto).Select(x => Rx(x.Texto, x.Negrito, 17)).DefaultIfEmpty(Rx("", false, 17)).ToArray()));
+            c.TableCellProperties!.GetFirstChild<TableCellVerticalAlignment>()!.Val = TableVerticalAlignmentValues.Top;
+            return c;
+        }
+
+        var titulo = Px(JustificationValues.Left, 120, 60, Rx(DadosBancarios.Titulo(_p.Moeda, _p.Idioma), true, 18));
+        var t = Tx(w);
+        foreach (var l in linhas)
+            t.Append(duas
+                ? LinhaNaoQuebra(Celula(w[0], l.Esquerda), Celula(w[1], l.Direita))
+                : LinhaNaoQuebra(Celula(w[0], l.Esquerda)));
+        // o quadro não se divide entre páginas: cada linha "segura" a próxima
+        foreach (var p in new[] { titulo }.Concat(t.Elements<TableRow>().SkipLast(1).SelectMany(r => r.Descendants<Paragraph>())))
+        {
+            p.ParagraphProperties ??= new ParagraphProperties();
+            p.ParagraphProperties.KeepNext ??= new KeepNext();
+        }
+        banco.InsertBeforeSelf(titulo);
+        banco.InsertBeforeSelf(t);
+        banco.Remove();
     }
 
     // ================= assessoria técnica no campo (as diárias) =================

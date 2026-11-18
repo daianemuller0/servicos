@@ -679,7 +679,7 @@
 
 </div>
 
-<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, DocA, _logo, Faturamento(), RepInfo(), Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA)))</div>
+<div class="proposal-doc">@((MarkupString)Servicos.DocBody(P, DocA, _logo, Faturamento(), RepInfo(), Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA), Bancario()))</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "id")] public string? PropostaId { get; set; }
@@ -818,7 +818,7 @@
             _erro = await BaixarPropostaCompleta(false, DocA, Faturamento(), _reps);
             return;
         }
-        var html = Servicos.DocHtml(P, DocA, _logo, Faturamento(), RepInfo(), Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA));
+        var html = Servicos.DocHtml(P, DocA, _logo, Faturamento(), RepInfo(), Servicos.NotasHtml(P, R.ItensMO, R.ItensDespesa, R.Params, DocA), Bancario());
         var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
         var prefixo = P.Idioma switch { "English" => "Quote", "Español" => "Propuesta", _ => "Proposta" };
         var nome = $"{prefixo}-{(string.IsNullOrWhiteSpace(P.Numero) ? "rascunho" : P.Numero)}.doc";

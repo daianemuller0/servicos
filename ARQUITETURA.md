@@ -185,7 +185,16 @@ Igual ao projeto Licenças (`Data/ParquetStore.cs`, copiado sem alterações de 
 
 Entidades: `propostas`, `parametros` (tabela de custos, semeada), `representantes`
 (semeada com a tabela da planilha: 31 representantes com comissão e contato),
-`faturamento` (semeada com os dados da HSA-SP) e `branding` (logo).
+`faturamento` (semeada com os dados da HSA-SP e da HCHL) e `branding` (logo).
+
+**Dados bancários por BU e moeda** (`Data/DadosBancarios.cs`): um bloco de texto
+por BU+moeda, na configuração (chave `banco.<BU>.<moeda>`); sem nada salvo vale o
+padrão de fábrica (HSA-SP: BRL Itaú, USD JPMorgan→Itaú, EUR Commerzbank→Itaú;
+HCHL: CLP, USD e EUR no HSBC). Formato: uma linha por linha do quadro,
+`esquerda | direita`, `*negrito*`. Na proposta (simples e completa) sai a
+razão social + endereço + registro da BU e, embaixo, o título da moeda
+("Dólar Americano – USD") e o quadro. Moeda sem bloco (ou bloco apagado) usa o
+banco do cadastro da BU (Banco/Agência/Conta), como antes.
 
 A pasta vem de `Data:Folder` no `appsettings.json`; sem configuração, usa `data/`.
 
@@ -227,7 +236,7 @@ O botão **Nova proposta** limpa e recarrega os itens padrão da Tabela de Custo
 | `/servicos/representantes` | Representantes | Cadastro dos representantes com % de comissão e contato |
 | `/servicos/parametros` | Tabela de Custos | Custo/hora e despesas padrão (com o multiplicador da hora-base) |
 | `/servicos/marca` | Identidade Visual | Logo usado no documento |
-| `/servicos/faturamento` | Dados de Faturamento | Razão social, endereço e banco por BU |
+| `/servicos/faturamento` | Dados de Faturamento | Razão social, endereço e registro por BU (saem em todas as moedas) e **dados bancários por moeda** (BRL/USD/EUR/CLP/PEN) |
 | `/servicos/propostas/export` | — | CSV das propostas (UTF-8 com BOM, separador `;`) |
 
 ---

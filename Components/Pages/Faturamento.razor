@@ -2,13 +2,15 @@
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject FaturamentoRepository Repo
+@inject ConfigRepository Config
 
 <div class="page-head">
     <div>
         <h1>Dados de Faturamento</h1>
         <p class="subtitle">
-            Razão social, endereço, registro e banco de cada BU emissora — o bloco
-            "DADOS PARA FATURAMENTO" impresso no fim da proposta.
+            Razão social, endereço, registro e dados bancários de cada BU emissora — o bloco
+            "DADOS PARA FATURAMENTO" impresso no fim da proposta. A razão social, o endereço
+            e o registro saem em todas as moedas; os dados bancários, os da moeda da proposta.
         </p>
     </div>
     <div class="page-actions">
@@ -42,7 +44,52 @@
             </label>
         </div>
 
-        <h3 class="dash-title" style="margin-top:18px">Banco</h3>
+        <h3 class="dash-title" style="margin-top:18px">Dados bancários por moeda</h3>
+        <p class="muted" style="max-width:820px">
+            Uma linha por linha do quadro. Para duas colunas, separe com <code>|</code>
+            (ex.: <code>Swift Code: CHASUS33 | Swift code: ITAUBRSP</code>); linha começando com
+            <code>|</code> deixa a coluna da esquerda vazia. Texto entre <code>*asteriscos*</code> sai em negrito.
+            Moeda sem nada escrito usa o banco do cadastro (abaixo).
+        </p>
+        <div class="tabs">
+            @foreach (var m in Servicos.Moedas)
+            {
+                var tem = DadosBancarios.Linhas(Bloco(f.Id, m)).Count > 0;
+                <button class="tab @(m == _moeda ? "active" : "")" @onclick="() => _moeda = m">@m@(tem ? " ✓" : "")</button>
+            }
+        </div>
+        <div class="banco-moeda" style="max-width:820px">
+            <textarea class="cell" rows="10" style="width:100%;font-family:Consolas,monospace;font-size:12px"
+                      value="@Bloco(f.Id, _moeda)" @onchange="e => SalvarBloco(f.Id, _moeda, e.Value?.ToString())"></textarea>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+                @if (DadosBancarios.DeFabrica(f.Id, _moeda).Length > 0 && Bloco(f.Id, _moeda) != DadosBancarios.DeFabrica(f.Id, _moeda))
+                {
+                    <button class="btn-ghost" @onclick="() => SalvarBloco(f.Id, _moeda, DadosBancarios.DeFabrica(f.Id, _moeda))">Voltar ao padrão</button>
+                }
+            </div>
+            @if (DadosBancarios.Linhas(Bloco(f.Id, _moeda)) is { Count: > 0 } linhas)
+            {
+                var duas = linhas.Any(l => l.Direita.Length > 0);
+                <div class="banco-previa">
+                    <div class="muted" style="margin:10px 0 4px">Como sai na proposta:</div>
+                    <b>@DadosBancarios.Titulo(_moeda, "Português")</b>
+                    <table>
+                        @foreach (var l in linhas)
+                        {
+                            <tr>
+                                <td>@Celula(l.Esquerda)</td>
+                                @if (duas)
+                                {
+                                    <td>@Celula(l.Direita)</td>
+                                }
+                            </tr>
+                        }
+                    </table>
+                </div>
+            }
+        </div>
+
+        <h3 class="dash-title" style="margin-top:18px">Banco do cadastro (moeda sem dados bancários acima)</h3>
         <div class="form3">
             <label>Banco
                 <input class="cell" @bind="f.BancoNome" @bind:after="() => Salvar(f)" />
@@ -64,8 +111,32 @@
 
     private BillingInfo? Atual => _itens.FirstOrDefault(x => x.Id == _aba);
 
+    private string _moeda = "BRL";
+    private Dictionary<string, string> _cfg = new();
+
+    private string Bloco(string bu, string moeda) => DadosBancarios.Texto(_cfg, bu, moeda);
+
+    private void SalvarBloco(string bu, string moeda, string? texto)
+    {
+        var limpo = string.Join("\n", (texto ?? "").Replace("\r\n", "\n").Split('\n').Select(l => l.TrimEnd())).Trim('\n');
+        Config.Set(DadosBancarios.Chave(bu, moeda), limpo);
+        _cfg[DadosBancarios.Chave(bu, moeda)] = limpo;
+        _salvo = true;
+    }
+
+    private static RenderFragment Celula(string texto) => b =>
+    {
+        var i = 0;
+        foreach (var (t, negrito) in DadosBancarios.Trechos(texto))
+        {
+            if (negrito) { b.OpenElement(i++, "b"); b.AddContent(i++, t); b.CloseElement(); }
+            else b.AddContent(i++, t);
+        }
+    };
+
     protected override void OnInitialized()
     {
+        _cfg = Config.All();
         _itens = Repo.All();
         if (_itens.Count == 0) _itens = Seed.Faturamento();
         if (!_itens.Any(x => x.Id == _aba)) _aba = _itens[0].Id;

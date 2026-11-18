@@ -172,6 +172,9 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
 
     // ================= proposta completa (segundo padrão) =================
 
+    /// <summary>Os dados bancários da BU na moeda da proposta (tela Dados de Faturamento).</summary>
+    protected string Bancario() => DadosBancarios.Texto(Cfg, R.Proposta.Bu, R.Proposta.Moeda);
+
     /// <summary>A proposta está no padrão completo (o modelo Word da equipe)?</summary>
     protected bool Completa => R.Proposta.ModeloProposta == "Completa";
 
@@ -186,7 +189,7 @@ public abstract class PaginaProposta : ComponentBase, IDisposable
         {
             var reps = representantes.ToList();
             var dados = new PropostaCompleta.Dados(R.Proposta, R.Params, R.Documento(), apresentado, faturamento,
-                nome => reps.FirstOrDefault(x => x.Nome == nome)?.Contato);
+                nome => reps.FirstOrDefault(x => x.Nome == nome)?.Contato, Bancario());
             var bytes = pdf ? await Task.Run(() => PropostaCompleta.GerarPdf(dados)) : PropostaCompleta.Gerar(dados);
             await JS.InvokeVoidAsync("appDownload", PropostaCompleta.NomeDoArquivo(R.Proposta, pdf ? "pdf" : "docx"),
                 pdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

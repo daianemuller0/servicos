@@ -679,3 +679,8 @@ h1 { font-size: 24px; margin: 0 0 4px; color: var(--primary); letter-spacing: -.
 .equipe-campos { display: flex; gap: 16px; flex-wrap: wrap; margin: 6px 0 0 22px; }
 .equipe-campos label { display: flex; gap: 6px; align-items: center; }
 .equipe-campos input { width: 60px; }
+
+/* Dados de Faturamento: prévia do quadro bancário */
+.banco-previa { font-size: 12px; color: #23253F; }
+.banco-previa table { border-collapse: collapse; margin-top: 4px; }
+.banco-previa td { padding: 1px 18px 1px 0; vertical-align: top; }

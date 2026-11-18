@@ -126,7 +126,13 @@ public static class Seed
             BancoNome = "Banco Itaú", Agencia = "4892", Conta = "28480-5",
         },
         new BillingInfo { Id = "HSA-ES" },
-        new BillingInfo { Id = "HCHL" },
+        new BillingInfo
+        {
+            Id = "HCHL",
+            Razao = "Howden Chile SpA",
+            Endereco = "Cordillera 575, Pudahuel, Santiago – Chile",
+            Registro = "RUT: 76.274.455-4",
+        },
         new BillingInfo { Id = "HPU" },
     };
 

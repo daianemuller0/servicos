@@ -745,17 +745,38 @@ public static class Servicos
                Secao("gerais", tGerais, navy, "✓", "14px");
     }
 
-    public static string DocHtml(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? fat, string? repInfo = null, string? notas = null) =>
+    /// <summary>Os dados bancários da moeda (título + quadro) ou, sem bloco, a linha do banco do cadastro.</summary>
+    private static string BancarioHtml(Proposta p, string? bancario, string bancoLinha)
+    {
+        var linhas = DadosBancarios.Linhas(bancario);
+        if (linhas.Count == 0)
+            return bancoLinha == "" ? "" : $"<p style='margin:12px 0 0'><span style='border:1px solid #d5dae4;border-radius:3px;padding:5px 12px;display:inline-block;color:#23253F'><b>{bancoLinha}</b></span></p>";
+        string Celula(string t) => string.Concat(DadosBancarios.Trechos(DadosBancarios.NoIdioma(t, p.Idioma)).Select(x =>
+            x.Negrito ? $"<b>{System.Net.WebUtility.HtmlEncode(x.Texto)}</b>" : System.Net.WebUtility.HtmlEncode(x.Texto)));
+        var duas = linhas.Any(l => l.Direita.Length > 0);
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"<p style='margin:12px 0 4px;font-weight:bold;color:#23253F'>{System.Net.WebUtility.HtmlEncode(DadosBancarios.Titulo(p.Moeda, p.Idioma))}</p>");
+        sb.Append("<table style='border-collapse:collapse;font-size:8.5pt;color:#23253F'>");
+        foreach (var l in linhas)
+            sb.Append(duas
+                ? $"<tr><td style='padding:1px 18px 1px 0;vertical-align:top'>{Celula(l.Esquerda)}</td><td style='padding:1px 0;vertical-align:top'>{Celula(l.Direita)}</td></tr>"
+                : $"<tr><td style='padding:1px 0'>{Celula(l.Esquerda)}</td></tr>");
+        sb.Append("</table>");
+        return sb.ToString();
+    }
+
+    public static string DocHtml(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? fat, string? repInfo = null, string? notas = null, string? bancario = null) =>
         $@"<html><head><meta charset='utf-8'><title>Proposta {System.Net.WebUtility.HtmlEncode(p.Numero)}</title>
 <style>body {{ font-family: Arial, sans-serif; color: #3C465A; font-size: 9pt; margin: 32px; }}</style>
-</head><body>{DocBody(p, doc, logo, fat, repInfo, notas)}</body></html>";
+</head><body>{DocBody(p, doc, logo, fat, repInfo, notas, bancario)}</body></html>";
 
     /// <summary>
     /// Miolo do documento — compartilhado entre a impressão/PDF e o Word.
     /// Mesmas cores do modelo oficial: Arial, títulos navy #141E32, texto
     /// #3C465A e caixas/tabelas em azul #004785. Estilos inline por causa do Word.
     /// </summary>
-    public static string DocBody(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? billing, string? repInfo = null, string? notas = null)
+    /// <param name="bancario">O bloco de dados bancários da BU na moeda da proposta (<see cref="DadosBancarios"/>); vazio = o banco do cadastro da BU.</param>
+    public static string DocBody(Proposta p, Pricing.Documento doc, string? logo, BillingInfo? billing, string? repInfo = null, string? notas = null, string? bancario = null)
     {
         const string azul = "#004785";
         const string navy = "#141E32";
@@ -973,7 +994,7 @@ public static class Servicos
 
 <p style='margin:26px 0 4px;font-weight:bold;font-size:10pt;color:{navy}'>{L.Faturamento}</p>
 <p style='margin:0;color:{corpo}'><b style='color:{navy}'>{E(fat.Razao)}</b><br/>{E(fat.Endereco)}{(string.IsNullOrWhiteSpace(fat.Registro) ? "" : $"<br/><span style='color:{sec}'>{E(fat.Registro)}</span>")}</p>
-{(bancoLinha == "" ? "" : $"<p style='margin:12px 0 0'><span style='border:1px solid #d5dae4;border-radius:3px;padding:5px 12px;display:inline-block;color:#23253F'><b>{bancoLinha}</b></span></p>")}
+{BancarioHtml(p, bancario, bancoLinha)}
 
 <p style='color:{rod};font-style:italic;margin-top:26px'>{L.PreparadaPor} {D(p.PreparadaPor)}{(string.IsNullOrWhiteSpace(p.RevisadaPor) ? "" : $" · {L.RevisadaPor} {E(p.RevisadaPor)}")} · {E(p.Ano)} · BU {E(p.Bu)}</p>
 </div>";
