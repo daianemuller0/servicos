@@ -260,8 +260,10 @@ h1 { font-size: 24px; margin: 0 0 4px; color: var(--primary); letter-spacing: -.
 .kpi.k-ren  { border-top-color: #16a34a; }
 
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.page-head > div:first-child { flex: 1 1 260px; min-width: 260px; }
 .page-head .subtitle { margin-bottom: 0; }
-.page-actions { display: flex; align-items: center; gap: 10px; flex: none; margin-top: 4px; }
+/* os botões quebram linha em vez de espremer o título e a descrição */
+.page-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; flex: 0 1 auto; margin-top: 4px; }
 
 .kpis-8 { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; }
 .kpis-8 .kpi { padding: 12px 13px; }

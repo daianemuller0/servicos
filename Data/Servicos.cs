@@ -497,11 +497,76 @@ public static class Servicos
         return Mailto(para, PreencherModelo(assunto, p, doc), PreencherModelo(corpo, p, doc));
     }
 
+    /// <summary>Largura e altura (pixels) de uma imagem em data URI — PNG, JPEG, GIF ou SVG; null se não der para ler.</summary>
+    public static (int Largura, int Altura)? TamanhoDaImagem(string dataUri)
+    {
+        try
+        {
+            var virgula = dataUri.IndexOf(',');
+            if (!dataUri.StartsWith("data:", StringComparison.OrdinalIgnoreCase) || virgula < 0) return null;
+            var cabeca = dataUri[..virgula];
+            var dados = dataUri[(virgula + 1)..];
+            byte[] b = cabeca.Contains(";base64", StringComparison.OrdinalIgnoreCase)
+                ? Convert.FromBase64String(dados)
+                : System.Text.Encoding.UTF8.GetBytes(Uri.UnescapeDataString(dados));
+
+            int Be16(int i) => (b[i] << 8) | b[i + 1];
+            int Be32(int i) => (b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3];
+
+            // PNG: IHDR logo no começo
+            if (b.Length > 24 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47)
+                return (Be32(16), Be32(20));
+            // GIF
+            if (b.Length > 10 && b[0] == 'G' && b[1] == 'I' && b[2] == 'F')
+                return (b[6] | (b[7] << 8), b[8] | (b[9] << 8));
+            // JPEG: anda pelos marcadores até o SOF
+            if (b.Length > 4 && b[0] == 0xFF && b[1] == 0xD8)
+            {
+                var i = 2;
+                while (i + 9 < b.Length)
+                {
+                    if (b[i] != 0xFF) { i++; continue; }
+                    var m = b[i + 1];
+                    if (m is >= 0xC0 and <= 0xCF && m is not (0xC4 or 0xC8 or 0xCC))
+                        return (Be16(i + 7), Be16(i + 5));
+                    if (m is 0xD8 or 0x01 or (>= 0xD0 and <= 0xD7)) { i += 2; continue; }
+                    i += 2 + Be16(i + 2);
+                }
+                return null;
+            }
+            // SVG: width/height do <svg> ou o viewBox
+            var texto = System.Text.Encoding.UTF8.GetString(b);
+            var svg = System.Text.RegularExpressions.Regex.Match(texto, @"<svg\b[^>]*>", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (!svg.Success) return null;
+            double? Attr(string nome)
+            {
+                var a = System.Text.RegularExpressions.Regex.Match(svg.Value, $@"\b{nome}\s*=\s*[""']([\d.]+)(px)?[""']");
+                return a.Success ? double.Parse(a.Groups[1].Value, CultureInfo.InvariantCulture) : null;
+            }
+            if (Attr("width") is { } w && Attr("height") is { } h) return ((int)w, (int)h);
+            var vb = System.Text.RegularExpressions.Regex.Match(svg.Value, @"viewBox\s*=\s*[""'][\d.\-]+[\s,]+[\d.\-]+[\s,]+([\d.]+)[\s,]+([\d.]+)");
+            if (vb.Success)
+                return ((int)double.Parse(vb.Groups[1].Value, CultureInfo.InvariantCulture), (int)double.Parse(vb.Groups[2].Value, CultureInfo.InvariantCulture));
+            return null;
+        }
+        catch (Exception) { return null; }
+    }
+
     /// <summary>Logo do cabeçalho: imagem enviada em Identidade Visual ou o wordmark padrão.</summary>
     public static string LogoHtml(string? logoDataUri = null)
     {
         if (!string.IsNullOrEmpty(logoDataUri))
-            return $"<img src='{logoDataUri}' alt='Howden' style='height:72px' />";
+        {
+            // o Word ignora o "height" do CSS e abre a imagem no tamanho original:
+            // vai a largura e a altura também como atributos, na proporção da imagem
+            const int altura = 72;
+            var largura = TamanhoDaImagem(logoDataUri) is { } t && t.Altura > 0
+                ? (int)Math.Round(altura * (double)t.Largura / t.Altura) : 0;
+            var tamanho = largura > 0
+                ? $"width='{largura}' height='{altura}' style='width:{largura}px;height:{altura}px'"
+                : $"height='{altura}' style='height:{altura}px'";
+            return $"<img src='{logoDataUri}' alt='Howden' {tamanho} />";
+        }
 
         return
             "<div style='font-family:Arial,sans-serif;line-height:1'>" +
